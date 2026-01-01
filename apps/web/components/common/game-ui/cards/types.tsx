@@ -70,7 +70,7 @@ export enum CardConceptType {
       nameStyle:
         "text-[#402716] top-[3.3%] left-3/5 -translate-x-1/2 Z font-(family-name:--font-god-of-war) max-w-[70%]",
       descriptionStyle:
-        "text-black/80 bottom-[10.8%] font-(family-name:--font-helvetica) w-[72%]",
+        "text-black/80 bottom-[10%] font-(family-name:--font-helvetica) w-[72%] font-semibold",
   
       cards: {
         [CardType.Value0]: {
@@ -106,7 +106,7 @@ export enum CardConceptType {
         },
         [CardType.Value4]: {
           value: 4,
-          name: "Cleric Ward",
+          name: "Cleric",
           description: "You are immune to all card effects until your next turn.",
           image: `${imagePrefixPath}/characters/4-cleric-ward.png`,
           descriptionStyle: "w-[60%]",

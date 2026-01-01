@@ -1,14 +1,14 @@
 "use client";
 
-import * as React from "react";
-import { useState } from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import type { CardType, CardConceptValue } from "./types";
-import { CardConceptType, cardsMap } from "./types";
 import { cn } from "@/lib/utils";
+import { cva, type VariantProps } from "class-variance-authority";
+import { useRef, useState } from "react";
+import type { CardConceptValue, CardType } from "./types";
+import { CardConceptType, cardsMap } from "./types";
+import type * as React from "react";
 
 const cardCharacterVariants = cva(
-  "relative transition-transform duration-500 transform-style-preserve-3d",
+  "relative transition-transform duration-500",
   {
     variants: {
       size: {
@@ -57,44 +57,81 @@ function CardCharacter({
   const w = Math.round((h * 2) / 3);
 
   const [flipped, setFlipped] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
   const canFlip = flip === true;
   const handleFlip = () => {
     setFlipped((f) => !f);
   };
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleFlip();
-    }
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+    setMousePosition({ x, y });
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setMousePosition({ x: 0, y: 0 });
   };
 
   const interactiveProps = canFlip
     ? {
         onClick: handleFlip,
-        onKeyDown: handleKeyDown,
         role: "button" as const,
         tabIndex: 0,
       }
     : {};
 
+  // Character image parallax transform
+  const imageTransform = isHovered
+    ? `translate(${mousePosition.x * 2}px, ${mousePosition.y * 2}px)`
+    : "translate(0, 0)";
+
   return (
     <div
+      ref={cardRef}
       className={cn(
         cardCharacterVariants({ size, flip }),
-        canFlip && flipped && "rotate-y-180",
+        "group",
         className
       )}
-      style={{ width: w, height: h }}
+      style={{
+        width: w,
+        height: h,
+        transformStyle: "preserve-3d",
+        transform: canFlip && flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+      }}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       {...interactiveProps}
       {...props}
     >
       {/* Card Front */}
-      <div className="absolute w-full h-full backface-hidden">
+      <div
+        className="absolute w-full h-full overflow-hidden"
+        style={{
+          backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
+        }}
+      >
         {/* Character image at the bottom */}
         <img
           src={card.image}
           alt={card.name}
-          className="absolute inset-0 w-full h-full object-contain z-0"
+          className="absolute inset-0 w-full h-full object-contain z-0 transition-transform duration-300 ease-out"
+          style={{
+            transform: imageTransform,
+          }}
         />
 
         {/* Frame on top of character */}
@@ -142,7 +179,14 @@ function CardCharacter({
       </div>
 
       {/* Card Back */}
-      <div className="absolute w-full h-full backface-hidden rotate-y-180">
+      <div
+        className="absolute w-full h-full"
+        style={{
+          backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
+          transform: "rotateY(180deg)",
+        }}
+      >
         <img
           src={cardConcept.cardBack}
           alt="Card Back"

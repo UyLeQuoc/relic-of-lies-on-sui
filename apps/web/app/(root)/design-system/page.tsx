@@ -81,10 +81,9 @@ export default function DesignSystemPage() {
               {[CardType.Value0, CardType.Value1, CardType.Value2].map((cardType) => (
                 <div key={cardType} className="flex flex-col items-center gap-2">
                   <CardCharacter
-                    cardConcept={cardsMap[CardConceptType.RelicOfLies]}
                     cardType={cardType}
-                    height={280}
-                    isFlip
+                    size="md"
+                    flip
                   />
                   <p className="text-xs text-muted-foreground text-center">
                     {cardsMap[CardConceptType.RelicOfLies].cards[cardType].name} (Click to flip)
@@ -101,25 +100,22 @@ export default function DesignSystemPage() {
             <div className="flex flex-wrap gap-6 justify-center items-end">
               <div className="flex flex-col items-center gap-2">
                 <CardCharacter
-                  cardConcept={cardsMap[CardConceptType.RelicOfLies]}
                   cardType={CardType.Value0}
-                  height={200}
+                  size="sm"
                 />
                 <p className="text-xs text-muted-foreground">Small (200px)</p>
               </div>
               <div className="flex flex-col items-center gap-2">
                 <CardCharacter
-                  cardConcept={cardsMap[CardConceptType.RelicOfLies]}
                   cardType={CardType.Value5}
-                  height={280}
+                  size="md"
                 />
                 <p className="text-xs text-muted-foreground">Medium (280px)</p>
               </div>
               <div className="flex flex-col items-center gap-2">
                 <CardCharacter
-                  cardConcept={cardsMap[CardConceptType.RelicOfLies]}
                   cardType={CardType.Value9}
-                  height={384}
+                  size="default"
                 />
                 <p className="text-xs text-muted-foreground">Large (384px)</p>
               </div>
