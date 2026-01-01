@@ -1,0 +1,26 @@
+{
+	"name": "relic-of-lies",
+	"private": true,
+	"scripts": {
+		"build": "turbo run build",
+		"dev": "turbo run dev",
+		"lint": "turbo run lint",
+		"check-types": "turbo run check-types",
+		"format": "biome check .",
+		"format:fix": "biome check . --write"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.3.10",
+		"prettier": "^3.7.4",
+		"turbo": "^2.7.2",
+		"typescript": "5.9.2"
+	},
+	"engines": {
+		"node": ">=18"
+	},
+	"packageManager": "bun@1.2.23",
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	]
+}
