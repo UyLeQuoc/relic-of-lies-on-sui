@@ -1,200 +1,241 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
+import type * as React from "react";
 import { useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 import type { CardConceptValue, CardType } from "./types";
 import { CardConceptType, cardsMap } from "./types";
-import type * as React from "react";
 
 const cardCharacterVariants = cva(
-  "relative transition-transform duration-500",
-  {
-    variants: {
-      size: {
-        sm: "h-[200px]",
-        md: "h-[280px]",
-        default: "h-[384px]",
-        lg: "h-[500px]",
-      },
-      flip: {
-        false: "",
-        true: "cursor-pointer",
-      },
-    },
-    defaultVariants: {
-      size: "default",
-      flip: false,
-    },
-  }
+	"relative transition-transform duration-500",
+	{
+		variants: {
+			size: {
+				sm: "h-[200px]",
+				md: "h-[280px]",
+				default: "h-[250px] sm:h-[300px] md:h-[350px] lg:h-[384px]",
+				lg: "h-[350px] sm:h-[400px] md:h-[450px] lg:h-[500px]",
+				responsive:
+					"h-[200px] sm:h-[250px] md:h-[300px] lg:h-[350px] xl:h-[384px]",
+			},
+			flip: {
+				false: "",
+				true: "cursor-pointer",
+			},
+		},
+		defaultVariants: {
+			size: "default",
+			flip: false,
+		},
+	},
 );
 
 interface CardCharacterProps
-  extends React.ComponentProps<"div">,
-    VariantProps<typeof cardCharacterVariants> {
-  cardType: CardType;
-  cardConcept?: CardConceptValue;
+	extends React.ComponentProps<"div">,
+		VariantProps<typeof cardCharacterVariants> {
+	cardType: CardType;
+	cardConcept?: CardConceptValue;
 }
 
 function CardCharacter({
-  cardType,
-  cardConcept = cardsMap[CardConceptType.RelicOfLies],
-  className,
-  size = "default",
-  flip = false,
-  ...props
+	cardType,
+	cardConcept = cardsMap[CardConceptType.RelicOfLies],
+	className,
+	size = "default",
+	flip = false,
+	...props
 }: CardCharacterProps) {
-  const card = cardConcept.cards[cardType];
-  
-  const heightMap = {
-    sm: 200,
-    md: 280,
-    default: 384,
-    lg: 500,
-  } as const;
-  
-  const h = heightMap[size ?? "default"];
-  const w = Math.round((h * 2) / 3);
+	const card = cardConcept.cards[cardType];
 
-  const [flipped, setFlipped] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isHovered, setIsHovered] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
+	// Base height for font size calculations (using default desktop size for calculations)
+	const heightMap = {
+		sm: 200,
+		md: 280,
+		default: 384,
+		lg: 500,
+		responsive: 350, // Base for calculations on responsive
+	} as const;
 
-  const canFlip = flip === true;
-  const handleFlip = () => {
-    setFlipped((f) => !f);
-  };
+	const baseHeight = heightMap[size ?? "default"];
+	const isResponsive = size === "responsive";
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
-    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
-    setMousePosition({ x, y });
-  };
+	// Calculate dimensions for non-responsive sizes
+	const h = isResponsive ? undefined : baseHeight;
+	const w = isResponsive ? undefined : Math.round((baseHeight * 2) / 3);
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-  };
+	const [flipped, setFlipped] = useState(false);
+	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+	const [isHovered, setIsHovered] = useState(false);
+	const cardRef = useRef<HTMLDivElement>(null);
 
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    setMousePosition({ x: 0, y: 0 });
-  };
+	const canFlip = flip === true;
+	const handleFlip = () => {
+		setFlipped((f) => !f);
+	};
 
-  const interactiveProps = canFlip
-    ? {
-        onClick: handleFlip,
-        role: "button" as const,
-        tabIndex: 0,
-      }
-    : {};
+	const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+		if (!cardRef.current) return;
+		const rect = cardRef.current.getBoundingClientRect();
+		const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+		const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+		setMousePosition({ x, y });
+	};
 
-  // Character image parallax transform
-  const imageTransform = isHovered
-    ? `translate(${mousePosition.x * 2}px, ${mousePosition.y * 2}px)`
-    : "translate(0, 0)";
+	const handleMouseEnter = () => {
+		setIsHovered(true);
+	};
 
-  return (
-    <div
-      ref={cardRef}
-      className={cn(
-        cardCharacterVariants({ size, flip }),
-        "group",
-        className
-      )}
-      style={{
-        width: w,
-        height: h,
-        transformStyle: "preserve-3d",
-        transform: canFlip && flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-      }}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      {...interactiveProps}
-      {...props}
-    >
-      {/* Card Front */}
-      <div
-        className="absolute w-full h-full overflow-hidden"
-        style={{
-          backfaceVisibility: "hidden",
-          WebkitBackfaceVisibility: "hidden",
-        }}
-      >
-        {/* Character image at the bottom */}
-        <img
-          src={card.image}
-          alt={card.name}
-          className="absolute inset-0 w-full h-full object-contain z-0 transition-transform duration-300 ease-out"
-          style={{
-            transform: imageTransform,
-          }}
-        />
+	const handleMouseLeave = () => {
+		setIsHovered(false);
+		setMousePosition({ x: 0, y: 0 });
+	};
 
-        {/* Frame on top of character */}
-        <img
-          src={cardConcept.frame}
-          alt="Card Frame"
-          className="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none"
-        />
+	const interactiveProps = canFlip
+		? {
+				onClick: handleFlip,
+				role: "button" as const,
+				tabIndex: 0,
+			}
+		: {};
 
-        {/* Value, Name, Description with styles from constant and dynamic fontSize */}
-        <span
-          className={cn(
-            cardConcept.valueStyle,
-            card.valueStyle,
-            "absolute z-20"
-          )}
-          style={{ fontSize: `${h * (cardConcept.valueFontSize ?? 0.1)}px` }}
-        >
-          {card.value}
-        </span>
-        <h3
-          className={cn(
-            cardConcept.nameStyle,
-            card.nameStyle,
-            "absolute z-20 truncate"
-          )}
-          style={{ fontSize: `${h * (cardConcept.nameFontSize ?? 0.048)}px` }}
-        >
-          {card.name}
-        </h3>
-        {card.description && (
-          <p
-            className={cn(
-              cardConcept.descriptionStyle,
-              card.descriptionStyle,
-              "absolute z-20 text-center left-1/2 -translate-x-1/2"
-            )}
-            style={{
-              fontSize: `${h * (cardConcept.descriptionFontSize ?? 0.028)}px`,
-            }}
-          >
-            {card.description}
-          </p>
-        )}
-      </div>
+	// Character image parallax transform
+	const imageTransform = isHovered
+		? `translate(${mousePosition.x * 2}px, ${mousePosition.y * 2}px)`
+		: "translate(0, 0)";
 
-      {/* Card Back */}
-      <div
-        className="absolute w-full h-full"
-        style={{
-          backfaceVisibility: "hidden",
-          WebkitBackfaceVisibility: "hidden",
-          transform: "rotateY(180deg)",
-        }}
-      >
-        <img
-          src={cardConcept.cardBack}
-          alt="Card Back"
-          className="w-full h-full object-cover"
-        />
-      </div>
-    </div>
-  );
+	return (
+		<div
+			ref={cardRef}
+			className={cn(
+				cardCharacterVariants({ size, flip }),
+				"group",
+				isResponsive &&
+					"aspect-[2/3] w-full max-w-[256px] sm:max-w-[300px] md:max-w-[350px] lg:max-w-[384px]",
+				className,
+			)}
+			style={{
+				...(isResponsive
+					? {
+							transformStyle: "preserve-3d",
+							transform:
+								canFlip && flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+						}
+					: {
+							width: w,
+							height: h,
+							transformStyle: "preserve-3d",
+							transform:
+								canFlip && flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+						}),
+			}}
+			onMouseMove={handleMouseMove}
+			onMouseEnter={handleMouseEnter}
+			onMouseLeave={handleMouseLeave}
+			{...interactiveProps}
+			{...props}
+		>
+			{/* Card Front */}
+			<div
+				className="absolute w-full h-full overflow-hidden"
+				style={{
+					backfaceVisibility: "hidden",
+					WebkitBackfaceVisibility: "hidden",
+				}}
+			>
+				{/* Character image at the bottom */}
+				<img
+					src={card.image}
+					alt={card.name}
+					className="absolute inset-0 w-full h-full object-contain z-0 transition-transform duration-300 ease-out"
+					style={{
+						transform: imageTransform,
+					}}
+				/>
+
+				{/* Frame on top of character */}
+				<img
+					src={cardConcept.frame}
+					alt="Card Frame"
+					className="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none"
+				/>
+
+				{/* Value, Name, Description with styles from constant and dynamic fontSize */}
+				<span
+					className={cn(
+						cardConcept.valueStyle,
+						card.valueStyle,
+						"absolute z-20",
+						isResponsive &&
+							"text-[0.625rem] sm:text-[0.75rem] md:text-[0.875rem] lg:text-[1rem]",
+					)}
+					style={
+						isResponsive
+							? undefined
+							: {
+									fontSize: `${baseHeight * (cardConcept.valueFontSize ?? 0.1)}px`,
+								}
+					}
+				>
+					{card.value}
+				</span>
+				<h3
+					className={cn(
+						cardConcept.nameStyle,
+						card.nameStyle,
+						"absolute z-20 truncate",
+						isResponsive &&
+							"text-[0.5rem] sm:text-[0.625rem] md:text-[0.75rem] lg:text-[0.875rem]",
+					)}
+					style={
+						isResponsive
+							? undefined
+							: {
+									fontSize: `${baseHeight * (cardConcept.nameFontSize ?? 0.048)}px`,
+								}
+					}
+				>
+					{card.name}
+				</h3>
+				{card.description && (
+					<p
+						className={cn(
+							cardConcept.descriptionStyle,
+							card.descriptionStyle,
+							"absolute z-20 text-center left-1/2 -translate-x-1/2",
+							isResponsive &&
+								"text-[0.4375rem] sm:text-[0.5rem] md:text-[0.5625rem] lg:text-[0.625rem]",
+						)}
+						style={
+							isResponsive
+								? undefined
+								: {
+										fontSize: `${baseHeight * (cardConcept.descriptionFontSize ?? 0.028)}px`,
+									}
+						}
+					>
+						{card.description}
+					</p>
+				)}
+			</div>
+
+			{/* Card Back */}
+			<div
+				className="absolute w-full h-full"
+				style={{
+					backfaceVisibility: "hidden",
+					WebkitBackfaceVisibility: "hidden",
+					transform: "rotateY(180deg)",
+				}}
+			>
+				<img
+					src={cardConcept.cardBack}
+					alt="Card Back"
+					className="w-full h-full object-cover"
+				/>
+			</div>
+		</div>
+	);
 }
 
 export { CardCharacter, cardCharacterVariants };

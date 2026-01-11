@@ -39,3 +39,5 @@ yarn-error.log*
 
 #Tunnel
 apps/tunnel-main
+apps/old-game
+apps/21Challenge
