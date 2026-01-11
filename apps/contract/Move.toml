@@ -1,8 +1,9 @@
 [package]
-name = "contract"
+name = "relic-of-lies"
+version = "0.0.1"
 edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Move
-# license = ""           # e.g., "MIT", "GPL", "Apache 2.0"
-# authors = ["..."]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
+# license = "MIT"           # e.g., "MIT", "GPL", "Apache 2.0"
+# authors = ["Uy Dev (lequocuyit@gmail.com)"]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
 
 [dependencies]
 
