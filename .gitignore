@@ -41,3 +41,6 @@ yarn-error.log*
 apps/tunnel-main
 apps/old-game
 apps/21Challenge
+
+# Summary
+apps/contract/package_summaries
