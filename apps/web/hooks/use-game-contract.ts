@@ -189,5 +189,224 @@ export function useGetRoom(roomId: string | null) {
   };
 }
 
+// Entry fee constant (0.1 SUI = 100_000_000 MIST)
+const ENTRY_FEE = 100_000_000n;
+
+// Hook to join a room
+export function useJoinRoom() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecute, isPending } = useSignAndExecuteTransaction();
+  const { variables: { movePackageId } } = useNetworkConfig();
+  const [error, setError] = useState<Error | null>(null);
+
+  const joinRoom = useCallback(async (roomId: string) => {
+    if (!currentAccount) {
+      throw new Error('Please connect your wallet first');
+    }
+
+    setError(null);
+
+    try {
+      const tx = new Transaction();
+      
+      // Split coin for entry fee
+      const [paymentCoin] = tx.splitCoins(tx.gas, [ENTRY_FEE]);
+      
+      tx.add(game.joinRoom({
+        package: movePackageId,
+        arguments: {
+          room: roomId,
+          payment: paymentCoin,
+        },
+      }));
+
+      const result = await signAndExecute({
+        transaction: tx,
+      });
+
+      await client.waitForTransaction({
+        digest: result.digest,
+        options: { showEffects: true },
+      });
+
+      return { digest: result.digest };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to join room');
+      setError(error);
+      throw error;
+    }
+  }, [client, currentAccount, signAndExecute, movePackageId]);
+
+  return {
+    joinRoom,
+    isPending,
+    error,
+  };
+}
+
+// Hook to start a round
+export function useStartRound() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecute, isPending } = useSignAndExecuteTransaction();
+  const { variables: { movePackageId } } = useNetworkConfig();
+  const [error, setError] = useState<Error | null>(null);
+
+  const startRound = useCallback(async (roomId: string) => {
+    if (!currentAccount) {
+      throw new Error('Please connect your wallet first');
+    }
+
+    setError(null);
+
+    try {
+      const tx = new Transaction();
+      
+      tx.add(game.startRound({
+        package: movePackageId,
+        arguments: {
+          room: roomId,
+        },
+      }));
+
+      const result = await signAndExecute({
+        transaction: tx,
+      });
+
+      await client.waitForTransaction({
+        digest: result.digest,
+        options: { showEffects: true },
+      });
+
+      return { digest: result.digest };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to start round');
+      setError(error);
+      throw error;
+    }
+  }, [client, currentAccount, signAndExecute, movePackageId]);
+
+  return {
+    startRound,
+    isPending,
+    error,
+  };
+}
+
+// Hook to play a turn
+export function usePlayTurn() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecute, isPending } = useSignAndExecuteTransaction();
+  const { variables: { movePackageId, leaderboardId } } = useNetworkConfig();
+  const [error, setError] = useState<Error | null>(null);
+
+  const playTurn = useCallback(async (
+    roomId: string,
+    card: number,
+    targetIdx: number | null,
+    guess: number | null
+  ) => {
+    if (!currentAccount) {
+      throw new Error('Please connect your wallet first');
+    }
+
+    setError(null);
+
+    try {
+      const tx = new Transaction();
+      
+      tx.add(game.playTurn({
+        package: movePackageId,
+        arguments: {
+          room: roomId,
+          leaderboard: leaderboardId,
+          card,
+          targetIdx,
+          guess,
+        },
+      }));
+
+      const result = await signAndExecute({
+        transaction: tx,
+      });
+
+      await client.waitForTransaction({
+        digest: result.digest,
+        options: { showEffects: true },
+      });
+
+      return { digest: result.digest };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to play turn');
+      setError(error);
+      throw error;
+    }
+  }, [client, currentAccount, signAndExecute, movePackageId, leaderboardId]);
+
+  return {
+    playTurn,
+    isPending,
+    error,
+  };
+}
+
+// Hook to resolve chancellor action
+export function useResolveChancellor() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecute, isPending } = useSignAndExecuteTransaction();
+  const { variables: { movePackageId, leaderboardId } } = useNetworkConfig();
+  const [error, setError] = useState<Error | null>(null);
+
+  const resolveChancellor = useCallback(async (
+    roomId: string,
+    keepCard: number,
+    returnOrder: number[]
+  ) => {
+    if (!currentAccount) {
+      throw new Error('Please connect your wallet first');
+    }
+
+    setError(null);
+
+    try {
+      const tx = new Transaction();
+      
+      tx.add(game.resolveChancellor({
+        package: movePackageId,
+        arguments: {
+          room: roomId,
+          leaderboard: leaderboardId,
+          keepCard,
+          returnOrder,
+        },
+      }));
+
+      const result = await signAndExecute({
+        transaction: tx,
+      });
+
+      await client.waitForTransaction({
+        digest: result.digest,
+        options: { showEffects: true },
+      });
+
+      return { digest: result.digest };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to resolve chancellor');
+      setError(error);
+      throw error;
+    }
+  }, [client, currentAccount, signAndExecute, movePackageId, leaderboardId]);
+
+  return {
+    resolveChancellor,
+    isPending,
+    error,
+  };
+}
+
 // Export the type for use in components
 export type { GameRoomType };

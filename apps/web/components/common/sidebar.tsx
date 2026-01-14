@@ -13,6 +13,7 @@ import {
 import Link from "next/link"
 import { useState } from "react"
 import { Button } from "../ui/button"
+import { useRouter } from "next/navigation"
 
 const menuItems = [
   { id: "home", label: "Home", icon: Home },
@@ -25,6 +26,7 @@ const menuItems = [
 
 export function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(false)
+  const router = useRouter()
 
   return (
     <>
@@ -53,10 +55,19 @@ export function Sidebar() {
           <nav className="flex-1 overflow-hidden px-3 py-4 space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon
+              const hrefMap: Record<string, string> = {
+                'home': '/',
+                'rooms': '/rooms',
+                'how-to-play': '/how-to-play',
+                'friends': '/friends',
+                'quests': '/quests',
+                'news': '/news',
+              }
+              const href = hrefMap[item.id] || `#${item.id}`
               return (
                 <Link
                   key={item.id}
-                  href={`#${item.id}`}
+                  href={href}
                   className={`flex items-center gap-4 px-3 py-3 rounded-md group justify-start`}
                   style={{
                     transition:
@@ -80,6 +91,9 @@ export function Sidebar() {
               style={{
                 transition:
                   "background-color 200ms cubic-bezier(0.4, 0, 0.2, 1), padding 400ms cubic-bezier(0.4, 0, 0.2, 1)",
+              }}
+              onClick={() => {
+                router.push('/rooms')
               }}
             >
               <Triangle className="w-4 h-4" />
@@ -117,10 +131,19 @@ export function Sidebar() {
         <div className="flex items-center justify-around px-2 py-3">
           {menuItems.slice(0, 5).map((item) => {
             const Icon = item.icon
+            const hrefMap: Record<string, string> = {
+              'home': '/',
+              'rooms': '/rooms',
+              'how-to-play': '/how-to-play',
+              'friends': '/friends',
+              'quests': '/quests',
+              'news': '/news',
+            }
+            const href = hrefMap[item.id] || `#${item.id}`
             return (
               <Link
                 key={item.id}
-                href={`#${item.id}`}
+                href={href}
                 className="flex flex-col items-center gap-1 px-3 py-2 rounded-md group min-w-0"
               >
                 <Icon className="w-5 h-5 flex-shrink-0 text-foreground/60 group-hover:text-foreground transition-colors duration-200" />
@@ -131,7 +154,7 @@ export function Sidebar() {
             )
           })}
           <Link
-            href="#play"
+            href="/rooms"
             className="flex flex-col items-center gap-1 px-3 py-2 rounded-md group min-w-0"
           >
             <div className="bg-primary text-primary-foreground rounded-full p-2">
