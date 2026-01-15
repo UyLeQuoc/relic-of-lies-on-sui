@@ -108,6 +108,9 @@ export function RoomsLobby() {
 			// Player count filter
 			if (playerCountFilter !== 'all') {
 				const [min, max] = playerCountFilter.split('-').map(Number);
+				if (min === undefined) {
+					return false;
+				}
 				if (max) {
 					if (room.players.length < min || room.players.length > max) {
 						return false;

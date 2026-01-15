@@ -190,7 +190,7 @@ export function useGetRoom(roomId: string | null) {
 }
 
 // Entry fee constant (0.1 SUI = 100_000_000 MIST)
-const ENTRY_FEE = 100_000_000n;
+const ENTRY_FEE = BigInt(100_000_000);
 
 // Hook to join a room
 export function useJoinRoom() {

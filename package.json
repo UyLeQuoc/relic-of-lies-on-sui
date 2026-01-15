@@ -8,13 +8,16 @@
 		"check-types": "turbo run check-types",
 		"format": "biome check .",
 		"format:fix": "biome check . --write",
-		"codegen": "npx sui-ts-codegen generate && node ./scripts/fix-codegen-imports.js"
+		"codegen": "npx sui-ts-codegen generate && node ./scripts/fix-codegen-imports.js",
+		"knip": "knip"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.10",
+		"@types/node": "^25.0.8",
+		"knip": "^5.81.0",
 		"prettier": "^3.7.4",
 		"turbo": "^2.7.2",
-		"typescript": "5.9.2"
+		"typescript": "^5.9.3"
 	},
 	"engines": {
 		"node": ">=18"
