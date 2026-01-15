@@ -101,7 +101,45 @@ bun run prisma generate
 5. Deploy smart contracts (if needed):
 ```bash
 cd apps/contract
-sui client publish
+sui move build           # Optional: check contracts
+sui client publish       # Deploy to your chosen network
+```
+
+### Quick Setup & Run (Web + Contracts)
+
+For a minimal setup focusing on the on-chain game and the web UI:
+
+1. **Install dependencies** (from repo root):
+```bash
+bun install
+```
+
+2. **Build & (optionally) publish contracts**:
+```bash
+cd apps/contract
+sui move build
+# Optional – requires configured Sui CLI & wallet
+sui client publish --gas-budget 100000000
+```
+
+3. **Configure the web app**:
+```bash
+cd ../web
+cp .env.example .env.local   # if provided
+# Edit .env.local to set:
+# - NEXT_PUBLIC_SUI_NETWORK (e.g. "testnet")
+# - CONTRACT_PACKAGE_ID, ROOM_REGISTRY_ID, LEADERBOARD_ID, ...
+```
+
+4. **Run the web app in dev mode**:
+```bash
+bun run dev     # inside apps/web
+```
+
+5. **Build for production**:
+```bash
+bun run build   # inside apps/web
+bun run start   # start the production server
 ```
 
 ## 🛠️ Development
