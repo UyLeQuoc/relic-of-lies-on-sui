@@ -3,6 +3,7 @@
 import { type ActionPhase, type GameCard, type Player } from '@/components/game/game-context';
 import { Button } from '@/components/ui/button';
 import { GameTable } from '@/components/game-table';
+import { GameCardComponent } from '@/components/game/game-card';
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -49,10 +50,10 @@ function convertOnChainRoomToGameState(
   // Convert players
   const players: Player[] = room.players.map((p, idx) => {
     const hand = p.hand.map((cardValue, cardIdx) => 
-      createCard(cardValue, `player-${idx}-hand-${cardIdx}-${Date.now()}`)
+      createCard(cardValue, `player-${idx}-hand-${cardIdx}-round-${room.round_number}`)
     );
     const discardedCards = p.discarded.map((cardValue, cardIdx) => 
-      createCard(cardValue, `player-${idx}-discarded-${cardIdx}-${Date.now()}`)
+      createCard(cardValue, `player-${idx}-discarded-${cardIdx}-round-${room.round_number}`)
     );
 
     return {
@@ -293,7 +294,7 @@ function OnChainGameWithUI({
   isStartingRound,
 }: any) {
   const currentAccount = useCurrentAccount();
-  const [selectedCardValue, setSelectedCardValue] = useState<number | null>(null);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedTarget, setSelectedTarget] = useState<number | null>(null);
   const [selectedGuess, setSelectedGuess] = useState<number | null>(null);
   const [chancellorKeepCard, setChancellorKeepCard] = useState<GameCard | null>(null);
@@ -303,8 +304,8 @@ function OnChainGameWithUI({
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isMyTurn = currentPlayer && !currentPlayer.isBot && gameState.gamePhase === 'playing';
   
-  // Find selected card object from hand (based on value, not id, to persist across re-renders)
-  const selectedCard = selectedCardValue ? humanPlayer?.hand.find((c: GameCard) => c.value === selectedCardValue) || null : null;
+  // Find selected card object from hand (based on id to uniquely identify each card)
+  const selectedCard = selectedCardId ? humanPlayer?.hand.find((c: GameCard) => c.id === selectedCardId) || null : null;
   
   // Check card count - display cards that player currently has on chain
   const hasOneCard = humanPlayer && humanPlayer.hand.length === 1;
@@ -341,7 +342,7 @@ function OnChainGameWithUI({
   }, [selectedCard, gameState.myPlayerIndex, gameState.players]);
 
   const handlePlayCard = async () => {
-    if (!selectedCardValue || !selectedCard) return;
+    if (!selectedCardId || !selectedCard) return;
     
     try {
       await playTurn(
@@ -350,7 +351,7 @@ function OnChainGameWithUI({
         selectedTarget,
         selectedGuess
       );
-      setSelectedCardValue(null);
+      setSelectedCardId(null);
       setSelectedTarget(null);
       setSelectedGuess(null);
       fetchRoom();
@@ -368,15 +369,13 @@ function OnChainGameWithUI({
       <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-950 transition-colors duration-500 relative overflow-hidden">
 
         <div className="relative z-10 flex flex-col h-screen">
-          {/* Header */}
-          <div className="flex flex-col items-center gap-2 flex-shrink-0 pt-3 pb-2">
+          {/* Header - Top Left */}
+          <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
             <h1 className="text-2xl md:text-3xl font-bold text-amber-400">{room.name}</h1>
             <div className="flex items-center gap-4 text-sm text-amber-300">
               <span>Round {gameState.roundNumber}</span>
-              <span>•</span>
-              <span>Pot: {(Number(room.pot.value) / 1_000_000_000).toFixed(3)} SUI</span>
             </div>
-            <Button variant="ghost" onClick={() => router.push('/rooms')} className="text-amber-400 hover:text-amber-300 mt-2">
+            <Button variant="ghost" onClick={() => router.push('/rooms')} className="text-amber-400 hover:text-amber-300 justify-start">
               Back to Lobby
             </Button>
           </div>
@@ -391,7 +390,7 @@ function OnChainGameWithUI({
               selectedTarget={selectedTarget}
               onSelectTarget={(targetId: number) => setSelectedTarget(targetId)}
               isSelectingTarget={isMyTurn && selectedCard !== null && cardRequiresTarget(selectedCard)}
-              selectedCardValue={selectedCardValue}
+              selectedCardValue={selectedCard?.value || null}
               opponentCards={Object.fromEntries(
                 gameState.players
                   .map((p: Player, idx: number) => [idx, p.hand.length] as [number, number])
@@ -404,6 +403,10 @@ function OnChainGameWithUI({
               onStartRound={handleStartRound}
               isStartingRound={isStartingRound}
               isGameEnd={gameState.gamePhase === 'gameEnd'}
+              onStartNewGame={() => router.push('/rooms')}
+              winnerName={gameState.gamePhase === 'gameEnd' 
+                ? gameState.players.find((p: Player) => p.hearts >= gameState.heartsToWin)?.name || null
+                : null}
             />
           </div>
 
@@ -415,7 +418,7 @@ function OnChainGameWithUI({
               {/* Step 1: Choose card to keep */}
               {!chancellorKeepCard && (
                 <div>
-                  <p className="text-amber-300 font-semibold mb-3 text-center">Select a card to keep:</p>
+                  <p className="text-amber-300 font-semibold mb-3 text-center">Choose card to keep:</p>
                   <div className="flex gap-3 justify-center flex-wrap">
                     {gameState.chancellorCards.map((card: GameCard) => (
                       <button
@@ -426,10 +429,9 @@ function OnChainGameWithUI({
                           const returnCards = gameState.chancellorCards.filter((c: GameCard) => c.id !== card.id);
                           setChancellorReturnOrder(returnCards);
                         }}
-                        className="p-4 rounded-lg border-2 transition-all hover:scale-105 border-amber-600/50 hover:border-amber-400 bg-slate-700/50"
+                        className="p-3 rounded-lg border-2 transition-all hover:scale-105 border-amber-600/50 hover:border-amber-400 bg-slate-700/50"
                       >
-                        <p className="font-bold text-amber-400 text-base">{card.name}</p>
-                        <p className="text-xs text-amber-300/70 mt-1">{card.description}</p>
+                        <p className="font-bold text-amber-400">{card.name}</p>
                       </button>
                     ))}
                   </div>
@@ -438,38 +440,12 @@ function OnChainGameWithUI({
 
               {/* Step 2: Arrange return order */}
               {chancellorKeepCard && chancellorReturnOrder.length === 2 && (
-                <div>
-                  <p className="text-amber-300 font-semibold mb-2 text-center">
-                    Arrange the order of 2 cards to return to bottom of deck:
-                  </p>
-                  <p className="text-xs text-amber-400/70 mb-4 text-center">
-                    Click the swap button or click on a card to change the order
-                  </p>
-                  <div className="flex flex-col items-center gap-3">
-                    {/* Card order display */}
-                    <div className="flex items-center gap-4">
-                      {/* First card position (Bottom of deck - return last) */}
-                      <div className="flex flex-col items-center gap-2">
-                        <span className="text-xs text-amber-400 font-semibold">Bottom of Deck</span>
-                        <span className="text-xs text-amber-400/70">(Return Last)</span>
-                        {chancellorReturnOrder[0] && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (chancellorReturnOrder[0] && chancellorReturnOrder[1]) {
-                                setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
-                              }
-                            }}
-                            className="p-3 rounded-lg border-2 border-amber-400 bg-amber-400/20 transition-all hover:scale-105 min-w-[100px]"
-                          >
-                            <p className="font-bold text-amber-400 text-sm">{chancellorReturnOrder[0].name}</p>
-                            <p className="text-xs text-amber-300/70 mt-1">Value: {chancellorReturnOrder[0].value}</p>
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Swap button */}
-                      <div className="flex flex-col items-center gap-1 mt-6">
+                <div className="flex flex-col items-center gap-3">
+                  <p className="text-amber-300 font-semibold">Arrange return order:</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs text-amber-400/70">Bottom</span>
+                      {chancellorReturnOrder[0] && (
                         <button
                           type="button"
                           onClick={() => {
@@ -477,66 +453,71 @@ function OnChainGameWithUI({
                               setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
                             }
                           }}
-                          className="p-2 rounded-lg border-2 border-amber-600 hover:border-amber-400 bg-slate-700/50 hover:bg-slate-700 transition-all"
-                          title="Swap order"
+                          className="p-2 rounded-lg border-2 border-amber-400 bg-amber-400/20 transition-all hover:scale-105"
                         >
-                          <span className="text-amber-400 text-xl">⇅</span>
+                          <p className="font-bold text-amber-400 text-sm">{chancellorReturnOrder[0].name}</p>
                         </button>
-                        <span className="text-xs text-amber-400/70">Swap</span>
-                      </div>
-
-                      {/* Second card position (Top - return first) */}
-                      <div className="flex flex-col items-center gap-2">
-                        <span className="text-xs text-amber-400 font-semibold">Top (Return First)</span>
-                        <span className="text-xs text-amber-400/70">Above Bottom</span>
-                        {chancellorReturnOrder[1] && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (chancellorReturnOrder[0] && chancellorReturnOrder[1]) {
-                                setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
-                              }
-                            }}
-                            className="p-3 rounded-lg border-2 border-amber-400 bg-amber-400/20 transition-all hover:scale-105 min-w-[100px]"
-                          >
-                            <p className="font-bold text-amber-400 text-sm">{chancellorReturnOrder[1].name}</p>
-                            <p className="text-xs text-amber-300/70 mt-1">Value: {chancellorReturnOrder[1].value}</p>
-                          </button>
-                        )}
-                      </div>
+                      )}
                     </div>
 
-                    {/* Selected card to keep */}
-                    <div className="mt-4 p-3 rounded-lg border-2 border-green-500 bg-green-500/10">
-                      <p className="text-xs text-green-400 mb-1">Card to keep:</p>
-                      <p className="font-bold text-green-400">{chancellorKeepCard.name}</p>
-                    </div>
-
-                    {/* Confirm button */}
-                    <Button
-                      onClick={async () => {
-                        if (chancellorKeepCard && chancellorReturnOrder.length === 2) {
-                          try {
-                            await resolveChancellor(
-                              roomId,
-                              chancellorKeepCard.value,
-                              chancellorReturnOrder.map((c: GameCard) => c.value),
-                              room
-                            );
-                            setChancellorKeepCard(null);
-                            setChancellorReturnOrder([]);
-                            fetchRoom();
-                          } catch (err) {
-                            // Error is handled by the hook
-                          }
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (chancellorReturnOrder[0] && chancellorReturnOrder[1]) {
+                          setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
                         }
                       }}
-                      disabled={!chancellorKeepCard || chancellorReturnOrder.length !== 2 || isProcessingAction}
-                      className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold px-6 py-3"
+                      className="p-2 rounded-lg border-2 border-amber-600 hover:border-amber-400 bg-slate-700/50 hover:bg-slate-700 transition-all"
+                      title="Swap"
                     >
-                      {isProcessingAction ? 'Processing...' : 'Confirm & Return Cards'}
-                    </Button>
+                      <span className="text-amber-400 text-xl">⇅</span>
+                    </button>
+
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs text-amber-400/70">Top</span>
+                      {chancellorReturnOrder[1] && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (chancellorReturnOrder[0] && chancellorReturnOrder[1]) {
+                              setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
+                            }
+                          }}
+                          className="p-2 rounded-lg border-2 border-amber-400 bg-amber-400/20 transition-all hover:scale-105"
+                        >
+                          <p className="font-bold text-amber-400 text-sm">{chancellorReturnOrder[1].name}</p>
+                        </button>
+                      )}
+                    </div>
                   </div>
+
+                  <div className="text-xs text-green-400 mt-2">
+                    Keep: <span className="font-bold">{chancellorKeepCard.name}</span>
+                  </div>
+
+                  <Button
+                    onClick={async () => {
+                      if (chancellorKeepCard && chancellorReturnOrder.length === 2) {
+                        try {
+                          await resolveChancellor(
+                            roomId,
+                            chancellorKeepCard.value,
+                            chancellorReturnOrder.map((c: GameCard) => c.value),
+                            room
+                          );
+                          setChancellorKeepCard(null);
+                          setChancellorReturnOrder([]);
+                          fetchRoom();
+                        } catch (err) {
+                          // Error is handled by the hook
+                        }
+                      }
+                    }}
+                    disabled={!chancellorKeepCard || chancellorReturnOrder.length !== 2 || isProcessingAction}
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold px-6 py-2 mt-2"
+                  >
+                    {isProcessingAction ? 'Processing...' : 'Confirm'}
+                  </Button>
                 </div>
               )}
             </div>
@@ -548,41 +529,41 @@ function OnChainGameWithUI({
               {/* Cards - Horizontal layout at bottom center */}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 justify-center flex-wrap z-10">
                 {humanPlayer.hand.map((card: GameCard) => {
-                  const isSelected = selectedCardValue === card.value;
+                  const isSelected = selectedCardId === card.id;
                   const canSelect = isMyTurn && !isProcessingAction;
                   
                   return (
-                    <button
+                    <div
                       key={card.id}
-                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (canSelect) {
-                          setSelectedCardValue(isSelected ? null : card.value);
+                          setSelectedCardId(isSelected ? null : card.id);
                         }
                       }}
-                      disabled={!canSelect}
-                      className={`w-20 h-28 rounded-lg font-bold text-base transition-all transform ${
-                        isSelected
-                          ? 'ring-4 ring-amber-400 scale-105 bg-gradient-to-br from-amber-400 to-amber-600 text-slate-900'
-                          : !isMyTurn || isProcessingAction
-                            ? 'opacity-50 cursor-not-allowed bg-gradient-to-br from-slate-700/50 to-slate-800/50 border-2 border-amber-600/30 text-amber-400/50'
-                            : 'bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-amber-400 text-amber-400 hover:scale-105'
-                      }`}
+                      className={`transition-all transform ${canSelect ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                     >
-                      <div className="flex flex-col items-center gap-1 h-full justify-center">
-                        <span className="text-xl">{card.name.slice(0, 1)}</span>
-                        <span className="text-sm">{card.value}</span>
-                      </div>
-                    </button>
+                      <GameCardComponent
+                        card={card}
+                        size="small"
+                        faceUp
+                        selected={isSelected}
+                        disabled={!canSelect}
+                        onClick={() => {
+                          if (canSelect) {
+                            setSelectedCardId(isSelected ? null : card.id);
+                          }
+                        }}
+                      />
+                    </div>
                   );
                 })}
               </div>
 
               {/* Card description and PLAY Button - Right side */}
               {selectedCard && (
-                <div className="absolute bottom-4 left-1/2 translate-x-[140px] flex flex-col gap-2 items-start z-20">
-                  {/* PLAY Button */}
+                <div className="absolute bottom-4 left-1/2 translate-x-[152px] h-[200px] flex flex-col justify-between items-start z-20">
+                  {/* PLAY Button - Top */}
                   {isMyTurn && (
                     (() => {
                       const canPlay = 
@@ -594,16 +575,15 @@ function OnChainGameWithUI({
                           <Button
                             onClick={handlePlayCard}
                             disabled={isProcessingAction || !canPlay}
-                            className="from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-2 px-6 rounded-lg transition-all"
+                            className="from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-6 text-lg rounded-lg transition-all"
                           >
                             {isProcessingAction ? 'Playing...' : 'PLAY'}
                           </Button>
                         );
-                      return null;
                     })()
                   )}
                   
-                  {/* Card description */}
+                  {/* Card description - Bottom */}
                   <div className="text-xs text-amber-300 bg-slate-900/90 px-2 py-1 rounded border border-amber-600/50 max-w-[200px] whitespace-normal">
                     {selectedCard.description}
                   </div>

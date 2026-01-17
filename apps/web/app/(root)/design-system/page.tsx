@@ -1,5 +1,6 @@
 "use client";
 
+import Header from "@/components/common/header";
 import { AlertCircle, ChevronDownIcon, X } from "lucide-react";
 import { CardCharacter } from "@/components/common/game-ui/cards/card-character";
 import {
@@ -96,7 +97,9 @@ import { ComponentShowcase } from "./_components/component-showcase";
 
 export default function DesignSystemPage() {
 	return (
-		<div className="container mx-auto py-8 px-4 max-w-7xl">
+		<>
+			<Header />
+			<div className="container mx-auto py-8 px-4 max-w-7xl">
 			<div className="mb-8">
 				<h1 className="text-3xl font-bold mb-2">Design System</h1>
 				<p className="text-muted-foreground">
@@ -176,6 +179,47 @@ export default function DesignSystemPage() {
 							</div>
 							<div className="flex flex-col items-center gap-2">
 								<CardCharacter cardType={CardType.Value9} size="default" />
+								<p className="text-xs text-muted-foreground">Large (384px)</p>
+							</div>
+						</div>
+					</ComponentShowcase>
+
+					<ComponentShowcase
+						title="Card Back"
+						description="The back side of cards used when cards are face down"
+					>
+						<div className="flex flex-wrap gap-6 justify-center items-start">
+							<div className="flex flex-col items-center gap-2">
+								<div
+									style={{
+										transform: "rotateY(180deg)",
+										transformStyle: "preserve-3d",
+									}}
+								>
+									<CardCharacter cardType={CardType.Value0} size="sm" />
+								</div>
+								<p className="text-xs text-muted-foreground">Small (200px)</p>
+							</div>
+							<div className="flex flex-col items-center gap-2">
+								<div
+									style={{
+										transform: "rotateY(180deg)",
+										transformStyle: "preserve-3d",
+									}}
+								>
+									<CardCharacter cardType={CardType.Value5} size="md" />
+								</div>
+								<p className="text-xs text-muted-foreground">Medium (280px)</p>
+							</div>
+							<div className="flex flex-col items-center gap-2">
+								<div
+									style={{
+										transform: "rotateY(180deg)",
+										transformStyle: "preserve-3d",
+									}}
+								>
+									<CardCharacter cardType={CardType.Value9} size="default" />
+								</div>
 								<p className="text-xs text-muted-foreground">Large (384px)</p>
 							</div>
 						</div>
@@ -607,6 +651,7 @@ export default function DesignSystemPage() {
 					</ComponentShowcase>
 				</TabsContent>
 			</Tabs>
-		</div>
+			</div>
+		</>
 	);
 }
