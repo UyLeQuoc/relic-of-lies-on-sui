@@ -64,10 +64,13 @@ sources/
 │     → Shuffle 21 cards                                      │
 │     → For 3-6 players: Burn 1 card, deal 1 each            │
 │     → For 2 players: Burn 3 cards at start, deal 1 each    │
+│     → First player draws second card (has 2 cards ready)   │
 ├─────────────────────────────────────────────────────────────┤
 │  4. PLAY TURNS                                              │
 │     play_turn(room, card, target?, guess?)                  │
-│     → Clear immunity, draw card, play card, execute effect  │
+│     → Player has 2 cards, chooses 1 to play                │
+│     → Clear immunity, play card, execute effect            │
+│     → Next player auto-draws card (will have 2 cards)      │
 │     → Special: Chancellor requires resolve_chancellor()     │
 ├─────────────────────────────────────────────────────────────┤
 │  5. ROUND END                                               │

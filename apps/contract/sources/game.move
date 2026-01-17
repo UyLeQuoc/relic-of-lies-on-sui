@@ -202,6 +202,11 @@ public fun start_round(
         });
     });
     
+    // Draw second card for first player (so they have 2 cards ready to play)
+    utils::draw_card(&mut room.deck).do!(|card| {
+        room.players[0].hand.push_back(card);
+    });
+    
     // Set game status
     room.status = constants::status_playing();
     room.current_turn = 0;
@@ -244,15 +249,8 @@ public fun play_turn(
     // Clear immunity at start of turn
     room.players[current_player_idx].is_immune = false;
     
-    // Draw a card first (if deck not empty)
-    let drawn_card = utils::draw_card(&mut room.deck);
-    if (drawn_card.is_some()) {
-        room.players[current_player_idx].hand.push_back(drawn_card.destroy_some());
-    } else if (room.burn_card.is_some()) {
-        room.players[current_player_idx].hand.push_back(*room.burn_card.borrow());
-        room.burn_card = std::option::none();
-    };
-    
+    // Player should already have 2 cards (dealt at start or drawn at end of previous turn)
+    // Verify player has the card they want to play
     assert!(utils::contains(&room.players[current_player_idx].hand, &card), error::card_not_in_hand());
     
     // Check Countess rule: must discard if holding King or Prince
@@ -711,6 +709,20 @@ fun advance_turn(room: &mut GameRoom) {
         
         if (room.players[idx].is_alive) {
             room.current_turn = next_turn;
+            
+            // Draw a card for the next player (so they have 2 cards ready)
+            // Only draw if deck is not empty
+            if (!room.deck.is_empty()) {
+                let drawn_card = utils::draw_card(&mut room.deck);
+                if (drawn_card.is_some()) {
+                    room.players[idx].hand.push_back(drawn_card.destroy_some());
+                };
+            } else if (room.burn_card.is_some()) {
+                // If deck is empty, use burn card
+                room.players[idx].hand.push_back(*room.burn_card.borrow());
+                room.burn_card = std::option::none();
+            };
+            
             return
         };
         next_turn = next_turn + 1;
@@ -744,30 +756,43 @@ fun check_round_winner(room: &GameRoom): std::option::Option<u64> {
         };
     });
     
+    // Only one player alive - they win
     if (alive_count == 1) {
         return std::option::some(last_alive_idx)
     };
     
-    // Deck is empty (and burn card used) - compare hands
+    // Deck is empty and burn card used - check if all alive players have only 1 card
+    // (meaning they've all played their final turn)
     if (room.deck.is_empty() && room.burn_card.is_none()) {
-        let mut highest_card = 0u8;
-        let mut highest_sum = 0u64;
-        let mut winner_idx = 0u64;
-        
+        // Check if all alive players have exactly 1 card (finished their turn)
+        let mut all_have_one_card = true;
         num_players.do!(|i| {
-            if (room.players[i].is_alive && !room.players[i].hand.is_empty()) {
-                let card = room.players[i].hand[0];
-                let discard_sum = utils::cards_sum(&room.players[i].discarded);
-                
-                if (card > highest_card || (card == highest_card && discard_sum > highest_sum)) {
-                    highest_card = card;
-                    highest_sum = discard_sum;
-                    winner_idx = i;
-                };
+            if (room.players[i].is_alive && room.players[i].hand.length() != 1) {
+                all_have_one_card = false;
             };
         });
         
-        return std::option::some(winner_idx)
+        // If all alive players have 1 card, compare hands to determine winner
+        if (all_have_one_card) {
+            let mut highest_card = 0u8;
+            let mut highest_sum = 0u64;
+            let mut winner_idx = 0u64;
+            
+            num_players.do!(|i| {
+                if (room.players[i].is_alive && !room.players[i].hand.is_empty()) {
+                    let card = room.players[i].hand[0];
+                    let discard_sum = utils::cards_sum(&room.players[i].discarded);
+                    
+                    if (card > highest_card || (card == highest_card && discard_sum > highest_sum)) {
+                        highest_card = card;
+                        highest_sum = discard_sum;
+                        winner_idx = i;
+                    };
+                };
+            });
+            
+            return std::option::some(winner_idx)
+        };
     };
     
     std::option::none()
