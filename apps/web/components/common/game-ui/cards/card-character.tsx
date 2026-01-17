@@ -12,6 +12,7 @@ const cardCharacterVariants = cva(
 	{
 		variants: {
 			size: {
+				xs: "h-[140px]",
 				sm: "h-[200px]",
 				md: "h-[280px]",
 				default: "h-[250px] sm:h-[300px] md:h-[350px] lg:h-[384px]",
@@ -46,10 +47,9 @@ function CardCharacter({
 	flip = false,
 	...props
 }: CardCharacterProps) {
-	const card = cardConcept.cards[cardType];
-
 	// Base height for font size calculations (using default desktop size for calculations)
 	const heightMap = {
+		xs: 180,
 		sm: 200,
 		md: 280,
 		default: 384,
@@ -68,6 +68,15 @@ function CardCharacter({
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 	const [isHovered, setIsHovered] = useState(false);
 	const cardRef = useRef<HTMLDivElement>(null);
+	
+	const card = cardConcept.cards[cardType];
+	
+	// Safety check: if card doesn't exist, use fallback
+	if (!card) {
+		console.warn(`Card type ${cardType} not found in cardConcept`);
+		// Return early after hooks
+		return null;
+	}
 
 	const canFlip = flip === true;
 	const handleFlip = () => {

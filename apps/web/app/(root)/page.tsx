@@ -1,5 +1,3 @@
-'use client';
-
 import Footer from "@/components/common/footer";
 import { CtaSection } from "./_components/ui/cta-section";
 import { FeaturesSection } from "./_components/ui/features-section";

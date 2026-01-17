@@ -42,6 +42,8 @@ interface GameTableProps {
   onStartRound?: () => void;
   isStartingRound?: boolean;
   isGameEnd?: boolean;
+  onStartNewGame?: () => void;
+  winnerName?: string | null;
 }
 
 export function GameTable({
@@ -60,6 +62,8 @@ export function GameTable({
   onStartRound,
   isStartingRound = false,
   isGameEnd = false,
+  onStartNewGame,
+  winnerName = null,
 }: GameTableProps) {
   const [showDiscardModal, setShowDiscardModal] = React.useState(false);
   // Separate players: opponents (around table) - human player is shown in Card Hand at bottom and South position
@@ -132,35 +136,76 @@ export function GameTable({
             )}
             style={position.style}
           >
-            {/* Circular player avatar */}
-            <div
-              className={cn(
-                "relative w-16 h-16 md:w-20 md:h-20 rounded-full border-2 flex items-center justify-center transition-all shadow-lg",
-                isActive
-                  ? "border-amber-400 from-amber-400 to-amber-600 scale-110 shadow-amber-400/50"
-                  : isClickable
-                    ? "border-amber-500 from-slate-700 to-slate-800 hover:border-amber-400 hover:shadow-amber-400/30 cursor-pointer hover:scale-105"
-                    : "border-amber-600/50 from-slate-700/50 to-slate-800/50",
-                player.isEliminated && "opacity-50 grayscale",
-                player.isProtected && "ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900",
-                isTargeted && "ring-4 ring-green-400"
-              )}
-              onClick={() => isClickable && onSelectTarget?.(actualIndex)}
-            >
-              {/* Player initial or icon */}
-              <span className="text-xl md:text-2xl font-bold text-amber-100">
-                {player.name === 'You' ? '👤' : player.name.slice(0, 1)}
-              </span>
-              
-              {/* Status indicators */}
-              {player.isProtected && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center border-2 border-slate-900">
-                  <span className="text-xs">🛡️</span>
+            {/* Avatar and Card Container */}
+            <div className="flex items-center gap-2 relative">
+              {/* Arrow animation pointing up to clickable target - below avatar center */}
+              {isClickable && (
+                <div 
+                  className="absolute bottom-0 left-3/10 -translate-x-1/2 -mb-10 z-20 animate-bounce"
+                  style={{
+                    animation: 'bounce 1s infinite',
+                  }}
+                >
+                  <svg 
+                    width="32" 
+                    height="32" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    className="text-amber-400 drop-shadow-lg"
+                  >
+                    <path 
+                      d="M12 2L12 22M12 2L6 8M12 2L18 8" 
+                      stroke="currentColor" 
+                      strokeWidth="3" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </div>
               )}
-              {player.isEliminated && (
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-red-600 flex items-center justify-center border-2 border-slate-900">
-                  <span className="text-xs">💀</span>
+              
+              {/* Circular player avatar */}
+              <div
+                className={cn(
+                  "relative w-16 h-16 md:w-20 md:h-20 rounded-full border-2 flex items-center justify-center transition-all shadow-lg",
+                  isActive
+                    ? "border-amber-400 from-amber-400 to-amber-600 scale-110 shadow-amber-400/50"
+                    : isClickable
+                      ? "border-amber-500 from-slate-700 to-slate-800 hover:border-amber-400 hover:shadow-amber-400/30 cursor-pointer hover:scale-105"
+                      : "border-amber-600/50 from-slate-700/50 to-slate-800/50",
+                  player.isEliminated && "opacity-50 grayscale",
+                  player.isProtected && "ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900",
+                  isTargeted && "ring-4 ring-green-400"
+                )}
+                onClick={() => isClickable && onSelectTarget?.(actualIndex)}
+              >
+                {/* Player initial or icon */}
+                <span className="text-xl md:text-2xl font-bold text-amber-100">
+                  {player.name === 'You' ? '👤' : player.name.slice(0, 1)}
+                </span>
+                
+                {/* Status indicators */}
+                {player.isProtected && (
+                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center border-2 border-slate-900">
+                    <span className="text-xs">🛡️</span>
+                  </div>
+                )}
+                {player.isEliminated && (
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-red-600 flex items-center justify-center border-2 border-slate-900">
+                    <span className="text-xs">💀</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Opponent card count - Right side of avatar */}
+              {opponentCards[actualIndex] !== undefined && (
+                <div className="relative">
+                  <div className="w-8 h-10 md:w-10 md:h-12 rounded-md from-slate-700 to-slate-800 border border-amber-600/50 flex items-center justify-center">
+                    <span className="text-lg md:text-xl">🂠</span>
+                  </div>
+                  <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-400 text-slate-900 font-bold flex items-center justify-center shadow-md text-[10px]">
+                    {opponentCards[actualIndex]}
+                  </div>
                 </div>
               )}
             </div>
@@ -183,26 +228,16 @@ export function GameTable({
                   </span>
                 ))}
               </div>
-              {opponentCards[actualIndex] !== undefined && (
-                <div className="relative mt-1">
-                  <div className="w-8 h-10 md:w-10 md:h-12 rounded-md from-slate-700 to-slate-800 border border-amber-600/50 flex items-center justify-center">
-                    <span className="text-lg md:text-xl">🂠</span>
-                  </div>
-                  <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-400 text-slate-900 font-bold flex items-center justify-center shadow-md text-[10px]">
-                    {opponentCards[actualIndex]}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         );
       })}
 
-      {/* Center area - Deck, Discard Pile, and Start Round Button */}
+      {/* Center area - Deck, Discard Pile, and Start Round/New Game Button */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-4 z-0">
         {/* Start New Round Button - Center */}
-        {showStartRoundButton && onStartRound && (
-          <div className="absolute -top-20 md:-top-24 left-1/2 -translate-x-1/2 z-20">
+        {showStartRoundButton && onStartRound ? (
+          <div className="flex flex-col items-center gap-2">
             <Button
               onClick={onStartRound}
               disabled={isStartingRound}
@@ -215,10 +250,24 @@ export function GameTable({
               <p className="text-center text-amber-400 font-semibold text-sm mt-2">Game Ended!</p>
             )}
           </div>
-        )}
-
-        {/* Deck and Discard Pile */}
-        <div className="flex items-center gap-4 md:gap-6">
+        ) : isGameEnd && onStartNewGame ? (
+          <div className="flex flex-col items-center gap-2">
+            {winnerName && (
+              <p className="text-center text-amber-400 font-semibold text-lg mb-2">
+                {winnerName} Won!
+              </p>
+            )}
+            <Button
+              onClick={onStartNewGame}
+              size="lg"
+              className="from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold px-6 py-4 text-base md:text-lg shadow-xl"
+            >
+              Start New Game
+            </Button>
+          </div>
+        ) : (
+          /* Deck and Discard Pile */
+          <div className="flex items-center gap-4 md:gap-6">
           {/* Deck */}
           <div className="relative">
             <div className="relative w-20 h-28 md:w-24 md:h-36 rounded-lg from-slate-700 to-slate-800 border-2 border-amber-600 shadow-xl">
@@ -255,7 +304,7 @@ export function GameTable({
                 // Show the latest discarded card
                 (() => {
                   const latestCard = discardPile[discardPile.length - 1];
-                  if (!latestCard) return <span className="text-amber-600/30 text-xs">Empty</span>;
+                  if (!latestCard) return <span className="text-amber-400/70 text-sm font-medium">Empty</span>;
                   const cardData = CARD_DATA_MAP[latestCard.value];
                   return (
                     <div className="flex flex-col items-center gap-1 w-full h-full justify-center">
@@ -267,7 +316,7 @@ export function GameTable({
                   );
                 })()
               ) : (
-                <span className="text-amber-600/30 text-xs">Empty</span>
+                <span className="text-amber-400/70 text-sm font-medium">Empty</span>
               )}
               {/* Show count badge if more than 1 card */}
               {discardCount > 1 && (
@@ -280,7 +329,8 @@ export function GameTable({
               Discard
             </p>
           </div>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Human player at Southwest position */}
@@ -311,6 +361,33 @@ export function GameTable({
               }
             }}
           >
+            {/* Arrow animation pointing up to self when clickable (Prince) - from below (opposite of opponents) */}
+            {isSelectingTarget && canTargetSelf && !humanPlayer.isEliminated && (
+              <div 
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 mb-20 z-20 animate-bounce"
+                style={{
+                  animation: 'bounce 1s infinite',
+                }}
+              >
+                <svg 
+                  width="32" 
+                  height="32" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  className="text-amber-400 drop-shadow-lg"
+                  style={{ transform: 'rotate(180deg)' }}
+                >
+                  <path 
+                    d="M12 2L12 22M12 2L6 8M12 2L18 8" 
+                    stroke="currentColor" 
+                    strokeWidth="3" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            )}
+            
             {/* Player initial or icon */}
             <span className="text-xl md:text-2xl font-bold text-amber-100">
               👤
@@ -361,7 +438,7 @@ export function GameTable({
             className="bg-slate-900 border-2 border-amber-600 rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4 min-w-56">
               <h3 className="text-xl font-bold text-amber-400">Discarded Cards</h3>
               <button
                 type="button"
