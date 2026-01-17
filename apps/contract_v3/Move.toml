@@ -1,0 +1,14 @@
+[package]
+name = "relic-of-lies-v3"
+version = "0.0.1"
+edition = "2024.beta"
+
+[dependencies]
+# Sui dependencies are automatically added
+
+[addresses]
+contract_v3 = "0x0"
+
+[dev-dependencies]
+
+[dev-addresses]
