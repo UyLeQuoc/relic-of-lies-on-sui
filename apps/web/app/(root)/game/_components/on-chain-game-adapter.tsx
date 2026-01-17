@@ -337,6 +337,20 @@ function OnChainGameWithUI({
   const hasOneCard = humanPlayer && humanPlayer.hand.length === 1;
   const hasTwoCards = humanPlayer && humanPlayer.hand.length === 2;
 
+  // Check Countess rule: If you have Countess (8) with King (7) or Prince (5), you MUST discard Countess
+  const mustPlayCountess = useMemo(() => {
+    if (!humanPlayer || humanPlayer.hand.length < 2) return false;
+    const hasCountess = humanPlayer.hand.some((c: GameCard) => c.value === 8);
+    const hasKingOrPrince = humanPlayer.hand.some((c: GameCard) => c.value === 7 || c.value === 5);
+    return hasCountess && hasKingOrPrince;
+  }, [humanPlayer]);
+
+  // Get the Countess card if mustPlayCountess is true
+  const countessCard = useMemo(() => {
+    if (!mustPlayCountess || !humanPlayer) return null;
+    return humanPlayer.hand.find((c: GameCard) => c.value === 8) || null;
+  }, [mustPlayCountess, humanPlayer]);
+
   // Check if card requires target
   const cardRequiresTarget = (card: GameCard | null): boolean => {
     if (!card) return false;
@@ -526,6 +540,13 @@ function OnChainGameWithUI({
     }
   }, [room, gameState, humanPlayer]);
   
+  // Auto-select Countess when mustPlayCountess rule applies
+  useEffect(() => {
+    if (mustPlayCountess && countessCard && isMyTurn && !selectedCardId) {
+      setSelectedCardId(countessCard.id);
+    }
+  }, [mustPlayCountess, countessCard, isMyTurn, selectedCardId]);
+
   // Map card value to CardType enum
   const mapCardValueToCardType = (cardValue: number): CardType => {
     const cardTypeMap: Record<number, CardType> = {
@@ -780,11 +801,22 @@ function OnChainGameWithUI({
           {/* Cards - Display at bottom without container */}
           {humanPlayer && gameState.gamePhase === 'playing' && (
             <>
+              {/* Countess Rule Warning */}
+              {mustPlayCountess && isMyTurn && (
+                <div className="absolute bottom-[200px] left-1/2 -translate-x-1/2 z-20 animate-pulse">
+                  <div className="bg-red-500/90 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg border-2 border-red-400">
+                    ⚠️ You have Countess with King/Prince - You MUST play Countess!
+                  </div>
+                </div>
+              )}
+
               {/* Cards - Horizontal layout at bottom center */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 justify-center flex-wrap z-10">
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 justify-center flex-wrap z-10">
                 {humanPlayer.hand.map((card: GameCard) => {
                   const isSelected = selectedCardId === card.id;
-                  const canSelect = isMyTurn && !isProcessingAction;
+                  // If mustPlayCountess, only Countess (8) can be selected
+                  const isCountess = card.value === 8;
+                  const canSelect = isMyTurn && !isProcessingAction && (!mustPlayCountess || isCountess);
                   
                   return (
                     <div
@@ -814,11 +846,15 @@ function OnChainGameWithUI({
                           }
                         }
                       }}
-                      className={`transition-all transform ${canSelect ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                      className={cn(
+                        "transition-all transform",
+                        canSelect ? 'cursor-pointer' : 'cursor-not-allowed opacity-50',
+                        mustPlayCountess && !isCountess && 'grayscale'
+                      )}
                     >
                       <GameCardComponent
                         card={card}
-                        size="tiny"
+                        size="small"
                         faceUp
                         selected={isSelected}
                         disabled={!canSelect}
@@ -849,7 +885,7 @@ function OnChainGameWithUI({
 
               {/* Card description and PLAY Button - Right side */}
               {selectedCard && (
-                <div className="absolute bottom-4 left-1/2 translate-x-[152px] h-[180px] flex flex-col justify-between items-start z-20">
+                <div className="absolute bottom-4 left-1/2 translate-x-[152px] h-[200px] flex flex-col justify-between items-start z-20">
                   {/* PLAY Button - Top */}
                   {isMyTurn && (
                     (() => {
@@ -869,18 +905,14 @@ function OnChainGameWithUI({
                       
                       if (requiresTarget) {
                         // If card requires target:
-                        // - Disable if no target selected AND there are valid targets available
-                        // - Allow if no valid targets (can skip)
-                        // - Allow if Prince and can target self (even if no target selected)
+                        // - Disable if no target selected (including Prince - must explicitly select)
+                        // - Allow if no valid targets AND cannot target self (can skip)
                         if (selectedTarget === null) {
-                          if (canTargetSelf) {
-                            // Prince can always play (can target self)
-                            isDisabled = false;
-                          } else if (hasValidTargets) {
-                            // Has valid targets but none selected - disable
+                          if (hasValidTargets || canTargetSelf) {
+                            // Has valid targets or can target self - must select one
                             isDisabled = true;
                           } else {
-                            // No valid targets - allow play (skip)
+                            // No valid targets and cannot target self - allow play (skip)
                             isDisabled = false;
                           }
                         } else {
@@ -910,7 +942,7 @@ function OnChainGameWithUI({
                   )}
                   
                   {/* Card description - Bottom */}
-                  <div className="text-xs text-amber-300 bg-slate-900/90 px-2 py-1 rounded border border-amber-600/50 max-w-[200px] whitespace-normal">
+                  <div className="text-sm text-amber-300 bg-slate-900/90 px-2 py-1 rounded border border-amber-600/50 max-w-[220px] whitespace-normal">
                     {selectedCard.description}
                   </div>
                 </div>
@@ -1025,7 +1057,7 @@ function OnChainGameWithUI({
 
               {/* Guess Selection (Guard) */}
               {isMyTurn && selectedCard?.value === 1 && selectedTarget !== null && (
-                <div className="absolute bottom-[208px] left-1/2 -translate-x-1/2 z-10">
+                <div className="absolute bottom-[240px] left-1/2 -translate-x-1/2 z-10">
                   <div className="flex gap-2 flex-wrap justify-center">
                     {[0, 2, 3, 4, 5, 6, 7, 8, 9].map(cardValue => {
                       const cardData = CARD_DATA_MAP[cardValue];
