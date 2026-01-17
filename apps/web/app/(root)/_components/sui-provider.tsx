@@ -6,20 +6,25 @@ import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@mysten/dapp-kit/dist/index.css';
 
+
 // Config options for the networks you want to connect to
 export const { networkConfig, useNetworkConfig } = createNetworkConfig({
 	testnet: { url: getFullnodeUrl('testnet'),
         variables: {
-			movePackageId: '0xb6518196a527470c019f7be0592a270c3913e81de5fb2398e40c449fc705f368',
-			roomRegistryId: '0x45e48f70e97044a1e8483a737de9758bd7f974129b819a7265d979178fcb8c5c',
-			leaderboardId: '0xd51551dda28c96b903129a52127c574f24edb6b40fd4d94f871af031b46d3550',
+			movePackageId: '0x3ae8ac6755ad2f2edcc08969522ebbd164ffd14945d1594f3f65542270bd1673',
+			roomRegistryId: '0x0276ad9c9d7ca220118a31b5de9899c7390a2979dbcd537a2743ba8c63f946bb',
+			leaderboardId: '0xdb9ee3f2bbea162572ef819a959720f58289956061948740837379bcb4db7220',
+			gachaTreasuryId: '0xe766f9bb6e635d10cf96fdabdc820ca8ff4d05bb7e90aaa6f58ef327a9df37aa',
+			marketplaceRegistryId: '0xeff646d75222ee3d4f9ba7a097529174d92706a4bbb7198d3cb2d24e5dc01b94',
 		},
      },
 	mainnet: { url: getFullnodeUrl('mainnet'),
         variables: {
-			movePackageId: '0xb6518196a527470c019f7be0592a270c3913e81de5fb2398e40c449fc705f368',
-			roomRegistryId: '0x45e48f70e97044a1e8483a737de9758bd7f974129b819a7265d979178fcb8c5c',
-			leaderboardId: '0xd51551dda28c96b903129a52127c574f24edb6b40fd4d94f871af031b46d3550',
+			movePackageId: '0x3ae8ac6755ad2f2edcc08969522ebbd164ffd14945d1594f3f65542270bd1673',
+			roomRegistryId: '0x0276ad9c9d7ca220118a31b5de9899c7390a2979dbcd537a2743ba8c63f946bb',
+			leaderboardId: '0xdb9ee3f2bbea162572ef819a959720f58289956061948740837379bcb4db7220',
+			gachaTreasuryId: '0xe766f9bb6e635d10cf96fdabdc820ca8ff4d05bb7e90aaa6f58ef327a9df37aa',
+			marketplaceRegistryId: '0xeff646d75222ee3d4f9ba7a097529174d92706a4bbb7198d3cb2d24e5dc01b94',
 		},
      },
 });
@@ -66,7 +71,7 @@ export default function SuiProvider({ children }: { children: React.ReactNode })
 			}}
 		>
             <RegisterEnokiWallets />
-            <WalletProvider>
+            <WalletProvider autoConnect>
             {children}
             </WalletProvider>
         </SuiClientProvider>

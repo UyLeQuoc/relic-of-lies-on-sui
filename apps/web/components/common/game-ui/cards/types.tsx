@@ -78,21 +78,21 @@ export const cardsMap: Record<CardConceptType, CardConceptValue> = {
 				name: "Scout",
 				description:
 					"At round end, if only you played or discarded a Scout, gain 1 Relic.",
-				image: `${imagePrefixPath}/characters/0-scout.png`,
+				image: `${imagePrefixPath}/characters/0.png`,
 			},
 			[CardType.Value1]: {
 				value: 1,
 				name: "Knight",
 				description:
 					"Name a card (except Knight). If that target holds it, they are eliminated.",
-				image: `${imagePrefixPath}/characters/1-knight.png`,
+				image: `${imagePrefixPath}/characters/1.png`,
 				valueStyle: "left-[11.5%]",
 			},
 			[CardType.Value2]: {
 				value: 2,
 				name: "Healer",
 				description: "Choose and privately look at another player's hand.",
-				image: `${imagePrefixPath}/characters/2-healer.png`,
+				image: `${imagePrefixPath}/characters/2.png`,
 				valueStyle: "top-[1.6%]",
 				descriptionStyle: "w-[68%]",
 			},
@@ -101,14 +101,14 @@ export const cardsMap: Record<CardConceptType, CardConceptValue> = {
 				name: "Berserker",
 				description:
 					"Privately compare hands with another player. Lower card is eliminated.",
-				image: `${imagePrefixPath}/characters/3-berserker.png`,
+				image: `${imagePrefixPath}/characters/3.png`,
 				valueStyle: "top-[2.2%]",
 			},
 			[CardType.Value4]: {
 				value: 4,
 				name: "Cleric",
 				description: "You are immune to all card effects until your next turn.",
-				image: `${imagePrefixPath}/characters/4-cleric-ward.png`,
+				image: `${imagePrefixPath}/characters/4.png`,
 				descriptionStyle: "w-[60%]",
 				valueStyle: "left-[9.8%]",
 			},
@@ -117,7 +117,7 @@ export const cardsMap: Record<CardConceptType, CardConceptValue> = {
 				name: "Wizard",
 				description:
 					"Choose any player. They discard their card and draw a new one.",
-				image: `${imagePrefixPath}/characters/5-wizard.png`,
+				image: `${imagePrefixPath}/characters/5.png`,
 				valueStyle: "left-[10.3%]",
 			},
 			[CardType.Value6]: {
@@ -125,14 +125,14 @@ export const cardsMap: Record<CardConceptType, CardConceptValue> = {
 				name: "Tactician",
 				description:
 					"Draw 2 cards. Keep one and place the others at the bottom in any order.",
-				image: `${imagePrefixPath}/characters/6-tactician.png`,
+				image: `${imagePrefixPath}/characters/6.png`,
 				valueStyle: "left-[10%]",
 			},
 			[CardType.Value7]: {
 				value: 7,
 				name: "Paladin",
 				description: "Choose and swap your hand with another player's hand.",
-				image: `${imagePrefixPath}/characters/7-paladin.png`,
+				image: `${imagePrefixPath}/characters/7.png`,
 				descriptionStyle: "w-[60%]",
 				valueStyle: "top-[2.5%]",
 			},
@@ -141,14 +141,14 @@ export const cardsMap: Record<CardConceptType, CardConceptValue> = {
 				name: "Cursed Idol",
 				description:
 					"Must be discarded if held with Wizard or Paladin. Otherwise, no effect.",
-				image: `${imagePrefixPath}/characters/8-cursed-idol.png`,
+				image: `${imagePrefixPath}/characters/8.png`,
 			},
 			[CardType.Value9]: {
 				value: 9,
 				name: "Sacred Crystal",
 				description:
 					"If you play or discard this card, you are immediately eliminated.",
-				image: `${imagePrefixPath}/characters/9-sacred-crystal.png`,
+				image: `${imagePrefixPath}/characters/9.png`,
 				valueStyle: "top-[1.6%]",
 			},
 		},

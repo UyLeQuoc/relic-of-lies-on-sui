@@ -1014,5 +1014,727 @@ export function useIsAlive(room: GameRoomType | null) {
   return room.players[playerIdx]?.is_alive ?? false;
 }
 
+// ============== Gacha Constants ==============
+
+// Gacha cost: 0.01 SUI per pull
+export const GACHA_COST = BigInt(10_000_000);
+
+// Rarity constants
+export const Rarity = {
+  COMMON: 0,
+  RARE: 1,
+  EPIC: 2,
+  LEGENDARY: 3,
+  MYTHIC: 4,
+} as const;
+
+// Rarity names for display
+export const RarityNames: Record<number, string> = {
+  [Rarity.COMMON]: 'Common',
+  [Rarity.RARE]: 'Rare',
+  [Rarity.EPIC]: 'Epic',
+  [Rarity.LEGENDARY]: 'Legendary',
+  [Rarity.MYTHIC]: 'Mythic',
+};
+
+// Rarity colors for display
+export const RarityColors: Record<number, string> = {
+  [Rarity.COMMON]: 'text-gray-400',
+  [Rarity.RARE]: 'text-blue-400',
+  [Rarity.EPIC]: 'text-purple-400',
+  [Rarity.LEGENDARY]: 'text-yellow-400',
+  [Rarity.MYTHIC]: 'text-red-400',
+};
+
+// Upgrade success rates (%)
+export const UpgradeRates: Record<number, number> = {
+  [Rarity.COMMON]: 80,    // Common → Rare: 80%
+  [Rarity.RARE]: 60,      // Rare → Epic: 60%
+  [Rarity.EPIC]: 40,      // Epic → Legendary: 40%
+  [Rarity.LEGENDARY]: 20, // Legendary → Mythic: 20%
+  [Rarity.MYTHIC]: 0,     // Cannot upgrade
+};
+
+// ============== Gacha Types ==============
+
+// Card NFT type (matches contract struct)
+export interface CardNFT {
+  id: { id: string };
+  value: number;
+  rarity: number;
+  wins: bigint;
+  games_played: bigint;
+}
+
+// ============== Gacha Hooks ==============
+
+// Hook to pull cards from gacha (supports multiple pulls)
+export function useGachaPull() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecute, isPending } = useSignAndExecuteTransaction();
+  const { variables: { movePackageId, gachaTreasuryId } } = useNetworkConfig();
+  const [error, setError] = useState<Error | null>(null);
+
+  const pull = useCallback(async (amount: number = 1) => {
+    if (!currentAccount) {
+      const err = new Error('Please connect your wallet first');
+      toast.error(err.message);
+      throw err;
+    }
+
+    if (amount < 1) {
+      const err = new Error('Amount must be at least 1');
+      toast.error(err.message);
+      throw err;
+    }
+
+    setError(null);
+
+    try {
+      const tx = new Transaction();
+      
+      // Calculate total cost: 0.01 SUI per pull
+      const totalCost = GACHA_COST * BigInt(amount);
+      
+      // Split coin for gacha cost
+      const [paymentCoin] = tx.splitCoins(tx.gas, [totalCost]);
+      
+      // Call gacha pull_and_keep with amount
+      tx.moveCall({
+        target: `${movePackageId}::gacha::pull_and_keep`,
+        arguments: [
+          tx.object(gachaTreasuryId),
+          paymentCoin,
+          tx.pure.u64(amount),
+          tx.object('0x8'),  // Random object
+        ],
+      });
+
+      const result = await signAndExecute({
+        transaction: tx,
+      });
+
+      const txResponse = await client.waitForTransaction({
+        digest: result.digest,
+        options: {
+          showEffects: true,
+          showObjectChanges: true,
+        },
+      });
+
+      // Find all created cards from object changes
+      const createdCards = txResponse.objectChanges?.filter(
+        (change) => change.type === 'created' && change.objectType?.includes('::gacha::Card')
+      ) ?? [];
+
+      const cardIds = createdCards
+        .map(card => 'objectId' in card ? card.objectId : null)
+        .filter((id): id is string => id !== null);
+
+      toast.success(`${amount} card${amount > 1 ? 's' : ''} pulled successfully!`);
+
+      return {
+        digest: result.digest,
+        cardIds,
+      };
+    } catch (err) {
+      const error = parseContractError(err);
+      setError(error);
+      toast.error(error.message);
+      throw error;
+    }
+  }, [client, currentAccount, signAndExecute, movePackageId, gachaTreasuryId]);
+
+  return {
+    pull,
+    isPending,
+    error,
+  };
+}
+
+// Hook to upgrade cards
+export function useGachaUpgrade() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecute, isPending } = useSignAndExecuteTransaction();
+  const { variables: { movePackageId } } = useNetworkConfig();
+  const [error, setError] = useState<Error | null>(null);
+
+  const upgrade = useCallback(async (card1Id: string, card2Id: string, card3Id: string) => {
+    if (!currentAccount) {
+      const err = new Error('Please connect your wallet first');
+      toast.error(err.message);
+      throw err;
+    }
+
+    setError(null);
+
+    try {
+      const tx = new Transaction();
+      
+      // Call gacha upgrade_and_keep
+      tx.moveCall({
+        target: `${movePackageId}::gacha::upgrade_and_keep`,
+        arguments: [
+          tx.object(card1Id),
+          tx.object(card2Id),
+          tx.object(card3Id),
+          tx.object('0x8'),  // Random object
+        ],
+      });
+
+      const result = await signAndExecute({
+        transaction: tx,
+      });
+
+      const txResponse = await client.waitForTransaction({
+        digest: result.digest,
+        options: {
+          showEffects: true,
+          showObjectChanges: true,
+        },
+      });
+
+      // Find the created card from object changes
+      const createdCard = txResponse.objectChanges?.find(
+        (change) => change.type === 'created' && change.objectType?.includes('::gacha::Card')
+      );
+
+      toast.success('Upgrade complete!');
+
+      return {
+        digest: result.digest,
+        cardId: createdCard && 'objectId' in createdCard ? createdCard.objectId : null,
+      };
+    } catch (err) {
+      const error = parseContractError(err);
+      setError(error);
+      toast.error(error.message);
+      throw error;
+    }
+  }, [client, currentAccount, signAndExecute, movePackageId]);
+
+  return {
+    upgrade,
+    isPending,
+    error,
+  };
+}
+
+// Hook to get user's cards
+export function useGetMyCards() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const { variables: { movePackageId } } = useNetworkConfig();
+  const [cards, setCards] = useState<CardNFT[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchCards = useCallback(async () => {
+    if (!currentAccount) {
+      setCards([]);
+      return [];
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Get all Card objects owned by the user
+      const response = await client.getOwnedObjects({
+        owner: currentAccount.address,
+        filter: {
+          StructType: `${movePackageId}::gacha::Card`,
+        },
+        options: {
+          showContent: true,
+          showType: true,
+        },
+      });
+
+      const parsedCards: CardNFT[] = [];
+      
+      for (const obj of response.data) {
+        if (obj.data?.content?.dataType === 'moveObject') {
+          const fields = obj.data.content.fields as Record<string, unknown>;
+          parsedCards.push({
+            id: { id: obj.data.objectId },
+            value: Number(fields.value),
+            rarity: Number(fields.rarity),
+            wins: BigInt(fields.wins as string || '0'),
+            games_played: BigInt(fields.games_played as string || '0'),
+          });
+        }
+      }
+
+      setCards(parsedCards);
+      return parsedCards;
+    } catch (err) {
+      const error = parseContractError(err);
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [client, currentAccount, movePackageId]);
+
+  return {
+    cards,
+    fetchCards,
+    isLoading,
+    error,
+  };
+}
+
+// ============== Marketplace Hooks ==============
+
+// Hook to create a kiosk
+export function useCreateKiosk() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecute, isPending } = useSignAndExecuteTransaction();
+  const { variables: { movePackageId, marketplaceRegistryId } } = useNetworkConfig();
+  const [error, setError] = useState<Error | null>(null);
+
+  const createKiosk = useCallback(async () => {
+    if (!currentAccount) {
+      const err = new Error('Please connect your wallet first');
+      toast.error(err.message);
+      throw err;
+    }
+
+    setError(null);
+
+    try {
+      const tx = new Transaction();
+      
+      tx.moveCall({
+        target: `${movePackageId}::marketplace::create_kiosk_and_share`,
+        arguments: [
+          tx.object(marketplaceRegistryId),
+        ],
+      });
+
+      const result = await signAndExecute({
+        transaction: tx,
+      });
+
+      const txResponse = await client.waitForTransaction({
+        digest: result.digest,
+        options: {
+          showEffects: true,
+          showObjectChanges: true,
+        },
+      });
+
+      // Find created kiosk and cap
+      const createdKiosk = txResponse.objectChanges?.find(
+        (change) => change.type === 'created' && change.objectType?.includes('::kiosk::Kiosk')
+      );
+      const createdCap = txResponse.objectChanges?.find(
+        (change) => change.type === 'created' && change.objectType?.includes('::kiosk::KioskOwnerCap')
+      );
+
+      toast.success('Kiosk created successfully!');
+
+      return {
+        digest: result.digest,
+        kioskId: createdKiosk && 'objectId' in createdKiosk ? createdKiosk.objectId : null,
+        capId: createdCap && 'objectId' in createdCap ? createdCap.objectId : null,
+      };
+    } catch (err) {
+      const error = parseContractError(err);
+      setError(error);
+      toast.error(error.message);
+      throw error;
+    }
+  }, [client, currentAccount, signAndExecute, movePackageId, marketplaceRegistryId]);
+
+  return {
+    createKiosk,
+    isPending,
+    error,
+  };
+}
+
+// Hook to list a card for sale
+export function useListCard() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecute, isPending } = useSignAndExecuteTransaction();
+  const { variables: { movePackageId } } = useNetworkConfig();
+  const [error, setError] = useState<Error | null>(null);
+
+  const listCard = useCallback(async (
+    kioskId: string,
+    kioskCapId: string,
+    cardId: string,
+    priceInSui: number
+  ) => {
+    if (!currentAccount) {
+      const err = new Error('Please connect your wallet first');
+      toast.error(err.message);
+      throw err;
+    }
+
+    if (priceInSui <= 0) {
+      const err = new Error('Price must be greater than 0');
+      toast.error(err.message);
+      throw err;
+    }
+
+    setError(null);
+
+    try {
+      const tx = new Transaction();
+      
+      // Convert SUI to MIST
+      const priceInMist = BigInt(Math.floor(priceInSui * 1_000_000_000));
+      
+      tx.moveCall({
+        target: `${movePackageId}::marketplace::place_and_list`,
+        arguments: [
+          tx.object(kioskId),
+          tx.object(kioskCapId),
+          tx.object(cardId),
+          tx.pure.u64(priceInMist),
+        ],
+      });
+
+      const result = await signAndExecute({
+        transaction: tx,
+      });
+
+      await client.waitForTransaction({
+        digest: result.digest,
+        options: { showEffects: true },
+      });
+
+      toast.success(`Card listed for ${priceInSui} SUI!`);
+
+      return { digest: result.digest };
+    } catch (err) {
+      const error = parseContractError(err);
+      setError(error);
+      toast.error(error.message);
+      throw error;
+    }
+  }, [client, currentAccount, signAndExecute, movePackageId]);
+
+  return {
+    listCard,
+    isPending,
+    error,
+  };
+}
+
+// Hook to purchase a card
+export function usePurchaseCard() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecute, isPending } = useSignAndExecuteTransaction();
+  const { variables: { movePackageId, marketplaceRegistryId } } = useNetworkConfig();
+  const [error, setError] = useState<Error | null>(null);
+
+  const purchaseCard = useCallback(async (
+    kioskId: string,
+    cardId: string,
+    priceInMist: bigint,
+    transferPolicyId: string
+  ) => {
+    if (!currentAccount) {
+      const err = new Error('Please connect your wallet first');
+      toast.error(err.message);
+      throw err;
+    }
+
+    setError(null);
+
+    try {
+      const tx = new Transaction();
+      
+      // Split coin for payment
+      const [paymentCoin] = tx.splitCoins(tx.gas, [priceInMist]);
+      
+      tx.moveCall({
+        target: `${movePackageId}::marketplace::purchase_card_and_keep`,
+        arguments: [
+          tx.object(kioskId),
+          tx.pure.id(cardId),
+          paymentCoin,
+          tx.object(transferPolicyId),
+          tx.object(marketplaceRegistryId),
+        ],
+      });
+
+      const result = await signAndExecute({
+        transaction: tx,
+      });
+
+      await client.waitForTransaction({
+        digest: result.digest,
+        options: { showEffects: true },
+      });
+
+      toast.success('Card purchased successfully!');
+
+      return { digest: result.digest };
+    } catch (err) {
+      const error = parseContractError(err);
+      setError(error);
+      toast.error(error.message);
+      throw error;
+    }
+  }, [client, currentAccount, signAndExecute, movePackageId, marketplaceRegistryId]);
+
+  return {
+    purchaseCard,
+    isPending,
+    error,
+  };
+}
+
+// Hook to delist a card
+export function useDelistCard() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecute, isPending } = useSignAndExecuteTransaction();
+  const { variables: { movePackageId } } = useNetworkConfig();
+  const [error, setError] = useState<Error | null>(null);
+
+  const delistCard = useCallback(async (
+    kioskId: string,
+    kioskCapId: string,
+    cardId: string
+  ) => {
+    if (!currentAccount) {
+      const err = new Error('Please connect your wallet first');
+      toast.error(err.message);
+      throw err;
+    }
+
+    setError(null);
+
+    try {
+      const tx = new Transaction();
+      
+      tx.moveCall({
+        target: `${movePackageId}::marketplace::delist_card`,
+        arguments: [
+          tx.object(kioskId),
+          tx.object(kioskCapId),
+          tx.pure.id(cardId),
+        ],
+      });
+
+      const result = await signAndExecute({
+        transaction: tx,
+      });
+
+      await client.waitForTransaction({
+        digest: result.digest,
+        options: { showEffects: true },
+      });
+
+      toast.success('Card delisted successfully!');
+
+      return { digest: result.digest };
+    } catch (err) {
+      const error = parseContractError(err);
+      setError(error);
+      toast.error(error.message);
+      throw error;
+    }
+  }, [client, currentAccount, signAndExecute, movePackageId]);
+
+  return {
+    delistCard,
+    isPending,
+    error,
+  };
+}
+
+// Hook to withdraw card from kiosk
+export function useWithdrawCard() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecute, isPending } = useSignAndExecuteTransaction();
+  const { variables: { movePackageId } } = useNetworkConfig();
+  const [error, setError] = useState<Error | null>(null);
+
+  const withdrawCard = useCallback(async (
+    kioskId: string,
+    kioskCapId: string,
+    cardId: string
+  ) => {
+    if (!currentAccount) {
+      const err = new Error('Please connect your wallet first');
+      toast.error(err.message);
+      throw err;
+    }
+
+    setError(null);
+
+    try {
+      const tx = new Transaction();
+      
+      tx.moveCall({
+        target: `${movePackageId}::marketplace::withdraw_card_and_keep`,
+        arguments: [
+          tx.object(kioskId),
+          tx.object(kioskCapId),
+          tx.pure.id(cardId),
+        ],
+      });
+
+      const result = await signAndExecute({
+        transaction: tx,
+      });
+
+      await client.waitForTransaction({
+        digest: result.digest,
+        options: { showEffects: true },
+      });
+
+      toast.success('Card withdrawn successfully!');
+
+      return { digest: result.digest };
+    } catch (err) {
+      const error = parseContractError(err);
+      setError(error);
+      toast.error(error.message);
+      throw error;
+    }
+  }, [client, currentAccount, signAndExecute, movePackageId]);
+
+  return {
+    withdrawCard,
+    isPending,
+    error,
+  };
+}
+
+// Hook to withdraw kiosk profits
+export function useWithdrawProfits() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecute, isPending } = useSignAndExecuteTransaction();
+  const { variables: { movePackageId } } = useNetworkConfig();
+  const [error, setError] = useState<Error | null>(null);
+
+  const withdrawProfits = useCallback(async (
+    kioskId: string,
+    kioskCapId: string
+  ) => {
+    if (!currentAccount) {
+      const err = new Error('Please connect your wallet first');
+      toast.error(err.message);
+      throw err;
+    }
+
+    setError(null);
+
+    try {
+      const tx = new Transaction();
+      
+      tx.moveCall({
+        target: `${movePackageId}::marketplace::withdraw_profits`,
+        arguments: [
+          tx.object(kioskId),
+          tx.object(kioskCapId),
+        ],
+      });
+
+      const result = await signAndExecute({
+        transaction: tx,
+      });
+
+      await client.waitForTransaction({
+        digest: result.digest,
+        options: { showEffects: true },
+      });
+
+      toast.success('Profits withdrawn successfully!');
+
+      return { digest: result.digest };
+    } catch (err) {
+      const error = parseContractError(err);
+      setError(error);
+      toast.error(error.message);
+      throw error;
+    }
+  }, [client, currentAccount, signAndExecute, movePackageId]);
+
+  return {
+    withdrawProfits,
+    isPending,
+    error,
+  };
+}
+
+// Hook to get user's kiosk
+export function useGetMyKiosk() {
+  const client = useSuiClient();
+  const currentAccount = useCurrentAccount();
+  const [kioskId, setKioskId] = useState<string | null>(null);
+  const [kioskCapId, setKioskCapId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchKiosk = useCallback(async () => {
+    if (!currentAccount) {
+      setKioskId(null);
+      setKioskCapId(null);
+      return null;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Get KioskOwnerCap owned by user
+      const response = await client.getOwnedObjects({
+        owner: currentAccount.address,
+        filter: {
+          StructType: '0x2::kiosk::KioskOwnerCap',
+        },
+        options: {
+          showContent: true,
+        },
+      });
+
+      if (response.data.length > 0 && response.data[0]?.data?.content?.dataType === 'moveObject') {
+        const fields = response.data[0].data.content.fields as Record<string, unknown>;
+        const capId = response.data[0].data.objectId;
+        const kiosk = fields.for as string;
+        
+        setKioskId(kiosk);
+        setKioskCapId(capId);
+        
+        return { kioskId: kiosk, kioskCapId: capId };
+      }
+
+      setKioskId(null);
+      setKioskCapId(null);
+      return null;
+    } catch (err) {
+      const error = parseContractError(err);
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [client, currentAccount]);
+
+  return {
+    kioskId,
+    kioskCapId,
+    fetchKiosk,
+    isLoading,
+    error,
+  };
+}
+
 // Export the types for use in components
 export type { GameRoomType, PlayerRecordType, LeaderboardType };

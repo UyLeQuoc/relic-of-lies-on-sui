@@ -21,7 +21,10 @@ sources/
 ├── events.move       # Events for frontend/match history
 ├── utils.move        # Deck creation, shuffling, helpers
 ├── game.move         # Core game logic & card effects
-└── app.move          # Clean API entry points
+├── app.move          # Clean API entry points
+├── gacha.move        # NFT Card gacha system
+├── marketplace.move  # Kiosk-based NFT marketplace
+└── leaderboard.move  # Global player rankings
 ```
 
 ## 🃏 Card Effects (2019 Premium Edition)
@@ -216,6 +219,309 @@ When deck is empty and multiple players are alive:
 
 ### Handmaid or No Target
 - If there is no valid target when playing King, Guard, Priest, Baron, or Prince (e.g., all other players are immune or eliminated), the card is played with no effect (no target selected)
+
+---
+
+# 🎰 Gacha System
+
+## Overview
+
+The Gacha system allows players to collect NFT cards with different rarities. Each pull costs **0.05 SUI** and gives you a random card.
+
+## Card NFT Structure
+
+```move
+public struct Card has key, store {
+    id: UID,
+    value: u8,        // 0-9 (corresponds to game cards)
+    rarity: u8,       // 0=Common, 1=Rare, 2=Epic, 3=Legendary, 4=Mythic
+    wins: u64,        // Number of wins with this card
+    games_played: u64 // Number of games played
+}
+```
+
+## Rarity Drop Rates
+
+| Rarity | Drop Rate | Color |
+|--------|-----------|-------|
+| Common | 67.5% | Gray |
+| Rare | 20% | Blue |
+| Epic | 10% | Purple |
+| Legendary | 2% | Gold |
+| Mythic | 0.5% | Red |
+
+## Gacha Functions
+
+### Pull a Card
+
+```typescript
+// Cost: 0.05 SUI per pull
+gacha::pull_and_keep(treasury, payment, random)
+```
+
+**Parameters:**
+- `treasury`: GachaTreasury shared object
+- `payment`: Coin<SUI> (minimum 0.05 SUI)
+- `random`: Random object for randomness
+
+**Returns:** Card NFT transferred to sender
+
+### Upgrade Cards
+
+Combine **3 cards of the same rarity** to attempt upgrading to higher rarity. **Upgrade has a chance to fail!**
+
+```typescript
+gacha::upgrade_and_keep(card1, card2, card3, random)
+```
+
+**Rules:**
+- All 3 cards must have the same rarity
+- Cannot upgrade Mythic cards (already max rarity)
+- New card inherits combined stats (wins + games_played)
+- New card gets random value (0-9)
+- **3 cards are always consumed** (burned)
+
+**Upgrade Success Rates:**
+
+| Upgrade | Success Rate | On Failure |
+|---------|--------------|------------|
+| Common → Rare | 80% | Get 1 Common back |
+| Rare → Epic | 60% | Get 1 Rare back |
+| Epic → Legendary | 40% | Get 1 Epic back |
+| Legendary → Mythic | 20% | Get 1 Legendary back |
+
+**Outcome:**
+- ✅ **SUCCESS**: Get 1 card of **higher rarity** with combined stats
+- ❌ **FAILURE**: Get 1 card of **same rarity** with combined stats (2 cards lost)
+
+## Gacha Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. PULL CARD                                               │
+│     pull_and_keep(treasury, 0.05 SUI, random)              │
+│     → Random card value (0-9)                               │
+│     → Random rarity based on drop rates                     │
+│     → Card NFT transferred to wallet                        │
+├─────────────────────────────────────────────────────────────┤
+│  2. COLLECT CARDS                                           │
+│     → Collect 3 cards of same rarity                        │
+│     → Use cards in games to build stats                     │
+├─────────────────────────────────────────────────────────────┤
+│  3. UPGRADE                                                 │
+│     upgrade_and_keep(card1, card2, card3, random)          │
+│     → Burns 3 cards                                         │
+│     → Creates 1 higher rarity card                          │
+│     → Stats are combined                                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Sui Object Display
+
+Card NFTs use Sui's Display standard for rich metadata in wallets and explorers.
+
+### Display Fields
+
+| Field | Value | Description |
+|-------|-------|-------------|
+| `name` | `Relic of Lies Card #{value}` | Card name with value |
+| `description` | Dynamic | Card description with value and rarity |
+| `image_url` | `https://relic-of-lies.vercel.app/api/card-image/{value}/{rarity}` | Card image |
+| `thumbnail_url` | `https://relic-of-lies.vercel.app/api/card-thumbnail/{value}/{rarity}` | Thumbnail |
+| `project_name` | `Relic of Lies` | Project name |
+| `project_url` | `https://relic-of-lies.vercel.app` | Project website |
+| `creator` | `Relic of Lies Team` | Creator info |
+| `value` | `{value}` | Card value (0-9) |
+| `rarity` | `{rarity}` | Rarity level (0-4) |
+| `wins` | `{wins}` | Total wins |
+| `games_played` | `{games_played}` | Total games |
+
+### Rarity Values
+
+| Rarity ID | Name | Display Color |
+|-----------|------|---------------|
+| 0 | Common | Gray |
+| 1 | Rare | Blue |
+| 2 | Epic | Purple |
+| 3 | Legendary | Gold |
+| 4 | Mythic | Red |
+
+### Card Values (Love Letter)
+
+| Value | Card Name |
+|-------|-----------|
+| 0 | Spy |
+| 1 | Guard |
+| 2 | Priest |
+| 3 | Baron |
+| 4 | Handmaid |
+| 5 | Prince |
+| 6 | Chancellor |
+| 7 | King |
+| 8 | Countess |
+| 9 | Princess |
+
+### Update Display (Admin)
+
+The Display object is owned by the publisher. To update display fields:
+
+```typescript
+// Get Display object
+const display = await client.getObject({ id: DISPLAY_ID });
+
+// Update a field
+display::edit(display, "image_url", "new_url");
+display::update_version(display);
+```
+
+---
+
+# 🏪 Marketplace
+
+## Overview
+
+The Marketplace uses **Sui Kiosk** for trading NFT cards. It features a **no-lock policy** meaning cards are transferred immediately upon purchase.
+
+## Key Components
+
+### MarketplaceRegistry
+Tracks global marketplace statistics.
+
+```move
+public struct MarketplaceRegistry has key {
+    id: UID,
+    total_kiosks: u64,   // Total kiosks created
+    total_volume: u64,   // Total SUI traded
+}
+```
+
+### Kiosk
+Each seller has their own Kiosk to list cards.
+
+### TransferPolicy
+No-lock policy allows instant transfers without restrictions.
+
+## Marketplace Functions
+
+### Create a Kiosk
+
+```typescript
+marketplace::create_kiosk_and_share(registry)
+```
+
+Creates a new Kiosk for the sender. You need a Kiosk to sell cards.
+
+**Returns:**
+- `Kiosk` (shared object)
+- `KioskOwnerCap` (transferred to sender)
+
+### List a Card for Sale
+
+```typescript
+// Option 1: Place card then list
+marketplace::place_card(kiosk, cap, card)
+marketplace::list_card(kiosk, cap, card_id, price)
+
+// Option 2: Place and list in one call
+marketplace::place_and_list(kiosk, cap, card, price)
+```
+
+**Parameters:**
+- `kiosk`: Your Kiosk object
+- `cap`: Your KioskOwnerCap
+- `card`: Card NFT to sell
+- `price`: Price in MIST (1 SUI = 1,000,000,000 MIST)
+
+### Delist a Card
+
+```typescript
+marketplace::delist_card(kiosk, cap, card_id)
+```
+
+Removes card from sale but keeps it in your Kiosk.
+
+### Withdraw a Card
+
+```typescript
+marketplace::withdraw_card_and_keep(kiosk, cap, card_id)
+```
+
+Withdraws card from Kiosk back to your wallet. Card must not be listed.
+
+### Purchase a Card
+
+```typescript
+marketplace::purchase_card_and_keep(kiosk, card_id, payment, policy, registry)
+```
+
+**Parameters:**
+- `kiosk`: Seller's Kiosk
+- `card_id`: ID of the card to buy
+- `payment`: Coin<SUI> matching the listed price
+- `policy`: TransferPolicy<Card> shared object
+- `registry`: MarketplaceRegistry shared object
+
+### Withdraw Profits
+
+```typescript
+marketplace::withdraw_profits(kiosk, cap)
+```
+
+Withdraws all accumulated profits from sales.
+
+## Marketplace Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  SELLER FLOW                                                │
+├─────────────────────────────────────────────────────────────┤
+│  1. Create Kiosk (one-time)                                │
+│     create_kiosk_and_share(registry)                       │
+│                                                             │
+│  2. List Card                                               │
+│     place_and_list(kiosk, cap, card, price)                │
+│                                                             │
+│  3. Wait for buyer...                                       │
+│                                                             │
+│  4. Withdraw Profits                                        │
+│     withdraw_profits(kiosk, cap)                           │
+├─────────────────────────────────────────────────────────────┤
+│  BUYER FLOW                                                 │
+├─────────────────────────────────────────────────────────────┤
+│  1. Browse listings (off-chain indexer)                    │
+│                                                             │
+│  2. Purchase Card                                           │
+│     purchase_card_and_keep(kiosk, card_id, payment, ...)   │
+│                                                             │
+│  3. Card transferred to wallet instantly                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Setup Transfer Policy
+
+The package publisher must create a TransferPolicy once after deployment:
+
+```typescript
+marketplace::create_and_share_card_policy(publisher)
+```
+
+This creates a no-lock policy that allows instant card transfers.
+
+---
+
+# 🔗 Shared Objects Reference
+
+After deployment, these shared objects are created:
+
+| Object | Module | Purpose |
+|--------|--------|---------|
+| `RoomRegistry` | game | Tracks active game rooms |
+| `Leaderboard` | leaderboard | Global player rankings |
+| `GachaTreasury` | gacha | Collects gacha fees |
+| `MarketplaceRegistry` | marketplace | Marketplace statistics |
+| `TransferPolicy<Card>` | marketplace | Card trading policy |
+
+---
 
 ## 📝 License
 
