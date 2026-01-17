@@ -6,14 +6,13 @@ import {
   Gamepad2,
   Github,
   Home,
+  Layers,
   LogOut,
   Menu,
-  Scroll,
   Settings,
   Sparkles,
   Trophy,
   User,
-  Users,
   Wallet,
   X,
 } from "lucide-react";
@@ -50,6 +49,12 @@ const menuItems = [
     href: "/how-to-play",
   },
   { id: "gacha", label: "Gacha", icon: Sparkles, href: "/gacha" },
+  {
+    id: "my-collection",
+    label: "Collection",
+    icon: Layers,
+    href: "/my-collection",
+  },
 ];
 
 export default function Header() {
@@ -141,6 +146,12 @@ export default function Header() {
                     <Link href="/gacha" className="cursor-pointer">
                       <Sparkles className="mr-2 h-4 w-4" />
                       <span>Gacha</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/my-collection" className="cursor-pointer">
+                      <Layers className="mr-2 h-4 w-4" />
+                      <span>My Collection</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
