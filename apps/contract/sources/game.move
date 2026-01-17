@@ -266,11 +266,6 @@ public fun play_turn(
     utils::remove_first(&mut room.players[current_player_idx].hand, &card);
     room.players[current_player_idx].discarded.push_back(card);
     
-    // Track Spy plays
-    if (card == constants::card_spy()) {
-        room.players[current_player_idx].has_played_spy = true;
-    };
-    
     // Get target address for event
     let target_addr = if (target_idx.is_some()) {
         let idx = *target_idx.borrow();
@@ -544,11 +539,6 @@ fun execute_prince(
     let discarded_card = if (!room.players[target].hand.is_empty()) {
         let card = room.players[target].hand.pop_back();
         room.players[target].discarded.push_back(card);
-        
-        if (card == constants::card_spy()) {
-            room.players[target].has_played_spy = true;
-        };
-        
         card
     } else {
         0
@@ -680,8 +670,10 @@ fun all_others_immune(room: &GameRoom, player_idx: u64): bool {
 fun eliminate_player(room: &mut GameRoom, player_idx: u64) {
     room.players[player_idx].is_alive = false;
     
-    if (utils::is_holding_spy(&room.players[player_idx].hand)) {
-        room.players[player_idx].has_played_spy = true;
+    // Discard all cards in hand when eliminated
+    while (!room.players[player_idx].hand.is_empty()) {
+        let card = room.players[player_idx].hand.pop_back();
+        room.players[player_idx].discarded.push_back(card);
     };
     
     let room_id = room.id.to_inner();
