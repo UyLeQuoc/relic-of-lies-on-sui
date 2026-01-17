@@ -16,19 +16,20 @@ export function useCollection() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const parseCardFromObject = (obj: {
-    data?: {
-      objectId: string;
-      content?: {
-        dataType: string;
-        fields?: Record<string, unknown>;
-      };
-    };
-  }): CardNFT | null => {
-    if (obj.data?.content?.dataType === "moveObject" && obj.data.content.fields) {
-      const fields = obj.data.content.fields as Record<string, unknown>;
+  const parseCardFromObject = (obj: unknown): CardNFT | null => {
+    const data = (obj as { data?: unknown })?.data as {
+      objectId?: string;
+      content?: { dataType?: string; fields?: Record<string, unknown> };
+    } | null;
+
+    if (
+      data?.objectId &&
+      data?.content?.dataType === "moveObject" &&
+      data.content.fields
+    ) {
+      const fields = data.content.fields;
       return {
-        id: { id: obj.data.objectId },
+        id: { id: data.objectId },
         value: Number(fields.value),
         rarity: Number(fields.rarity),
         wins: BigInt((fields.wins as string) || "0"),
@@ -80,7 +81,8 @@ export function useCollection() {
       setCards(allCards);
       return allCards;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error("Failed to fetch cards");
+      const error =
+        err instanceof Error ? err : new Error("Failed to fetch cards");
       setError(error);
       throw error;
     } finally {
