@@ -1,0 +1,598 @@
+{
+  "id": {
+    "address": "contract",
+    "name": "leaderboard"
+  },
+  "doc": " Leaderboard module for Love Letter game (ZK Version)\n Manages global rankings as a shared object",
+  "immediate_dependencies": [
+    {
+      "address": "contract",
+      "name": "constants"
+    },
+    {
+      "address": "contract",
+      "name": "events"
+    },
+    {
+      "address": "std",
+      "name": "option"
+    },
+    {
+      "address": "sui",
+      "name": "object"
+    },
+    {
+      "address": "sui",
+      "name": "transfer"
+    },
+    {
+      "address": "sui",
+      "name": "tx_context"
+    }
+  ],
+  "attributes": [],
+  "functions": {
+    "init": {
+      "source_index": 0,
+      "index": 0,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "update_winner": {
+      "source_index": 1,
+      "index": 1,
+      "doc": " Update winner's record in leaderboard",
+      "attributes": [],
+      "visibility": "Package",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "winner_addr",
+          "type_": "address"
+        }
+      ],
+      "return_": []
+    },
+    "update_loser": {
+      "source_index": 2,
+      "index": 2,
+      "doc": " Update loser's record (increment games_played only)",
+      "attributes": [],
+      "visibility": "Package",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "loser_addr",
+          "type_": "address"
+        }
+      ],
+      "return_": []
+    },
+    "get_top_players": {
+      "source_index": 3,
+      "index": 3,
+      "doc": " Get top N players from leaderboard",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "count",
+          "type_": "u64"
+        }
+      ],
+      "return_": [
+        {
+          "vector": {
+            "Datatype": {
+              "module": {
+                "address": "contract",
+                "name": "leaderboard"
+              },
+              "name": "PlayerRecord",
+              "type_arguments": []
+            }
+          }
+        }
+      ]
+    },
+    "get_player_record": {
+      "source_index": 4,
+      "index": 4,
+      "doc": " Get a player's record",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "type_": "address"
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "option"
+            },
+            "name": "Option",
+            "type_arguments": [
+              {
+                "phantom": false,
+                "argument": {
+                  "Datatype": {
+                    "module": {
+                      "address": "contract",
+                      "name": "leaderboard"
+                    },
+                    "name": "PlayerRecord",
+                    "type_arguments": []
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "get_player_rank": {
+      "source_index": 5,
+      "index": 5,
+      "doc": " Get player's rank (1-indexed, 0 if not found)",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "type_": "address"
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "total_players": {
+      "source_index": 6,
+      "index": 6,
+      "doc": " Get total number of players in leaderboard",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "record_address": {
+      "source_index": 7,
+      "index": 7,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "record",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "PlayerRecord",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "address"
+      ]
+    },
+    "record_wins": {
+      "source_index": 8,
+      "index": 8,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "record",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "PlayerRecord",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "record_games_played": {
+      "source_index": 9,
+      "index": 9,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "record",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "PlayerRecord",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "find_player_index": {
+      "source_index": 10,
+      "index": 10,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "records",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "vector": {
+                  "Datatype": {
+                    "module": {
+                      "address": "contract",
+                      "name": "leaderboard"
+                    },
+                    "name": "PlayerRecord",
+                    "type_arguments": []
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "type_": "address"
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "option"
+            },
+            "name": "Option",
+            "type_arguments": [
+              {
+                "phantom": false,
+                "argument": "u64"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "sort_records": {
+      "source_index": 11,
+      "index": 11,
+      "doc": " Sort records by wins (descending) using bubble sort",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "records",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "vector": {
+                  "Datatype": {
+                    "module": {
+                      "address": "contract",
+                      "name": "leaderboard"
+                    },
+                    "name": "PlayerRecord",
+                    "type_arguments": []
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "trim_leaderboard": {
+      "source_index": 12,
+      "index": 12,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "records",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "vector": {
+                  "Datatype": {
+                    "module": {
+                      "address": "contract",
+                      "name": "leaderboard"
+                    },
+                    "name": "PlayerRecord",
+                    "type_arguments": []
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    }
+  },
+  "structs": {
+    "PlayerRecord": {
+      "index": 0,
+      "doc": " Record of a player's wins",
+      "attributes": [],
+      "abilities": [
+        "Copy",
+        "Drop",
+        "Store"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "addr": {
+            "index": 0,
+            "doc": null,
+            "type_": "address"
+          },
+          "wins": {
+            "index": 1,
+            "doc": null,
+            "type_": "u64"
+          },
+          "games_played": {
+            "index": 2,
+            "doc": null,
+            "type_": "u64"
+          }
+        }
+      }
+    },
+    "Leaderboard": {
+      "index": 1,
+      "doc": " Global leaderboard - shared object",
+      "attributes": [],
+      "abilities": [
+        "Key"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "id": {
+            "index": 0,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "object"
+                },
+                "name": "UID",
+                "type_arguments": []
+              }
+            }
+          },
+          "records": {
+            "index": 1,
+            "doc": null,
+            "type_": {
+              "vector": {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "PlayerRecord",
+                  "type_arguments": []
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "enums": {}
+}

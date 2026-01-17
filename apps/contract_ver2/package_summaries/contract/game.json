@@ -1,0 +1,2939 @@
+{
+  "id": {
+    "address": "contract",
+    "name": "game"
+  },
+  "doc": " Game module for Love Letter 2019 Premium Edition (ZK Version)\n Contains core game logic with Zero-Knowledge Proof support\n Cards are hidden using commitments, verified with ZK proofs",
+  "immediate_dependencies": [
+    {
+      "address": "contract",
+      "name": "constants"
+    },
+    {
+      "address": "contract",
+      "name": "error"
+    },
+    {
+      "address": "contract",
+      "name": "events"
+    },
+    {
+      "address": "contract",
+      "name": "leaderboard"
+    },
+    {
+      "address": "std",
+      "name": "option"
+    },
+    {
+      "address": "std",
+      "name": "string"
+    },
+    {
+      "address": "std",
+      "name": "vector"
+    },
+    {
+      "address": "sui",
+      "name": "balance"
+    },
+    {
+      "address": "sui",
+      "name": "clock"
+    },
+    {
+      "address": "sui",
+      "name": "coin"
+    },
+    {
+      "address": "sui",
+      "name": "object"
+    },
+    {
+      "address": "sui",
+      "name": "sui"
+    },
+    {
+      "address": "sui",
+      "name": "transfer"
+    },
+    {
+      "address": "sui",
+      "name": "tx_context"
+    }
+  ],
+  "attributes": [
+    {
+      "Parameterized": [
+        "allow",
+        [
+          {
+            "Name": "unused_use"
+          },
+          {
+            "Parameterized": [
+              "lint",
+              [
+                {
+                  "Name": "self_transfer"
+                }
+              ]
+            ]
+          }
+        ]
+      ]
+    }
+  ],
+  "functions": {
+    "init": {
+      "source_index": 0,
+      "index": 0,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "create_room": {
+      "source_index": 1,
+      "index": 1,
+      "doc": " Create a new game room",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "registry",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "RoomRegistry",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "string"
+              },
+              "name": "String",
+              "type_arguments": []
+            }
+          }
+        },
+        {
+          "name": "max_players",
+          "type_": "u8"
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "sui",
+              "name": "object"
+            },
+            "name": "ID",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "join_room": {
+      "source_index": 2,
+      "index": 2,
+      "doc": " Join an existing room",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "start_round": {
+      "source_index": 3,
+      "index": 3,
+      "doc": " Start a new round - dealer commits to shuffled deck and deals cards\n Called by the dealer (room creator or designated player)\n \n Parameters:\n - deck_commitment: Merkle root of shuffled deck\n - player_commitments: Each player's initial card commitment\n - public_cards: For 2-player games, 3 revealed cards",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "deck_commitment",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "player_commitments",
+          "type_": {
+            "vector": {
+              "vector": "u8"
+            }
+          }
+        },
+        {
+          "name": "public_cards",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "update_commitment": {
+      "source_index": 4,
+      "index": 4,
+      "doc": " Update player's card commitment (after drawing a card)",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_commitment",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "play_turn": {
+      "source_index": 5,
+      "index": 5,
+      "doc": " Play a card - reveals the card being played, updates commitment for remaining card\n Some cards require target to respond with ZK proof",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "card",
+          "type_": "u8"
+        },
+        {
+          "name": "new_commitment",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "target_idx",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u64"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "guess",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u8"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "clock",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "clock"
+                  },
+                  "name": "Clock",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "execute_guard": {
+      "source_index": 6,
+      "index": 6,
+      "doc": " Guard - initiates pending action for target to prove",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "target_idx",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u64"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "guess",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u8"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "clock",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "clock"
+                  },
+                  "name": "Clock",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "respond_guard": {
+      "source_index": 7,
+      "index": 7,
+      "doc": " Respond to Guard with ZK proof",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "_vk",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKVerificationKeys",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "proof",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "is_correct",
+          "type_": "bool"
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "execute_priest": {
+      "source_index": 8,
+      "index": 8,
+      "doc": " Priest - just emits event, target reveals privately to player",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "target_idx",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u64"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "return_": []
+    },
+    "execute_baron": {
+      "source_index": 9,
+      "index": 9,
+      "doc": " Baron - initiates comparison, requires proof from one party",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "target_idx",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u64"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "clock",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "clock"
+                  },
+                  "name": "Clock",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "respond_baron": {
+      "source_index": 10,
+      "index": 10,
+      "doc": " Respond to Baron with ZK proof of comparison result",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "_vk",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKVerificationKeys",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "proof",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "result",
+          "type_": "u8"
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "execute_prince": {
+      "source_index": 11,
+      "index": 11,
+      "doc": " Prince - target must discard and draw",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "target_idx",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u64"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "clock",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "clock"
+                  },
+                  "name": "Clock",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "respond_prince": {
+      "source_index": 12,
+      "index": 12,
+      "doc": " Respond to Prince - reveal discarded card and new commitment",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "discarded_card",
+          "type_": "u8"
+        },
+        {
+          "name": "new_commitment",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "execute_king": {
+      "source_index": 13,
+      "index": 13,
+      "doc": " King - swap hands",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "target_idx",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u64"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "clock",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "clock"
+                  },
+                  "name": "Clock",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "respond_king": {
+      "source_index": 14,
+      "index": 14,
+      "doc": " Respond to King - both players submit new commitments",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "initiator_new_commitment",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "target_new_commitment",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "execute_chancellor": {
+      "source_index": 15,
+      "index": 15,
+      "doc": " Chancellor - draw cards",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "clock",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "clock"
+                  },
+                  "name": "Clock",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "resolve_chancellor": {
+      "source_index": 16,
+      "index": 16,
+      "doc": " Resolve Chancellor - player submits new commitment after choosing card",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_commitment",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "cards_returned",
+          "type_": "u8"
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "handle_timeout": {
+      "source_index": 17,
+      "index": 17,
+      "doc": " Handle timeout when player doesn't respond to pending action",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "clock",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "clock"
+                  },
+                  "name": "Clock",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "is_player_in_room": {
+      "source_index": 18,
+      "index": 18,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "addr",
+          "type_": "address"
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "get_player_index": {
+      "source_index": 19,
+      "index": 19,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "addr",
+          "type_": "address"
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "all_others_immune": {
+      "source_index": 20,
+      "index": 20,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "eliminate_player": {
+      "source_index": 21,
+      "index": 21,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        }
+      ],
+      "return_": []
+    },
+    "advance_turn": {
+      "source_index": 22,
+      "index": 22,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "advance_turn_and_check": {
+      "source_index": 23,
+      "index": 23,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "check_round_end": {
+      "source_index": 24,
+      "index": 24,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "check_round_winner": {
+      "source_index": 25,
+      "index": 25,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "option"
+            },
+            "name": "Option",
+            "type_arguments": [
+              {
+                "phantom": false,
+                "argument": "u64"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "resolve_round": {
+      "source_index": 26,
+      "index": 26,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "winner_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "check_spy_bonus": {
+      "source_index": 27,
+      "index": 27,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "option"
+            },
+            "name": "Option",
+            "type_arguments": [
+              {
+                "phantom": false,
+                "argument": "address"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "check_game_winner": {
+      "source_index": 28,
+      "index": 28,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "option"
+            },
+            "name": "Option",
+            "type_arguments": [
+              {
+                "phantom": false,
+                "argument": "u64"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "resolve_game": {
+      "source_index": 29,
+      "index": 29,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "winner_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "room_id": {
+      "source_index": 30,
+      "index": 30,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "sui",
+              "name": "object"
+            },
+            "name": "ID",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "room_name": {
+      "source_index": 31,
+      "index": 31,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "room_creator": {
+      "source_index": 32,
+      "index": 32,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "address"
+      ]
+    },
+    "room_status": {
+      "source_index": 33,
+      "index": 33,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u8"
+      ]
+    },
+    "room_max_players": {
+      "source_index": 34,
+      "index": 34,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u8"
+      ]
+    },
+    "room_current_players": {
+      "source_index": 35,
+      "index": 35,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u8"
+      ]
+    },
+    "room_current_turn": {
+      "source_index": 36,
+      "index": 36,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "room_round_number": {
+      "source_index": 37,
+      "index": 37,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u8"
+      ]
+    },
+    "deck_size": {
+      "source_index": 38,
+      "index": 38,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "is_pending_action": {
+      "source_index": 39,
+      "index": 39,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "player_commitment": {
+      "source_index": 40,
+      "index": 40,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "idx",
+          "type_": "u64"
+        }
+      ],
+      "return_": [
+        {
+          "vector": "u8"
+        }
+      ]
+    },
+    "player_discarded": {
+      "source_index": 41,
+      "index": 41,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "idx",
+          "type_": "u64"
+        }
+      ],
+      "return_": [
+        {
+          "vector": "u8"
+        }
+      ]
+    },
+    "player_is_alive": {
+      "source_index": 42,
+      "index": 42,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "idx",
+          "type_": "u64"
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "player_tokens": {
+      "source_index": 43,
+      "index": 43,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "idx",
+          "type_": "u64"
+        }
+      ],
+      "return_": [
+        "u8"
+      ]
+    },
+    "current_player_address": {
+      "source_index": 44,
+      "index": 44,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "address"
+      ]
+    },
+    "all_players": {
+      "source_index": 45,
+      "index": 45,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "ZKGameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "vector": "address"
+        }
+      ]
+    },
+    "active_rooms": {
+      "source_index": 46,
+      "index": 46,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "registry",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "RoomRegistry",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "vector": {
+            "Datatype": {
+              "module": {
+                "address": "sui",
+                "name": "object"
+              },
+              "name": "ID",
+              "type_arguments": []
+            }
+          }
+        }
+      ]
+    }
+  },
+  "structs": {
+    "Player": {
+      "index": 0,
+      "doc": " Player state - NO plaintext cards stored, only commitments",
+      "attributes": [],
+      "abilities": [
+        "Copy",
+        "Drop",
+        "Store"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "addr": {
+            "index": 0,
+            "doc": null,
+            "type_": "address"
+          },
+          "card_commitment": {
+            "index": 1,
+            "doc": " Commitment to current card(s): hash(card || salt)\n For single card: 32 bytes\n For two cards: 64 bytes (two commitments concatenated)",
+            "type_": {
+              "vector": "u8"
+            }
+          },
+          "hand_count": {
+            "index": 2,
+            "doc": " Number of cards in hand (1 or 2)",
+            "type_": "u8"
+          },
+          "discarded": {
+            "index": 3,
+            "doc": " Discarded cards (public info - revealed when played)",
+            "type_": {
+              "vector": "u8"
+            }
+          },
+          "is_alive": {
+            "index": 4,
+            "doc": null,
+            "type_": "bool"
+          },
+          "is_immune": {
+            "index": 5,
+            "doc": null,
+            "type_": "bool"
+          },
+          "tokens": {
+            "index": 6,
+            "doc": null,
+            "type_": "u8"
+          },
+          "has_played_spy": {
+            "index": 7,
+            "doc": null,
+            "type_": "bool"
+          }
+        }
+      }
+    },
+    "PendingAction": {
+      "index": 1,
+      "doc": " Pending action that requires ZK proof response",
+      "attributes": [],
+      "abilities": [
+        "Copy",
+        "Drop",
+        "Store"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "action_type": {
+            "index": 0,
+            "doc": null,
+            "type_": "u8"
+          },
+          "initiator_idx": {
+            "index": 1,
+            "doc": null,
+            "type_": "u64"
+          },
+          "target_idx": {
+            "index": 2,
+            "doc": null,
+            "type_": "u64"
+          },
+          "guess": {
+            "index": 3,
+            "doc": " For Guard: the guessed card",
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "std",
+                  "name": "option"
+                },
+                "name": "Option",
+                "type_arguments": [
+                  {
+                    "phantom": false,
+                    "argument": "u8"
+                  }
+                ]
+              }
+            }
+          },
+          "deadline": {
+            "index": 4,
+            "doc": " Deadline timestamp for proof submission",
+            "type_": "u64"
+          },
+          "extra_data": {
+            "index": 5,
+            "doc": " Additional data for complex actions",
+            "type_": {
+              "vector": "u8"
+            }
+          }
+        }
+      }
+    },
+    "ZKGameRoom": {
+      "index": 2,
+      "doc": " Game room with ZK support - shared object",
+      "attributes": [],
+      "abilities": [
+        "Key"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "id": {
+            "index": 0,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "object"
+                },
+                "name": "UID",
+                "type_arguments": []
+              }
+            }
+          },
+          "name": {
+            "index": 1,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "std",
+                  "name": "string"
+                },
+                "name": "String",
+                "type_arguments": []
+              }
+            }
+          },
+          "creator": {
+            "index": 2,
+            "doc": null,
+            "type_": "address"
+          },
+          "pot": {
+            "index": 3,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "balance"
+                },
+                "name": "Balance",
+                "type_arguments": [
+                  {
+                    "phantom": true,
+                    "argument": {
+                      "Datatype": {
+                        "module": {
+                          "address": "sui",
+                          "name": "sui"
+                        },
+                        "name": "SUI",
+                        "type_arguments": []
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "players": {
+            "index": 4,
+            "doc": null,
+            "type_": {
+              "vector": {
+                "Datatype": {
+                  "module": {
+                    "address": "contract",
+                    "name": "game"
+                  },
+                  "name": "Player",
+                  "type_arguments": []
+                }
+              }
+            }
+          },
+          "deck_commitment": {
+            "index": 5,
+            "doc": " Merkle root commitment of shuffled deck",
+            "type_": {
+              "vector": "u8"
+            }
+          },
+          "deck_size": {
+            "index": 6,
+            "doc": " Number of cards remaining in deck",
+            "type_": "u64"
+          },
+          "dealer": {
+            "index": 7,
+            "doc": " Who dealt/shuffled (for dispute resolution)",
+            "type_": "address"
+          },
+          "public_cards": {
+            "index": 8,
+            "doc": " Public cards for 2-player games",
+            "type_": {
+              "vector": "u8"
+            }
+          },
+          "status": {
+            "index": 9,
+            "doc": null,
+            "type_": "u8"
+          },
+          "current_turn": {
+            "index": 10,
+            "doc": null,
+            "type_": "u64"
+          },
+          "max_players": {
+            "index": 11,
+            "doc": null,
+            "type_": "u8"
+          },
+          "round_number": {
+            "index": 12,
+            "doc": null,
+            "type_": "u8"
+          },
+          "tokens_to_win": {
+            "index": 13,
+            "doc": null,
+            "type_": "u8"
+          },
+          "pending_action": {
+            "index": 14,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "std",
+                  "name": "option"
+                },
+                "name": "Option",
+                "type_arguments": [
+                  {
+                    "phantom": false,
+                    "argument": {
+                      "Datatype": {
+                        "module": {
+                          "address": "contract",
+                          "name": "game"
+                        },
+                        "name": "PendingAction",
+                        "type_arguments": []
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "chancellor_pending": {
+            "index": 15,
+            "doc": null,
+            "type_": "bool"
+          },
+          "chancellor_player_idx": {
+            "index": 16,
+            "doc": null,
+            "type_": "u64"
+          },
+          "chancellor_commitment": {
+            "index": 17,
+            "doc": " Commitment to chancellor's card choices",
+            "type_": {
+              "vector": "u8"
+            }
+          }
+        }
+      }
+    },
+    "RoomRegistry": {
+      "index": 3,
+      "doc": " Registry to track all active rooms",
+      "attributes": [],
+      "abilities": [
+        "Key"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "id": {
+            "index": 0,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "object"
+                },
+                "name": "UID",
+                "type_arguments": []
+              }
+            }
+          },
+          "active_rooms": {
+            "index": 1,
+            "doc": null,
+            "type_": {
+              "vector": {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "object"
+                  },
+                  "name": "ID",
+                  "type_arguments": []
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ZKVerificationKeys": {
+      "index": 4,
+      "doc": " ZK Verification Keys - stored once, used for all games",
+      "attributes": [],
+      "abilities": [
+        "Key"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "id": {
+            "index": 0,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "object"
+                },
+                "name": "UID",
+                "type_arguments": []
+              }
+            }
+          },
+          "guard_vk": {
+            "index": 1,
+            "doc": " Verification key for Guard proofs",
+            "type_": {
+              "vector": "u8"
+            }
+          },
+          "baron_vk": {
+            "index": 2,
+            "doc": " Verification key for Baron proofs",
+            "type_": {
+              "vector": "u8"
+            }
+          },
+          "card_ownership_vk": {
+            "index": 3,
+            "doc": " Verification key for card ownership proofs",
+            "type_": {
+              "vector": "u8"
+            }
+          },
+          "guard_pvk": {
+            "index": 4,
+            "doc": " Prepared verification key for Guard (Sui format)",
+            "type_": {
+              "vector": "u8"
+            }
+          },
+          "baron_pvk": {
+            "index": 5,
+            "doc": " Prepared verification key for Baron (Sui format)",
+            "type_": {
+              "vector": "u8"
+            }
+          }
+        }
+      }
+    }
+  },
+  "enums": {}
+}
