@@ -137,7 +137,33 @@ export function GameTable({
             style={position.style}
           >
             {/* Avatar and Card Container */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 relative">
+              {/* Arrow animation pointing up to clickable target - below avatar center */}
+              {isClickable && (
+                <div 
+                  className="absolute bottom-0 left-3/10 -translate-x-1/2 -mb-10 z-20 animate-bounce"
+                  style={{
+                    animation: 'bounce 1s infinite',
+                  }}
+                >
+                  <svg 
+                    width="32" 
+                    height="32" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    className="text-amber-400 drop-shadow-lg"
+                  >
+                    <path 
+                      d="M12 2L12 22M12 2L6 8M12 2L18 8" 
+                      stroke="currentColor" 
+                      strokeWidth="3" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+              )}
+              
               {/* Circular player avatar */}
               <div
                 className={cn(
@@ -335,6 +361,33 @@ export function GameTable({
               }
             }}
           >
+            {/* Arrow animation pointing up to self when clickable (Prince) - from below (opposite of opponents) */}
+            {isSelectingTarget && canTargetSelf && !humanPlayer.isEliminated && (
+              <div 
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 mb-20 z-20 animate-bounce"
+                style={{
+                  animation: 'bounce 1s infinite',
+                }}
+              >
+                <svg 
+                  width="32" 
+                  height="32" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  className="text-amber-400 drop-shadow-lg"
+                  style={{ transform: 'rotate(180deg)' }}
+                >
+                  <path 
+                    d="M12 2L12 22M12 2L6 8M12 2L18 8" 
+                    stroke="currentColor" 
+                    strokeWidth="3" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            )}
+            
             {/* Player initial or icon */}
             <span className="text-xl md:text-2xl font-bold text-amber-100">
               👤

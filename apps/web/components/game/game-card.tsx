@@ -9,7 +9,7 @@ import type { GameCard } from "./game-context";
 
 interface GameCardProps {
 	card: GameCard;
-	size?: "small" | "medium" | "large";
+	size?: "small" | "medium" | "large" | "tiny";
 	faceUp?: boolean;
 	selected?: boolean;
 	onClick?: () => void;
@@ -35,9 +35,11 @@ const mapCardTypeToNewType = (oldType: string): CardType => {
 
 // Map size props to CardCharacter size
 const mapSize = (
-	size: "small" | "medium" | "large",
-): "sm" | "md" | "default" | "lg" | "responsive" => {
+	size: "small" | "medium" | "large" | "tiny",
+): "xs" | "sm" | "md" | "default" | "lg" | "responsive" => {
 	switch (size) {
+		case "tiny":
+			return "xs";
 		case "small":
 			return "sm";
 		case "medium":

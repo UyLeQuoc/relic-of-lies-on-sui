@@ -4,8 +4,10 @@ import { type ActionPhase, type GameCard, type Player } from '@/components/game/
 import { Button } from '@/components/ui/button';
 import { GameTable } from '@/components/game-table';
 import { GameCardComponent } from '@/components/game/game-card';
+import { CardCharacter } from '@/components/common/game-ui/cards/card-character';
+import { CardType } from '@/components/common/game-ui/cards/types';
 import { useCurrentAccount } from '@mysten/dapp-kit';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
     useGetRoom,
     usePlayTurn,
@@ -143,6 +145,16 @@ export function OnChainGameAdapter({ roomId }: OnChainGameAdapterProps) {
   const [actionPhase, setActionPhase] = useState<ActionPhase>('idle');
   const [currentActionText, setCurrentActionText] = useState('');
   const [resultNotification, setResultNotification] = useState<{ type: 'success' | 'failure' | 'info' | 'neutral'; title: string; message: string } | null>(null);
+  const [isWalletChecked, setIsWalletChecked] = useState(false);
+
+  // Check wallet connection status
+  useEffect(() => {
+    // Give wallet some time to initialize, then mark as checked
+    const timer = setTimeout(() => {
+      setIsWalletChecked(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch room data periodically
   useEffect(() => {
@@ -177,6 +189,18 @@ export function OnChainGameAdapter({ roomId }: OnChainGameAdapterProps) {
     }
   };
 
+  // Show loading while checking wallet
+  if (!isWalletChecked || (isLoading && !room)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+          <p className="mt-4">Loading game...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!currentAccount) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -186,17 +210,6 @@ export function OnChainGameAdapter({ roomId }: OnChainGameAdapterProps) {
           <Button onClick={() => router.push('/rooms')} className="mt-4">
             Go to Lobby
           </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading && !room) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-          <p className="mt-4">Loading game...</p>
         </div>
       </div>
     );
@@ -299,6 +312,8 @@ function OnChainGameWithUI({
   const [selectedGuess, setSelectedGuess] = useState<number | null>(null);
   const [chancellorKeepCard, setChancellorKeepCard] = useState<GameCard | null>(null);
   const [chancellorReturnOrder, setChancellorReturnOrder] = useState<GameCard[]>([]);
+  const [revealedCard, setRevealedCard] = useState<{ card: GameCard; targetName: string; targetAddress: string } | null>(null);
+  const lastPriestPlayRef = useRef<{ targetIndex: number; timestamp: number } | null>(null);
 
   const humanPlayer = gameState.players.find((p: Player) => !p.isBot);
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
@@ -331,12 +346,14 @@ function OnChainGameWithUI({
       .map((p: Player, idx: number) => ({ player: p, index: idx }))
       .filter((item: { player: Player; index: number }) => {
         const { player, index } = item;
+        const isSelf = index === gameState.myPlayerIndex;
+        
         // Can't target self (except Prince)
-        if (selectedCard.value !== 5 && index === gameState.myPlayerIndex) return false;
+        if (selectedCard.value !== 5 && isSelf) return false;
         // Can't target eliminated players
         if (player.isEliminated) return false;
-        // Can't target immune players
-        if (player.isProtected) return false;
+        // Can't target immune players (except self with Prince - Handmaid only protects from others)
+        if (player.isProtected && !(selectedCard.value === 5 && isSelf)) return false;
         return true;
       });
   }, [selectedCard, gameState.myPlayerIndex, gameState.players]);
@@ -345,12 +362,34 @@ function OnChainGameWithUI({
     if (!selectedCardId || !selectedCard) return;
     
     try {
+      // For Prince (value 5), if no target selected, allow targeting self
+      // For other cards requiring target, if no valid target, still allow play (card will be skipped)
+      let targetToUse = selectedTarget;
+      
+      // If Prince and no target selected, use self as target
+      if (selectedCard.value === 5 && targetToUse === null && gameState.myPlayerIndex >= 0) {
+        targetToUse = gameState.myPlayerIndex;
+      }
+      
+      // Store target for Priest reveal
+      const isPriest = selectedCard.value === 2;
+      const targetIndex = targetToUse;
+      
       await playTurn(
         roomId,
         selectedCard.value,
-        selectedTarget,
+        targetToUse,
         selectedGuess
       );
+      
+      // If Priest was played, store target info to reveal after room update
+      if (isPriest && targetIndex !== null && targetIndex >= 0) {
+        lastPriestPlayRef.current = {
+          targetIndex,
+          timestamp: Date.now()
+        };
+      }
+      
       setSelectedCardId(null);
       setSelectedTarget(null);
       setSelectedGuess(null);
@@ -362,6 +401,55 @@ function OnChainGameWithUI({
         message: err instanceof Error ? err.message : 'Unknown error',
       });
     }
+  };
+  
+  // Monitor for Priest reveal after room updates
+  useEffect(() => {
+    if (!room || !gameState || !lastPriestPlayRef.current) return;
+    
+    const { targetIndex, timestamp } = lastPriestPlayRef.current;
+    
+    // Only reveal if it was recent (within last 10 seconds)
+    if (Date.now() - timestamp > 10000) {
+      lastPriestPlayRef.current = null;
+      return;
+    }
+    
+    // Get target's card
+    const targetPlayer = gameState.players[targetIndex];
+    if (targetPlayer && targetPlayer.hand.length > 0) {
+      const targetCard = targetPlayer.hand[0];
+      setRevealedCard({
+        card: targetCard,
+        targetName: targetPlayer.name,
+        targetAddress: targetPlayer.id
+      });
+      
+      // Clear the ref
+      lastPriestPlayRef.current = null;
+      
+      // Auto-hide after 10 seconds
+      setTimeout(() => {
+        setRevealedCard(null);
+      }, 10000);
+    }
+  }, [room, gameState]);
+  
+  // Map card value to CardType enum
+  const mapCardValueToCardType = (cardValue: number): CardType => {
+    const cardTypeMap: Record<number, CardType> = {
+      0: CardType.Value0,
+      1: CardType.Value1,
+      2: CardType.Value2,
+      3: CardType.Value3,
+      4: CardType.Value4,
+      5: CardType.Value5,
+      6: CardType.Value6,
+      7: CardType.Value7,
+      8: CardType.Value8,
+      9: CardType.Value9,
+    };
+    return cardTypeMap[cardValue] || CardType.Value0;
   };
 
   return (
@@ -412,8 +500,50 @@ function OnChainGameWithUI({
 
           {/* Chancellor Choice UI */}
           {humanPlayer && gameState.gamePhase === 'chancellorChoice' && gameState.chancellorCards.length > 0 && (
-            <div className="w-full bg-slate-800 border-2 border-amber-600 rounded-lg p-4 flex-shrink-0 flex flex-col gap-4 mx-3 mb-3 max-h-[70vh] overflow-y-auto">
-              <h3 className="text-xl font-bold text-amber-400 text-center">Chancellor - Choose a card to keep</h3>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col gap-4 z-30 pointer-events-none">
+              <div className="pointer-events-auto flex flex-col gap-4 backdrop-blur-sm rounded-lg p-4 border border-amber-600/50">
+                <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-amber-400">Chancellor: </h3>
+                
+                {/* Back and Confirm buttons - Only show when in step 2 */}
+                {chancellorKeepCard && chancellorReturnOrder.length >= 1 && (
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => {
+                        setChancellorKeepCard(null);
+                        setChancellorReturnOrder([]);
+                      }}
+                      variant="outline"
+                      className="border-amber-600 text-amber-400 hover:bg-amber-600/20"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        if (chancellorKeepCard && chancellorReturnOrder.length >= 1) {
+                          try {
+                            await resolveChancellor(
+                              roomId,
+                              chancellorKeepCard.value,
+                              chancellorReturnOrder.map((c: GameCard) => c.value),
+                              room
+                            );
+                            setChancellorKeepCard(null);
+                            setChancellorReturnOrder([]);
+                            fetchRoom();
+                          } catch (err) {
+                            // Error is handled by the hook
+                          }
+                        }
+                      }}
+                      disabled={!chancellorKeepCard || chancellorReturnOrder.length < 1 || isProcessingAction}
+                      className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold px-6 py-2"
+                    >
+                      {isProcessingAction ? 'Processing...' : 'Confirm'}
+                    </Button>
+                  </div>
+                )}
+              </div>
               
               {/* Step 1: Choose card to keep */}
               {!chancellorKeepCard && (
@@ -421,105 +551,138 @@ function OnChainGameWithUI({
                   <p className="text-amber-300 font-semibold mb-3 text-center">Choose card to keep:</p>
                   <div className="flex gap-3 justify-center flex-wrap">
                     {gameState.chancellorCards.map((card: GameCard) => (
-                      <button
+                      <div
                         key={card.id}
-                        type="button"
                         onClick={() => {
                           setChancellorKeepCard(card);
                           const returnCards = gameState.chancellorCards.filter((c: GameCard) => c.id !== card.id);
                           setChancellorReturnOrder(returnCards);
                         }}
-                        className="p-3 rounded-lg border-2 transition-all hover:scale-105 border-amber-600/50 hover:border-amber-400 bg-slate-700/50"
+                        className="cursor-pointer transition-all hover:scale-105"
                       >
-                        <p className="font-bold text-amber-400">{card.name}</p>
-                      </button>
+                        <GameCardComponent
+                          card={card}
+                          size="small"
+                          faceUp
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Step 2: Arrange return order */}
-              {chancellorKeepCard && chancellorReturnOrder.length === 2 && (
-                <div className="flex flex-col items-center gap-3">
-                  <p className="text-amber-300 font-semibold">Arrange return order:</p>
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xs text-amber-400/70">Bottom</span>
+              {/* Step 2a: Single card return (deck had only 1 card) */}
+              {chancellorKeepCard && chancellorReturnOrder.length === 1 && (
+                <div className="flex gap-6">
+                  {/* Left side - Keep card */}
+                  <div className="flex-1 flex flex-col items-center">
+                    <p className="text-amber-300 font-semibold mb-2">Keep:</p>
+                    <div className="mt-auto">
+                      <GameCardComponent
+                        card={chancellorKeepCard}
+                        size="small"
+                        faceUp
+                      />
+                    </div>
+                  </div>
+
+                  {/* Right side - Return card */}
+                  <div className="flex-1 flex flex-col items-center">
+                    <p className="text-amber-300 font-semibold mb-2">Return to deck:</p>
+                    <div className="mt-auto">
                       {chancellorReturnOrder[0] && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (chancellorReturnOrder[0] && chancellorReturnOrder[1]) {
-                              setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
-                            }
-                          }}
-                          className="p-2 rounded-lg border-2 border-amber-400 bg-amber-400/20 transition-all hover:scale-105"
-                        >
-                          <p className="font-bold text-amber-400 text-sm">{chancellorReturnOrder[0].name}</p>
-                        </button>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (chancellorReturnOrder[0] && chancellorReturnOrder[1]) {
-                          setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
-                        }
-                      }}
-                      className="p-2 rounded-lg border-2 border-amber-600 hover:border-amber-400 bg-slate-700/50 hover:bg-slate-700 transition-all"
-                      title="Swap"
-                    >
-                      <span className="text-amber-400 text-xl">⇅</span>
-                    </button>
-
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xs text-amber-400/70">Top</span>
-                      {chancellorReturnOrder[1] && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (chancellorReturnOrder[0] && chancellorReturnOrder[1]) {
-                              setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
-                            }
-                          }}
-                          className="p-2 rounded-lg border-2 border-amber-400 bg-amber-400/20 transition-all hover:scale-105"
-                        >
-                          <p className="font-bold text-amber-400 text-sm">{chancellorReturnOrder[1].name}</p>
-                        </button>
+                        <GameCardComponent
+                          card={chancellorReturnOrder[0]}
+                          size="small"
+                          faceUp
+                        />
                       )}
                     </div>
                   </div>
-
-                  <div className="text-xs text-green-400 mt-2">
-                    Keep: <span className="font-bold">{chancellorKeepCard.name}</span>
-                  </div>
-
-                  <Button
-                    onClick={async () => {
-                      if (chancellorKeepCard && chancellorReturnOrder.length === 2) {
-                        try {
-                          await resolveChancellor(
-                            roomId,
-                            chancellorKeepCard.value,
-                            chancellorReturnOrder.map((c: GameCard) => c.value),
-                            room
-                          );
-                          setChancellorKeepCard(null);
-                          setChancellorReturnOrder([]);
-                          fetchRoom();
-                        } catch (err) {
-                          // Error is handled by the hook
-                        }
-                      }
-                    }}
-                    disabled={!chancellorKeepCard || chancellorReturnOrder.length !== 2 || isProcessingAction}
-                    className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold px-6 py-2 mt-2"
-                  >
-                    {isProcessingAction ? 'Processing...' : 'Confirm'}
-                  </Button>
                 </div>
               )}
+
+              {/* Step 2b: Arrange return order (normal case - 2 cards to return) */}
+              {chancellorKeepCard && chancellorReturnOrder.length === 2 && (
+                <div className="flex gap-6">
+                  {/* Left side - Keep card */}
+                  <div className="flex-1 flex flex-col items-center">
+                    <p className="text-amber-300 font-semibold">Keep:</p>
+                    <div className="mt-auto">
+                      <GameCardComponent
+                        card={chancellorKeepCard}
+                        size="small"
+                        faceUp
+                      />
+                    </div>
+                  </div>
+
+                  {/* Right side - Arrange return order */}
+                  <div className="flex-1 flex flex-col items-center">
+                    <p className="text-amber-300 font-semibold">Return order:</p>
+                    
+                    {/* Return order cards - Top (left) and Bottom (right) */}
+                    <div className="flex items-center gap-3 mt-auto">
+                      {/* Top - Left side */}
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="text-xs text-amber-400/70 font-semibold">Top</span>
+                        {chancellorReturnOrder[1] && (
+                          <div
+                            onClick={() => {
+                              if (chancellorReturnOrder[0] && chancellorReturnOrder[1]) {
+                                setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
+                              }
+                            }}
+                            className="cursor-pointer transition-all hover:scale-105"
+                          >
+                            <GameCardComponent
+                              card={chancellorReturnOrder[1]}
+                              size="small"
+                              faceUp
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Swap button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (chancellorReturnOrder[0] && chancellorReturnOrder[1]) {
+                            setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
+                          }
+                        }}
+                        className="p-2 rounded-lg border-2 border-amber-600 hover:border-amber-400 bg-slate-700/50 hover:bg-slate-700 transition-all"
+                        title="Swap"
+                      >
+                        <span className="text-amber-400 text-xl">⇅</span>
+                      </button>
+
+                      {/* Bottom - Right side */}
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="text-xs text-amber-400/70 font-semibold">Bottom</span>
+                        {chancellorReturnOrder[0] && (
+                          <div
+                            onClick={() => {
+                              if (chancellorReturnOrder[0] && chancellorReturnOrder[1]) {
+                                setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
+                              }
+                            }}
+                            className="cursor-pointer transition-all hover:scale-105"
+                          >
+                            <GameCardComponent
+                              card={chancellorReturnOrder[0]}
+                              size="small"
+                              faceUp
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              </div>
             </div>
           )}
 
@@ -538,20 +701,53 @@ function OnChainGameWithUI({
                       onClick={(e) => {
                         e.stopPropagation();
                         if (canSelect) {
-                          setSelectedCardId(isSelected ? null : card.id);
+                          const newSelectedId = isSelected ? null : card.id;
+                          setSelectedCardId(newSelectedId);
+                          // Reset target and guess when selecting a card that doesn't require them
+                          if (newSelectedId) {
+                            const newSelectedCard = humanPlayer?.hand.find((c: GameCard) => c.id === newSelectedId);
+                            if (newSelectedCard && !cardRequiresTarget(newSelectedCard)) {
+                              setSelectedTarget(null);
+                            } else if (newSelectedCard && cardRequiresTarget(newSelectedCard)) {
+                              // If new card requires target but is not Prince, and current target is self, reset target
+                              if (newSelectedCard.value !== 5 && selectedTarget === gameState.myPlayerIndex) {
+                                setSelectedTarget(null);
+                              }
+                            }
+                            if (newSelectedCard && !cardRequiresGuess(newSelectedCard)) {
+                              setSelectedGuess(null);
+                            }
+                          } else {
+                            setSelectedTarget(null);
+                            setSelectedGuess(null);
+                          }
                         }
                       }}
                       className={`transition-all transform ${canSelect ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                     >
                       <GameCardComponent
                         card={card}
-                        size="small"
+                        size="tiny"
                         faceUp
                         selected={isSelected}
                         disabled={!canSelect}
                         onClick={() => {
                           if (canSelect) {
-                            setSelectedCardId(isSelected ? null : card.id);
+                            const newSelectedId = isSelected ? null : card.id;
+                            setSelectedCardId(newSelectedId);
+                            // Reset target and guess when selecting a card that doesn't require them
+                            if (newSelectedId) {
+                              const newSelectedCard = humanPlayer?.hand.find((c: GameCard) => c.id === newSelectedId);
+                              if (newSelectedCard && !cardRequiresTarget(newSelectedCard)) {
+                                setSelectedTarget(null);
+                              }
+                              if (newSelectedCard && !cardRequiresGuess(newSelectedCard)) {
+                                setSelectedGuess(null);
+                              }
+                            } else {
+                              setSelectedTarget(null);
+                              setSelectedGuess(null);
+                            }
                           }
                         }}
                       />
@@ -562,24 +758,63 @@ function OnChainGameWithUI({
 
               {/* Card description and PLAY Button - Right side */}
               {selectedCard && (
-                <div className="absolute bottom-4 left-1/2 translate-x-[152px] h-[200px] flex flex-col justify-between items-start z-20">
+                <div className="absolute bottom-4 left-1/2 translate-x-[152px] h-[180px] flex flex-col justify-between items-start z-20">
                   {/* PLAY Button - Top */}
                   {isMyTurn && (
                     (() => {
-                      const canPlay = 
-                        (!cardRequiresTarget(selectedCard) && !cardRequiresGuess(selectedCard)) ||
-                        (cardRequiresTarget(selectedCard) && selectedTarget !== null && !cardRequiresGuess(selectedCard)) ||
-                        (cardRequiresGuess(selectedCard) && selectedTarget !== null && selectedGuess !== null);
+                      // Check if card requires target
+                      const requiresTarget = cardRequiresTarget(selectedCard);
+                      const requiresGuess = cardRequiresGuess(selectedCard);
                       
-                        return (
-                          <Button
-                            onClick={handlePlayCard}
-                            disabled={isProcessingAction || !canPlay}
-                            className="from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-6 text-lg rounded-lg transition-all"
-                          >
-                            {isProcessingAction ? 'Playing...' : 'PLAY'}
-                          </Button>
-                        );
+                      // Get valid targets
+                      const validTargets = selectedCard ? getValidTargets() : [];
+                      const hasValidTargets = validTargets.length > 0;
+                      
+                      // For Prince (5), can always target self
+                      const canTargetSelf = selectedCard?.value === 5;
+                      
+                      // Determine if button should be disabled
+                      let isDisabled = isProcessingAction;
+                      
+                      if (requiresTarget) {
+                        // If card requires target:
+                        // - Disable if no target selected AND there are valid targets available
+                        // - Allow if no valid targets (can skip)
+                        // - Allow if Prince and can target self (even if no target selected)
+                        if (selectedTarget === null) {
+                          if (canTargetSelf) {
+                            // Prince can always play (can target self)
+                            isDisabled = false;
+                          } else if (hasValidTargets) {
+                            // Has valid targets but none selected - disable
+                            isDisabled = true;
+                          } else {
+                            // No valid targets - allow play (skip)
+                            isDisabled = false;
+                          }
+                        } else {
+                          // Target selected
+                          if (requiresGuess) {
+                            // Guard also needs guess
+                            isDisabled = selectedGuess === null;
+                          } else {
+                            isDisabled = false;
+                          }
+                        }
+                      } else if (requiresGuess) {
+                        // Card only requires guess (shouldn't happen, but just in case)
+                        isDisabled = selectedGuess === null;
+                      }
+                      
+                      return (
+                        <Button
+                          onClick={handlePlayCard}
+                          disabled={isDisabled}
+                          className="from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-6 text-lg rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isProcessingAction ? 'Playing...' : 'PLAY'}
+                        </Button>
+                      );
                     })()
                   )}
                   
@@ -590,9 +825,39 @@ function OnChainGameWithUI({
                 </div>
               )}
 
+              {/* Priest Reveal Modal */}
+              {revealedCard && (
+                <div 
+                  className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in cursor-pointer"
+                  onClick={() => setRevealedCard(null)}
+                >
+                  <div 
+                    className="flex flex-col items-center gap-4 rounded-lg p-6 animate-scale-in"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <h3 className="text-xl font-bold text-amber-400">
+                      {revealedCard.targetAddress.slice(0, 6)}...{revealedCard.targetAddress.slice(-4)}&apos;s Card
+                    </h3>
+                    <div className="relative">
+                      <CardCharacter
+                        cardType={mapCardValueToCardType(revealedCard.card.value)}
+                        size="md"
+                        flip={true}
+                      />
+                    </div>
+                    <p className="text-sm text-amber-300">
+                      {revealedCard.card.name}
+                    </p>
+                    <p className="text-xs text-amber-400/50">
+                      Click anywhere or wait to close
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Guess Selection (Guard) */}
               {isMyTurn && selectedCard?.value === 1 && selectedTarget !== null && (
-                <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10">
+                <div className="absolute bottom-[208px] left-1/2 -translate-x-1/2 z-10">
                   <div className="flex gap-2 flex-wrap justify-center">
                     {[0, 2, 3, 4, 5, 6, 7, 8, 9].map(cardValue => {
                       const cardData = CARD_DATA_MAP[cardValue];
