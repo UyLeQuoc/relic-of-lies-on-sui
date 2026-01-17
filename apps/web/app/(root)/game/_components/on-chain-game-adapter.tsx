@@ -337,6 +337,20 @@ function OnChainGameWithUI({
   const hasOneCard = humanPlayer && humanPlayer.hand.length === 1;
   const hasTwoCards = humanPlayer && humanPlayer.hand.length === 2;
 
+  // Check Countess rule: If you have Countess (8) with King (7) or Prince (5), you MUST discard Countess
+  const mustPlayCountess = useMemo(() => {
+    if (!humanPlayer || humanPlayer.hand.length < 2) return false;
+    const hasCountess = humanPlayer.hand.some((c: GameCard) => c.value === 8);
+    const hasKingOrPrince = humanPlayer.hand.some((c: GameCard) => c.value === 7 || c.value === 5);
+    return hasCountess && hasKingOrPrince;
+  }, [humanPlayer]);
+
+  // Get the Countess card if mustPlayCountess is true
+  const countessCard = useMemo(() => {
+    if (!mustPlayCountess || !humanPlayer) return null;
+    return humanPlayer.hand.find((c: GameCard) => c.value === 8) || null;
+  }, [mustPlayCountess, humanPlayer]);
+
   // Check if card requires target
   const cardRequiresTarget = (card: GameCard | null): boolean => {
     if (!card) return false;
@@ -526,6 +540,13 @@ function OnChainGameWithUI({
     }
   }, [room, gameState, humanPlayer]);
   
+  // Auto-select Countess when mustPlayCountess rule applies
+  useEffect(() => {
+    if (mustPlayCountess && countessCard && isMyTurn && !selectedCardId) {
+      setSelectedCardId(countessCard.id);
+    }
+  }, [mustPlayCountess, countessCard, isMyTurn, selectedCardId]);
+
   // Map card value to CardType enum
   const mapCardValueToCardType = (cardValue: number): CardType => {
     const cardTypeMap: Record<number, CardType> = {
@@ -780,11 +801,22 @@ function OnChainGameWithUI({
           {/* Cards - Display at bottom without container */}
           {humanPlayer && gameState.gamePhase === 'playing' && (
             <>
+              {/* Countess Rule Warning */}
+              {mustPlayCountess && isMyTurn && (
+                <div className="absolute bottom-[200px] left-1/2 -translate-x-1/2 z-20 animate-pulse">
+                  <div className="bg-red-500/90 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg border-2 border-red-400">
+                    ⚠️ You have Countess with King/Prince - You MUST play Countess!
+                  </div>
+                </div>
+              )}
+
               {/* Cards - Horizontal layout at bottom center */}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 justify-center flex-wrap z-10">
                 {humanPlayer.hand.map((card: GameCard) => {
                   const isSelected = selectedCardId === card.id;
-                  const canSelect = isMyTurn && !isProcessingAction;
+                  // If mustPlayCountess, only Countess (8) can be selected
+                  const isCountess = card.value === 8;
+                  const canSelect = isMyTurn && !isProcessingAction && (!mustPlayCountess || isCountess);
                   
                   return (
                     <div
@@ -814,7 +846,11 @@ function OnChainGameWithUI({
                           }
                         }
                       }}
-                      className={`transition-all transform ${canSelect ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                      className={cn(
+                        "transition-all transform",
+                        canSelect ? 'cursor-pointer' : 'cursor-not-allowed opacity-50',
+                        mustPlayCountess && !isCountess && 'grayscale'
+                      )}
                     >
                       <GameCardComponent
                         card={card}
