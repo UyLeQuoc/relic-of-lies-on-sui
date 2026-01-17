@@ -6,6 +6,7 @@ import { GameTable } from '@/components/game-table';
 import { GameCardComponent } from '@/components/game/game-card';
 import { CardCharacter } from '@/components/common/game-ui/cards/card-character';
 import { CardType } from '@/components/common/game-ui/cards/types';
+import { cn } from '@/lib/utils';
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
@@ -314,6 +315,16 @@ function OnChainGameWithUI({
   const [chancellorReturnOrder, setChancellorReturnOrder] = useState<GameCard[]>([]);
   const [revealedCard, setRevealedCard] = useState<{ card: GameCard; targetName: string; targetAddress: string } | null>(null);
   const lastPriestPlayRef = useRef<{ targetIndex: number; timestamp: number } | null>(null);
+  
+  // Baron comparison state
+  const [baronComparison, setBaronComparison] = useState<{
+    myCard: GameCard;
+    myAddress: string;
+    opponentCard: GameCard;
+    opponentAddress: string;
+    result: 'win' | 'lose' | 'tie';
+  } | null>(null);
+  const lastBaronPlayRef = useRef<{ targetIndex: number; myCardValue: number; timestamp: number } | null>(null);
 
   const humanPlayer = gameState.players.find((p: Player) => !p.isBot);
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
@@ -371,9 +382,14 @@ function OnChainGameWithUI({
         targetToUse = gameState.myPlayerIndex;
       }
       
-      // Store target for Priest reveal
+      // Store target for Priest reveal or Baron comparison
       const isPriest = selectedCard.value === 2;
+      const isBaron = selectedCard.value === 3;
       const targetIndex = targetToUse;
+      
+      // For Baron, store my card value before playing (the other card in hand, not the Baron)
+      const myCardForBaron = isBaron && humanPlayer ? 
+        humanPlayer.hand.find((c: GameCard) => c.id !== selectedCardId) : null;
       
       await playTurn(
         roomId,
@@ -386,6 +402,15 @@ function OnChainGameWithUI({
       if (isPriest && targetIndex !== null && targetIndex >= 0) {
         lastPriestPlayRef.current = {
           targetIndex,
+          timestamp: Date.now()
+        };
+      }
+      
+      // If Baron was played, store info to show comparison after room update
+      if (isBaron && targetIndex !== null && targetIndex >= 0 && myCardForBaron) {
+        lastBaronPlayRef.current = {
+          targetIndex,
+          myCardValue: myCardForBaron.value,
           timestamp: Date.now()
         };
       }
@@ -434,6 +459,72 @@ function OnChainGameWithUI({
       }, 10000);
     }
   }, [room, gameState]);
+  
+  // Monitor for Baron comparison after room updates
+  useEffect(() => {
+    if (!room || !gameState || !lastBaronPlayRef.current || !humanPlayer) return;
+    
+    const { targetIndex, myCardValue, timestamp } = lastBaronPlayRef.current;
+    
+    // Only show if it was recent (within last 10 seconds)
+    if (Date.now() - timestamp > 10000) {
+      lastBaronPlayRef.current = null;
+      return;
+    }
+    
+    // Get target's card (if they still have one - they might be eliminated)
+    const targetPlayer = gameState.players[targetIndex];
+    const myPlayer = gameState.players[gameState.myPlayerIndex];
+    
+    if (targetPlayer) {
+      // Determine opponent's card value from their hand or discard pile
+      let opponentCardValue: number;
+      
+      if (targetPlayer.hand.length > 0) {
+        // Opponent still has a card (they won or tied)
+        opponentCardValue = targetPlayer.hand[0].value;
+      } else if (targetPlayer.isEliminated) {
+        // Opponent was eliminated, their card was in discard
+        // We need to infer it - in Baron, lower card loses
+        // If opponent is eliminated and we're not, opponent had lower card
+        if (!myPlayer?.isEliminated) {
+          opponentCardValue = myCardValue - 1; // Estimate - opponent had lower
+        } else {
+          opponentCardValue = myCardValue; // Both eliminated - shouldn't happen with Baron tie
+        }
+      } else {
+        // Opponent alive but no cards? Shouldn't happen
+        lastBaronPlayRef.current = null;
+        return;
+      }
+      
+      // Determine result
+      let result: 'win' | 'lose' | 'tie';
+      if (myCardValue > opponentCardValue) {
+        result = 'win';
+      } else if (myCardValue < opponentCardValue) {
+        result = 'lose';
+      } else {
+        result = 'tie';
+      }
+      
+      setBaronComparison({
+        myCard: createCard(myCardValue, 'my-baron-card'),
+        myAddress: myPlayer?.id || '',
+        opponentCard: createCard(opponentCardValue, 'opponent-baron-card'),
+        opponentAddress: targetPlayer.id,
+        result,
+      });
+      
+      // Clear the ref
+      lastBaronPlayRef.current = null;
+      
+      // Auto-hide after 10 seconds
+      setTimeout(() => {
+        setBaronComparison(null);
+      }, 10000);
+    }
+  }, [room, gameState, humanPlayer]);
   
   // Map card value to CardType enum
   const mapCardValueToCardType = (cardValue: number): CardType => {
@@ -848,6 +939,83 @@ function OnChainGameWithUI({
                     <p className="text-sm text-amber-300">
                       {revealedCard.card.name}
                     </p>
+                    <p className="text-xs text-amber-400/50">
+                      Click anywhere or wait to close
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Baron Comparison Modal */}
+              {baronComparison && (
+                <div 
+                  className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in cursor-pointer"
+                  onClick={() => setBaronComparison(null)}
+                >
+                  <div 
+                    className="flex flex-col items-center gap-6 rounded-lg p-6 animate-scale-in"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <h3 className="text-xl font-bold text-amber-400">Baron Comparison</h3>
+                    
+                    {/* Cards comparison */}
+                    <div className="flex items-center gap-8">
+                      {/* My card */}
+                      <div className="flex flex-col items-center gap-2">
+                        <p className="text-sm text-amber-300 font-semibold">You</p>
+                        <div className={cn(
+                          "relative rounded-lg p-1",
+                          baronComparison.result === 'win' && "ring-4 ring-green-400",
+                          baronComparison.result === 'lose' && "ring-4 ring-red-400",
+                          baronComparison.result === 'tie' && "ring-4 ring-yellow-400"
+                        )}>
+                          <CardCharacter
+                            cardType={mapCardValueToCardType(baronComparison.myCard.value)}
+                            size="sm"
+                            flip={true}
+                          />
+                        </div>
+                        <p className="text-sm text-amber-300">{baronComparison.myCard.name}</p>
+                        <p className="text-lg font-bold text-amber-400">Value: {baronComparison.myCard.value}</p>
+                      </div>
+
+                      {/* VS */}
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="text-2xl font-bold text-amber-500">VS</span>
+                        <div className={cn(
+                          "px-4 py-2 rounded-lg font-bold text-lg",
+                          baronComparison.result === 'win' && "bg-green-500/20 text-green-400",
+                          baronComparison.result === 'lose' && "bg-red-500/20 text-red-400",
+                          baronComparison.result === 'tie' && "bg-yellow-500/20 text-yellow-400"
+                        )}>
+                          {baronComparison.result === 'win' && '🎉 WIN!'}
+                          {baronComparison.result === 'lose' && '💀 LOSE'}
+                          {baronComparison.result === 'tie' && '🤝 TIE'}
+                        </div>
+                      </div>
+
+                      {/* Opponent card */}
+                      <div className="flex flex-col items-center gap-2">
+                        <p className="text-sm text-amber-300 font-semibold">
+                          {baronComparison.opponentAddress.slice(0, 6)}...{baronComparison.opponentAddress.slice(-4)}
+                        </p>
+                        <div className={cn(
+                          "relative rounded-lg p-1",
+                          baronComparison.result === 'lose' && "ring-4 ring-green-400",
+                          baronComparison.result === 'win' && "ring-4 ring-red-400",
+                          baronComparison.result === 'tie' && "ring-4 ring-yellow-400"
+                        )}>
+                          <CardCharacter
+                            cardType={mapCardValueToCardType(baronComparison.opponentCard.value)}
+                            size="sm"
+                            flip={true}
+                          />
+                        </div>
+                        <p className="text-sm text-amber-300">{baronComparison.opponentCard.name}</p>
+                        <p className="text-lg font-bold text-amber-400">Value: {baronComparison.opponentCard.value}</p>
+                      </div>
+                    </div>
+
                     <p className="text-xs text-amber-400/50">
                       Click anywhere or wait to close
                     </p>
