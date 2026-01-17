@@ -1,6 +1,9 @@
 /// Error codes module for Love Letter 2019 Premium Edition
 /// Contains all error constants for assert! statements
+/// Following Rule 3: Provides boolean check functions for better error handling
 module contract::error;
+
+use contract::constants;
 
 // ============== Room Errors ==============
 /// Room is full, cannot join
@@ -19,7 +22,7 @@ public fun room_not_found(): u64 { ERoomNotFound }
 const EEmptyRoomName: u64 = 3;
 public fun empty_room_name(): u64 { EEmptyRoomName }
 
-/// Invalid max players (must be 2-4)
+/// Invalid max players (must be 2-6)
 const EInvalidMaxPlayers: u64 = 4;
 public fun invalid_max_players(): u64 { EInvalidMaxPlayers }
 
@@ -140,3 +143,67 @@ public fun player_eliminated(): u64 { EPlayerEliminated }
 /// Deck is empty
 const EDeckEmpty: u64 = 60;
 public fun deck_empty(): u64 { EDeckEmpty }
+
+// ============== Boolean Check Functions (Rule 3) ==============
+// These functions return bool instead of aborting, allowing callers
+// to handle errors with custom abort codes for better debugging
+
+/// Check if room name is valid (not empty)
+public fun is_valid_room_name(name: &std::string::String): bool {
+    !name.is_empty()
+}
+
+/// Check if max_players is within valid range (2-6)
+public fun is_valid_max_players(max_players: u8): bool {
+    max_players >= constants::min_players() && max_players <= constants::max_players()
+}
+
+/// Check if payment is sufficient for entry fee
+public fun is_sufficient_payment(amount: u64): bool {
+    amount >= constants::entry_fee()
+}
+
+/// Check if room has space for more players
+public fun has_room_space(current_players: u64, max_players: u8): bool {
+    (current_players as u8) < max_players
+}
+
+/// Check if game status allows joining (waiting)
+public fun can_join_room(status: u8): bool {
+    status == constants::status_waiting()
+}
+
+/// Check if game status allows starting a round
+public fun can_start_round(status: u8): bool {
+    status == constants::status_waiting() || status == constants::status_round_end()
+}
+
+/// Check if game is currently playing
+public fun is_game_playing(status: u8): bool {
+    status == constants::status_playing()
+}
+
+/// Check if game has finished
+public fun is_game_finished(status: u8): bool {
+    status == constants::status_finished()
+}
+
+/// Check if there are enough players to start
+public fun has_enough_players(player_count: u64): bool {
+    (player_count as u8) >= constants::min_players()
+}
+
+/// Check if a card guess is valid (not Guard, within valid range)
+public fun is_valid_guess(guess: u8): bool {
+    guess != constants::card_guard() && guess <= constants::card_princess()
+}
+
+/// Check if a card value is valid (0-9)
+public fun is_valid_card(card: u8): bool {
+    card <= constants::card_princess()
+}
+
+/// Check if target index is valid
+public fun is_valid_target_index(target_idx: u64, player_count: u64): bool {
+    target_idx < player_count
+}

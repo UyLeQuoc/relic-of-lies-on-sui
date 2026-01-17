@@ -27,7 +27,7 @@ export interface CreateRoomOptions {
  * Create a new game room
  *
  * - name: Room name (cannot be empty)
- * - max_players: 2-4 players allowed Returns: Room ID
+ * - max_players: 2-6 players allowed Returns: Room ID
  */
 export function createRoom(options: CreateRoomOptions) {
     const packageAddress = options.package;
@@ -46,23 +46,20 @@ export function createRoom(options: CreateRoomOptions) {
 }
 export interface JoinRoomArguments {
     room: RawTransactionArgument<string>;
-    payment: RawTransactionArgument<string>;
 }
 export interface JoinRoomOptions {
     package: string;
     arguments: JoinRoomArguments | [
-        room: RawTransactionArgument<string>,
-        payment: RawTransactionArgument<string>
+        room: RawTransactionArgument<string>
     ];
 }
-/** Join an existing room with 0.1 SUI entry fee */
+/** Join an existing room (free entry - no payment required) */
 export function joinRoom(options: JoinRoomOptions) {
     const packageAddress = options.package;
     const argumentsTypes = [
-        `${packageAddress}::game::GameRoom`,
-        '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI>'
+        `${packageAddress}::game::GameRoom`
     ] satisfies string[];
-    const parameterNames = ["room", "payment"];
+    const parameterNames = ["room"];
     return (tx: Transaction) => tx.moveCall({
         package: packageAddress,
         module: 'app',
@@ -475,7 +472,7 @@ export interface PlayerStatsOptions {
         player: RawTransactionArgument<string>
     ];
 }
-/** Get a specific player's record */
+/** Get a specific player's record Uses Option macros for cleaner handling */
 export function playerStats(options: PlayerStatsOptions) {
     const packageAddress = options.package;
     const argumentsTypes = [

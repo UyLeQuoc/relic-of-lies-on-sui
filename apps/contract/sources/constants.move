@@ -3,13 +3,13 @@
 module contract::constants;
 
 // ============== Entry Fee ==============
-/// Entry fee: 0.1 SUI (100_000_000 MIST)
-const ENTRY_FEE: u64 = 100_000_000;
+/// Entry fee: Free to join (0 SUI)
+const ENTRY_FEE: u64 = 0;
 public fun entry_fee(): u64 { ENTRY_FEE }
 
 // ============== Player Limits ==============
-/// Maximum players per room (Premium Edition supports up to 6, we use 4)
-const MAX_PLAYERS: u8 = 4;
+/// Maximum players per room (Premium Edition supports up to 6)
+const MAX_PLAYERS: u8 = 6;
 public fun max_players(): u8 { MAX_PLAYERS }
 
 /// Minimum players to start game

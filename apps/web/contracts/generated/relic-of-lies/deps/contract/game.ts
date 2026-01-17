@@ -77,23 +77,20 @@ export function createRoom(options: CreateRoomOptions) {
 }
 export interface JoinRoomArguments {
     room: RawTransactionArgument<string>;
-    payment: RawTransactionArgument<string>;
 }
 export interface JoinRoomOptions {
     package: string;
     arguments: JoinRoomArguments | [
-        room: RawTransactionArgument<string>,
-        payment: RawTransactionArgument<string>
+        room: RawTransactionArgument<string>
     ];
 }
-/** Join an existing room with payment */
+/** Join an existing room (free entry - no payment required) */
 export function joinRoom(options: JoinRoomOptions) {
     const packageAddress = options.package;
     const argumentsTypes = [
-        `${packageAddress}::game::GameRoom`,
-        '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI>'
+        `${packageAddress}::game::GameRoom`
     ] satisfies string[];
-    const parameterNames = ["room", "payment"];
+    const parameterNames = ["room"];
     return (tx: Transaction) => tx.moveCall({
         package: packageAddress,
         module: 'game',

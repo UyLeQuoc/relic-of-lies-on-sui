@@ -10,16 +10,16 @@ import '@mysten/dapp-kit/dist/index.css';
 export const { networkConfig, useNetworkConfig } = createNetworkConfig({
 	testnet: { url: getFullnodeUrl('testnet'),
         variables: {
-			movePackageId: '0x2e36fba534664c05cd7750232daedeb0725c291a6815042c6bfe748ab3fdbadd',
-			roomRegistryId: '0x916dae5a17d657d432a38b8dbcb1cd115740bd5eb579bb3155c87843e8e85609',
-			leaderboardId: '0x53f942cd61b502698fe59b19fcff8041b1593b6d85a2b5646d38900020b2cad0',
+			movePackageId: '0x2bfb147b23f5020e1322f2d9fd5956020d17bc26aa01dc6adbac755436660403',
+			roomRegistryId: '0x9325ae27223baf45d104dca67ffe29e7b28fd2c1fee783388dd56c17554d549b',
+			leaderboardId: '0x28b9852eeb3efc7db837c53ed66849da759dd01fb02a79f4c6b017a3f082e4f0',
 		},
      },
 	mainnet: { url: getFullnodeUrl('mainnet'),
         variables: {
-			movePackageId: '0x2e36fba534664c05cd7750232daedeb0725c291a6815042c6bfe748ab3fdbadd',
-			roomRegistryId: '0x916dae5a17d657d432a38b8dbcb1cd115740bd5eb579bb3155c87843e8e85609',
-			leaderboardId: '0x53f942cd61b502698fe59b19fcff8041b1593b6d85a2b5646d38900020b2cad0',
+			movePackageId: '0x2bfb147b23f5020e1322f2d9fd5956020d17bc26aa01dc6adbac755436660403',
+			roomRegistryId: '0x9325ae27223baf45d104dca67ffe29e7b28fd2c1fee783388dd56c17554d549b',
+			leaderboardId: '0x28b9852eeb3efc7db837c53ed66849da759dd01fb02a79f4c6b017a3f082e4f0',
 		},
      },
 });

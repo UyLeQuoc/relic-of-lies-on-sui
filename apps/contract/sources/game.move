@@ -5,7 +5,7 @@
 module contract::game;
 
 use sui::balance::{Self, Balance};
-use sui::coin::{Self, Coin};
+use sui::coin::{Self};
 use sui::sui::SUI;
 use sui::random::Random;
 use contract::constants;
@@ -72,11 +72,9 @@ public fun create_room(
     max_players: u8,
     ctx: &mut TxContext,
 ): ID {
-    assert!(!name.is_empty(), error::empty_room_name());
-    assert!(
-        max_players >= constants::min_players() && max_players <= constants::max_players(),
-        error::invalid_max_players()
-    );
+    // Use boolean check functions for better error handling (Rule 3)
+    assert!(error::is_valid_room_name(&name), error::empty_room_name());
+    assert!(error::is_valid_max_players(max_players), error::invalid_max_players());
     
     let creator = ctx.sender();
     let room_uid = object::new(ctx);
@@ -116,33 +114,19 @@ public fun create_room(
     room_id
 }
 
-/// Join an existing room with payment
+/// Join an existing room (free entry - no payment required)
 public fun join_room(
     room: &mut GameRoom,
-    payment: Coin<SUI>,
     ctx: &mut TxContext,
 ) {
     let sender = ctx.sender();
     
-    assert!(room.status == constants::status_waiting(), error::game_already_started());
-    assert!((room.players.length() as u8) < room.max_players, error::room_full());
+    // Use boolean check functions for better error handling (Rule 3)
+    assert!(error::can_join_room(room.status), error::game_already_started());
+    assert!(error::has_room_space(room.players.length(), room.max_players), error::room_full());
     
     // Check not already in room
-    room.players.do_ref!(|p| {
-        assert!(p.addr != sender, error::already_in_room());
-    });
-    
-    assert!(payment.value() >= constants::entry_fee(), error::insufficient_payment());
-    
-    // Handle exact payment or return change
-    if (payment.value() > constants::entry_fee()) {
-        let mut payment_mut = payment;
-        let entry_balance = payment_mut.balance_mut().split(constants::entry_fee());
-        room.pot.join(entry_balance);
-        transfer::public_transfer(payment_mut, sender);
-    } else {
-        room.pot.join(payment.into_balance());
-    };
+    assert!(!is_player_in_room(room, sender), error::already_in_room());
     
     let player = Player {
         addr: sender,
@@ -171,11 +155,9 @@ public fun start_round(
 ) {
     let sender = ctx.sender();
     
-    assert!(
-        room.status == constants::status_waiting() || room.status == constants::status_round_end(),
-        error::round_in_progress()
-    );
-    assert!((room.players.length() as u8) >= constants::min_players(), error::not_enough_players());
+    // Use boolean check functions for better error handling (Rule 3)
+    assert!(error::can_start_round(room.status), error::round_in_progress());
+    assert!(error::has_enough_players(room.players.length()), error::not_enough_players());
     
     let is_creator = sender == room.creator;
     let is_player = is_player_in_room(room, sender);
@@ -250,7 +232,8 @@ public fun play_turn(
     let sender = ctx.sender();
     let room_id = room.id.to_inner();
     
-    assert!(room.status == constants::status_playing(), error::game_not_started());
+    // Use boolean check functions for better error handling (Rule 3)
+    assert!(error::is_game_playing(room.status), error::game_not_started());
     assert!(!room.chancellor_pending, error::chancellor_pending());
     
     let current_player_idx = room.current_turn % room.players.length();
@@ -409,10 +392,11 @@ fun execute_guard(
     let target = *target_idx.borrow();
     let guessed_card = *guess.borrow();
     
-    assert!(guessed_card != constants::card_guard(), error::cannot_guess_guard());
-    assert!(guessed_card <= constants::card_princess(), error::invalid_guess());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_valid_guess(guessed_card), error::invalid_guess());
     
-    assert!(target < room.players.length(), error::invalid_target());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_valid_target_index(target, room.players.length()), error::invalid_target());
     assert!(target != player_idx, error::cannot_target_self());
     assert!(room.players[target].is_alive, error::target_eliminated());
     assert!(!room.players[target].is_immune, error::target_immune());
@@ -439,7 +423,8 @@ fun execute_priest(
     assert!(target_idx.is_some(), error::target_required());
     let target = *target_idx.borrow();
     
-    assert!(target < room.players.length(), error::invalid_target());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_valid_target_index(target, room.players.length()), error::invalid_target());
     assert!(target != player_idx, error::cannot_target_self());
     assert!(room.players[target].is_alive, error::target_eliminated());
     assert!(!room.players[target].is_immune, error::target_immune());
@@ -476,7 +461,8 @@ fun execute_baron(
     assert!(target_idx.is_some(), error::target_required());
     let target = *target_idx.borrow();
     
-    assert!(target < room.players.length(), error::invalid_target());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_valid_target_index(target, room.players.length()), error::invalid_target());
     assert!(target != player_idx, error::cannot_target_self());
     assert!(room.players[target].is_alive, error::target_eliminated());
     assert!(!room.players[target].is_immune, error::target_immune());
@@ -549,7 +535,8 @@ fun execute_prince(
         }
     };
     
-    assert!(target < room.players.length(), error::invalid_target());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_valid_target_index(target, room.players.length()), error::invalid_target());
     assert!(room.players[target].is_alive, error::target_eliminated());
     
     if (target != player_idx) {
@@ -636,7 +623,8 @@ fun execute_king(
     assert!(target_idx.is_some(), error::target_required());
     let target = *target_idx.borrow();
     
-    assert!(target < room.players.length(), error::invalid_target());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_valid_target_index(target, room.players.length()), error::invalid_target());
     assert!(target != player_idx, error::cannot_target_self());
     assert!(room.players[target].is_alive, error::target_eliminated());
     assert!(!room.players[target].is_immune, error::target_immune());
@@ -1030,7 +1018,8 @@ public fun active_rooms(registry: &RoomRegistry): vector<ID> {
 }
 
 public fun cleanup_finished_room(registry: &mut RoomRegistry, room: &GameRoom) {
-    assert!(room.status == constants::status_finished(), error::game_not_finished());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_game_finished(room.status), error::game_not_finished());
     
     let room_id = room.id.to_inner();
     let len = registry.active_rooms.length();
