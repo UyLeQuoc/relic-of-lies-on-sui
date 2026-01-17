@@ -74,26 +74,28 @@ export function GameTable({
   const canTargetSelf = selectedCardValue === 5;
 
   // Calculate positions based on player count
-  // Human player is always at South (bottom), opponents are distributed North (top) from East to West
+  // Human player is always at South (bottom)
+  // 3 players: opponents at East and West
+  // 4 players: opponents at East, West, and North
   const getOpponentPosition = (index: number, total: number): { className?: string; style?: React.CSSProperties } => {
     if (total === 1) {
       // 2 players total: 1 opponent at North (top center)
       return { className: "top-4 left-1/2 -translate-x-1/2" };
     }
     if (total === 2) {
-      // 3 players total: 2 opponents at Northeast and Northwest
+      // 3 players total: 2 opponents at West (Tây) and East (Đông)
       const positions: { className?: string; style?: React.CSSProperties }[] = [
-        { className: "top-4 left-1/4 -translate-x-1/2" },  // Northwest (Tây Bắc) - left side
-        { className: "top-4 right-1/4 translate-x-1/2" },  // Northeast (Đông Bắc) - right side
+        { className: "top-1/2 left-4 -translate-y-1/2" },   // West (Tây) - left side, vertical center
+        { className: "top-1/2 right-4 -translate-y-1/2" }, // East (Đông) - right side, vertical center
       ];
       return positions[index] ?? positions[0] ?? { className: "top-4 left-1/2 -translate-x-1/2" };
     }
     if (total === 3) {
       // 4 players total: 3 opponents at West (Tây), North (Bắc), East (Đông)
       const positions: { className?: string; style?: React.CSSProperties }[] = [
-        { className: "top-4 left-4" },                      // West (Tây) - left
-        { className: "top-4 left-1/2 -translate-x-1/2" },  // North (Bắc) - center
-        { className: "top-4 right-4" },                     // East (Đông) - right
+        { className: "top-1/2 left-4 -translate-y-1/2" },   // West (Tây) - left side, vertical center
+        { className: "top-4 left-1/2 -translate-x-1/2" },  // North (Bắc) - top center
+        { className: "top-1/2 right-4 -translate-y-1/2" }, // East (Đông) - right side, vertical center
       ];
       return positions[index] ?? positions[0] ?? { className: "top-4 left-1/2 -translate-x-1/2" };
     }
