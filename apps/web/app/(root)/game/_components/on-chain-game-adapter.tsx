@@ -403,7 +403,7 @@ function OnChainGameWithUI({
               onStartRound={handleStartRound}
               isStartingRound={isStartingRound}
               isGameEnd={gameState.gamePhase === 'gameEnd'}
-              onStartNewGame={() => router.push('/rooms')}
+              onStartNewGame={handleStartRound}
               winnerName={gameState.gamePhase === 'gameEnd' 
                 ? gameState.players.find((p: Player) => p.hearts >= gameState.heartsToWin)?.name || null
                 : null}
