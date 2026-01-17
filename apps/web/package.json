@@ -10,6 +10,7 @@
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.0.0",
+		"@gsap/react": "^2.1.2",
 		"@mysten/dapp-kit": "^0.19.11",
 		"@mysten/enoki": "^0.13.0",
 		"@mysten/sui": "^1.45.2",
@@ -20,6 +21,7 @@
 		"date-fns": "^4.1.0",
 		"embla-carousel-react": "^8.6.0",
 		"framer-motion": "^12.23.26",
+		"gsap": "^3.14.2",
 		"input-otp": "^1.4.2",
 		"lucide-react": "^0.562.0",
 		"next": "16.1.1",
