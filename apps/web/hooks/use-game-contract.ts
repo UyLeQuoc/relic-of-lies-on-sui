@@ -1016,8 +1016,8 @@ export function useIsAlive(room: GameRoomType | null) {
 
 // ============== Gacha Constants ==============
 
-// Gacha cost: 0.05 SUI
-export const GACHA_COST = BigInt(50_000_000);
+// Gacha cost: 0.01 SUI per pull
+export const GACHA_COST = BigInt(10_000_000);
 
 // Rarity constants
 export const Rarity = {
@@ -1068,7 +1068,7 @@ export interface CardNFT {
 
 // ============== Gacha Hooks ==============
 
-// Hook to pull a card from gacha
+// Hook to pull cards from gacha (supports multiple pulls)
 export function useGachaPull() {
   const client = useSuiClient();
   const currentAccount = useCurrentAccount();
@@ -1076,9 +1076,15 @@ export function useGachaPull() {
   const { variables: { movePackageId, gachaTreasuryId } } = useNetworkConfig();
   const [error, setError] = useState<Error | null>(null);
 
-  const pull = useCallback(async () => {
+  const pull = useCallback(async (amount: number = 1) => {
     if (!currentAccount) {
       const err = new Error('Please connect your wallet first');
+      toast.error(err.message);
+      throw err;
+    }
+
+    if (amount < 1) {
+      const err = new Error('Amount must be at least 1');
       toast.error(err.message);
       throw err;
     }
@@ -1088,15 +1094,19 @@ export function useGachaPull() {
     try {
       const tx = new Transaction();
       
-      // Split coin for gacha cost
-      const [paymentCoin] = tx.splitCoins(tx.gas, [GACHA_COST]);
+      // Calculate total cost: 0.01 SUI per pull
+      const totalCost = GACHA_COST * BigInt(amount);
       
-      // Call gacha pull_and_keep
+      // Split coin for gacha cost
+      const [paymentCoin] = tx.splitCoins(tx.gas, [totalCost]);
+      
+      // Call gacha pull_and_keep with amount
       tx.moveCall({
         target: `${movePackageId}::gacha::pull_and_keep`,
         arguments: [
           tx.object(gachaTreasuryId),
           paymentCoin,
+          tx.pure.u64(amount),
           tx.object('0x8'),  // Random object
         ],
       });
@@ -1113,16 +1123,20 @@ export function useGachaPull() {
         },
       });
 
-      // Find the created card from object changes
-      const createdCard = txResponse.objectChanges?.find(
+      // Find all created cards from object changes
+      const createdCards = txResponse.objectChanges?.filter(
         (change) => change.type === 'created' && change.objectType?.includes('::gacha::Card')
-      );
+      ) ?? [];
 
-      toast.success('Card pulled successfully!');
+      const cardIds = createdCards
+        .map(card => 'objectId' in card ? card.objectId : null)
+        .filter((id): id is string => id !== null);
+
+      toast.success(`${amount} card${amount > 1 ? 's' : ''} pulled successfully!`);
 
       return {
         digest: result.digest,
-        cardId: createdCard && 'objectId' in createdCard ? createdCard.objectId : null,
+        cardIds,
       };
     } catch (err) {
       const error = parseContractError(err);

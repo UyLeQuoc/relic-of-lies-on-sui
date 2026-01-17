@@ -11,24 +11,20 @@ import '@mysten/dapp-kit/dist/index.css';
 export const { networkConfig, useNetworkConfig } = createNetworkConfig({
 	testnet: { url: getFullnodeUrl('testnet'),
         variables: {
-			movePackageId: '0xdcbb888938c246e5c4376e354ab9b6da16053ab65bacb0201278625fbca6bb7b',
-			roomRegistryId: '0x006a11eadd389befdef00365475f39794a0b7dd12b6d88db84916d39540b07ec',
-			leaderboardId: '0xeda1e559dcac3bf72ba93e478344811fcc46796f386ceab35a0c438d6e914b21',
-			gachaTreasuryId: '0x24f86ffab9e8073abcc1837e4903134a9c6eaf1fc66830a060f24e304eae9ea0',
-			marketplaceRegistryId: '0x271bbccb88497fb14745ec44d73f63c0de26a1459c0d0399ba8564a6b592f466',
-			cardId: '0xe25e142d8f3cd2ed18f8737da31783b10de40e84b74501f7adac74fd72c46ee6',
-			publisherId: '0xba1947a28d36d5eec23a4c4535b20de8c2f7b4bbfdda4e09eb46450db56fcf75',
+			movePackageId: '0x3ae8ac6755ad2f2edcc08969522ebbd164ffd14945d1594f3f65542270bd1673',
+			roomRegistryId: '0x0276ad9c9d7ca220118a31b5de9899c7390a2979dbcd537a2743ba8c63f946bb',
+			leaderboardId: '0xdb9ee3f2bbea162572ef819a959720f58289956061948740837379bcb4db7220',
+			gachaTreasuryId: '0xe766f9bb6e635d10cf96fdabdc820ca8ff4d05bb7e90aaa6f58ef327a9df37aa',
+			marketplaceRegistryId: '0xeff646d75222ee3d4f9ba7a097529174d92706a4bbb7198d3cb2d24e5dc01b94',
 		},
      },
 	mainnet: { url: getFullnodeUrl('mainnet'),
         variables: {
-			movePackageId: '0xdcbb888938c246e5c4376e354ab9b6da16053ab65bacb0201278625fbca6bb7b',
-			roomRegistryId: '0x006a11eadd389befdef00365475f39794a0b7dd12b6d88db84916d39540b07ec',
-			leaderboardId: '0xeda1e559dcac3bf72ba93e478344811fcc46796f386ceab35a0c438d6e914b21',
-			gachaTreasuryId: '0x24f86ffab9e8073abcc1837e4903134a9c6eaf1fc66830a060f24e304eae9ea0',
-			marketplaceRegistryId: '0x271bbccb88497fb14745ec44d73f63c0de26a1459c0d0399ba8564a6b592f466',
-			cardId: '0xe25e142d8f3cd2ed18f8737da31783b10de40e84b74501f7adac74fd72c46ee6',
-			publisherId: '0xba1947a28d36d5eec23a4c4535b20de8c2f7b4bbfdda4e09eb46450db56fcf75',
+			movePackageId: '0x3ae8ac6755ad2f2edcc08969522ebbd164ffd14945d1594f3f65542270bd1673',
+			roomRegistryId: '0x0276ad9c9d7ca220118a31b5de9899c7390a2979dbcd537a2743ba8c63f946bb',
+			leaderboardId: '0xdb9ee3f2bbea162572ef819a959720f58289956061948740837379bcb4db7220',
+			gachaTreasuryId: '0xe766f9bb6e635d10cf96fdabdc820ca8ff4d05bb7e90aaa6f58ef327a9df37aa',
+			marketplaceRegistryId: '0xeff646d75222ee3d4f9ba7a097529174d92706a4bbb7198d3cb2d24e5dc01b94',
 		},
      },
 });
@@ -75,7 +71,7 @@ export default function SuiProvider({ children }: { children: React.ReactNode })
 			}}
 		>
             <RegisterEnokiWallets />
-            <WalletProvider>
+            <WalletProvider autoConnect>
             {children}
             </WalletProvider>
         </SuiClientProvider>

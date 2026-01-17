@@ -11,8 +11,8 @@ use sui::display;
 
 // ============== Constants ==============
 
-/// Gacha cost: 0.05 SUI (50_000_000 MIST)
-const GACHA_COST: u64 = 50_000_000;
+/// Gacha cost: 0.01 SUI (10_000_000 MIST) per pull
+const GACHA_COST: u64 = 10_000_000;
 
 /// Rarity types
 const RARITY_COMMON: u8 = 0;
@@ -46,6 +46,7 @@ const EInvalidCardValue: u64 = 1;
 const ECardsMustBeSameRarity: u64 = 2;
 const ECannotUpgradeMythic: u64 = 3;
 const ENeedThreeCards: u64 = 4;
+const EInvalidAmount: u64 = 5;
 
 // ============== One-Time Witness ==============
 
@@ -115,29 +116,11 @@ fun init(otw: GACHA, ctx: &mut TxContext) {
 
 // ============== Gacha Functions ==============
 
-/// Pull a random card from gacha
-public fun pull(
-    treasury: &mut GachaTreasury,
-    payment: Coin<SUI>,
-    random: &Random,
+/// Generate a random card (internal helper)
+fun generate_card(
+    generator: &mut sui::random::RandomGenerator,
     ctx: &mut TxContext,
 ): Card {
-    assert!(payment.value() >= GACHA_COST, EInsufficientPayment);
-    
-    // Handle payment
-    let sender = ctx.sender();
-    if (payment.value() > GACHA_COST) {
-        let mut payment_mut = payment;
-        let gacha_balance = payment_mut.balance_mut().split(GACHA_COST);
-        treasury.balance.join(gacha_balance);
-        transfer::public_transfer(payment_mut, sender);
-    } else {
-        treasury.balance.join(payment.into_balance());
-    };
-    
-    // Generate random card
-    let mut generator = new_generator(random, ctx);
-    
     // Random card value (0-9)
     let value = (generator.generate_u8() % 10) as u8;
     
@@ -155,8 +138,6 @@ public fun pull(
         RARITY_MYTHIC
     };
     
-    treasury.total_cards_minted = treasury.total_cards_minted + 1;
-    
     Card {
         id: object::new(ctx),
         value,
@@ -166,15 +147,65 @@ public fun pull(
     }
 }
 
-/// Pull and transfer card to sender
+/// Pull multiple random cards from gacha
+/// Cost: 0.01 SUI per card
+public fun pull(
+    treasury: &mut GachaTreasury,
+    payment: Coin<SUI>,
+    amount: u64,
+    random: &Random,
+    ctx: &mut TxContext,
+): vector<Card> {
+    assert!(amount > 0, EInvalidAmount);
+    
+    let total_cost = GACHA_COST * amount;
+    assert!(payment.value() >= total_cost, EInsufficientPayment);
+    
+    // Handle payment
+    let sender = ctx.sender();
+    if (payment.value() > total_cost) {
+        let mut payment_mut = payment;
+        let gacha_balance = payment_mut.balance_mut().split(total_cost);
+        treasury.balance.join(gacha_balance);
+        transfer::public_transfer(payment_mut, sender);
+    } else {
+        treasury.balance.join(payment.into_balance());
+    };
+    
+    // Generate random cards
+    let mut generator = new_generator(random, ctx);
+    let mut cards = vector[];
+    
+    let mut i = 0u64;
+    while (i < amount) {
+        let card = generate_card(&mut generator, ctx);
+        cards.push_back(card);
+        i = i + 1;
+    };
+    
+    treasury.total_cards_minted = treasury.total_cards_minted + amount;
+    
+    cards
+}
+
+/// Pull multiple cards and transfer all to sender
+/// Cost: 0.01 SUI per card
 public entry fun pull_and_keep(
     treasury: &mut GachaTreasury,
     payment: Coin<SUI>,
+    amount: u64,
     random: &Random,
     ctx: &mut TxContext,
 ) {
-    let card = pull(treasury, payment, random, ctx);
-    transfer::public_transfer(card, ctx.sender());
+    let mut cards = pull(treasury, payment, amount, random, ctx);
+    let sender = ctx.sender();
+    
+    // Transfer all cards to sender
+    while (!cards.is_empty()) {
+        let card = cards.pop_back();
+        transfer::public_transfer(card, sender);
+    };
+    cards.destroy_empty();
 }
 
 // ============== Upgrade Functions ==============
