@@ -136,8 +136,15 @@ export function GameTable({
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
-      {/* Table background */}
-      <div className="absolute inset-0 from-amber-900/20 to-amber-950/30 rounded-full border-4 border-amber-700/50" />
+      {/* Table background - Game floor */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: "url('/images/floor/game-floor.png')",
+        }}
+      />
+      {/* Dark overlay for better card visibility */}
+      <div className="absolute inset-0 bg-black/30" />
 
       {/* Opponents around the table */}
       {opponents.map((player, idx) => {
@@ -289,11 +296,62 @@ export function GameTable({
         ) : (
           /* Deck and Discard Pile */
           <div className="flex items-end gap-4 md:gap-6">
-          {/* Deck - Using card back from design system */}
+          {/* Deck - Using card back from design system with stacked effect */}
           <div className="relative flex flex-col items-center">
             <div className="relative">
+              {/* Stacked card layers for depth effect */}
+              {deckCount > 0 && (
+                <>
+                  {/* Bottom layer - offset most */}
+                  <div 
+                    className="absolute h-[180px] rounded-lg overflow-hidden shadow-md"
+                    style={{ 
+                      aspectRatio: '2/3',
+                      top: '8px',
+                      left: '8px',
+                    }}
+                  >
+                    <img
+                      src={cardsMap[CardConceptType.RelicOfLies].cardBack}
+                      alt=""
+                      className="h-full w-full object-cover rounded-lg brightness-50"
+                    />
+                  </div>
+                  {/* Middle layer */}
+                  <div 
+                    className="absolute h-[180px] rounded-lg overflow-hidden shadow-md"
+                    style={{ 
+                      aspectRatio: '2/3',
+                      top: '5px',
+                      left: '5px',
+                    }}
+                  >
+                    <img
+                      src={cardsMap[CardConceptType.RelicOfLies].cardBack}
+                      alt=""
+                      className="h-full w-full object-cover rounded-lg brightness-75"
+                    />
+                  </div>
+                  {/* Second layer */}
+                  <div 
+                    className="absolute h-[180px] rounded-lg overflow-hidden shadow-md"
+                    style={{ 
+                      aspectRatio: '2/3',
+                      top: '2px',
+                      left: '2px',
+                    }}
+                  >
+                    <img
+                      src={cardsMap[CardConceptType.RelicOfLies].cardBack}
+                      alt=""
+                      className="h-full w-full object-cover rounded-lg brightness-90"
+                    />
+                  </div>
+                </>
+              )}
+              {/* Top card - main visible card */}
               <div 
-                className="h-[180px] rounded-lg overflow-hidden shadow-xl"
+                className="relative h-[180px] rounded-lg overflow-hidden shadow-xl"
                 style={{ aspectRatio: '2/3' }}
               >
                 <img
@@ -313,7 +371,7 @@ export function GameTable({
             </p>
           </div>
 
-          {/* Discard Pile */}
+          {/* Discard Pile with stacked effect */}
           <div className="relative flex flex-col items-center">
             <button
               type="button"
@@ -327,7 +385,7 @@ export function GameTable({
               )}
             >
               {discardCount > 0 && discardPile.length > 0 ? (
-                // Show the latest discarded card using design system
+                // Show the latest discarded card using design system with stacked effect
                 (() => {
                   const latestCard = discardPile[discardPile.length - 1];
                   if (!latestCard) return (
@@ -340,10 +398,61 @@ export function GameTable({
                   );
                   return (
                     <div className="relative">
-                      <CardCharacter
-                        cardType={mapCardValueToCardType(latestCard.value)}
-                        size="xs"
-                      />
+                      {/* Stacked card layers for depth effect */}
+                      {discardCount > 1 && (
+                        <>
+                          {/* Bottom layer - offset most */}
+                          {discardCount > 3 && (
+                            <div 
+                              className="absolute opacity-50"
+                              style={{ 
+                                top: '8px',
+                                left: '8px',
+                              }}
+                            >
+                              <CardCharacter
+                                cardType={mapCardValueToCardType(discardPile[Math.max(0, discardPile.length - 4)]?.value ?? latestCard.value)}
+                                size="xs"
+                              />
+                            </div>
+                          )}
+                          {/* Middle layer */}
+                          {discardCount > 2 && (
+                            <div 
+                              className="absolute opacity-70"
+                              style={{ 
+                                top: '5px',
+                                left: '5px',
+                              }}
+                            >
+                              <CardCharacter
+                                cardType={mapCardValueToCardType(discardPile[Math.max(0, discardPile.length - 3)]?.value ?? latestCard.value)}
+                                size="xs"
+                              />
+                            </div>
+                          )}
+                          {/* Second layer */}
+                          <div 
+                            className="absolute opacity-85"
+                            style={{ 
+                              top: '2px',
+                              left: '2px',
+                            }}
+                          >
+                            <CardCharacter
+                              cardType={mapCardValueToCardType(discardPile[Math.max(0, discardPile.length - 2)]?.value ?? latestCard.value)}
+                              size="xs"
+                            />
+                          </div>
+                        </>
+                      )}
+                      {/* Top card - main visible card */}
+                      <div className="relative">
+                        <CardCharacter
+                          cardType={mapCardValueToCardType(latestCard.value)}
+                          size="xs"
+                        />
+                      </div>
                       {/* Show count badge if more than 1 card */}
                       {discardCount > 1 && (
                         <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-amber-400 text-slate-900 font-bold flex items-center justify-center shadow-lg text-sm z-10">
