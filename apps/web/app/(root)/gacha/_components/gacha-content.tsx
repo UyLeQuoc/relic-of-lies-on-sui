@@ -7,6 +7,7 @@ import {
   PullButton,
   RarityRatesDisplay,
   BalanceDisplay,
+  CardCarousel,
 } from "@/components/gacha";
 import { useGacha, useGachaAnimations } from "@/hooks/use-gacha";
 
@@ -141,23 +142,26 @@ export function GachaContent() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <PullButton
-              ref={pullButtonRef}
-              count={1}
-              cost={gachaCostSui}
-              disabled={!currentAccount || !canPull1 || isLoading}
-              isLoading={isLoading}
-              onClick={() => onPull(1)}
-            />
-            <PullButton
-              ref={pull10ButtonRef}
-              count={10}
-              cost={gachaCost10Sui}
-              disabled={!currentAccount || !canPull10 || isLoading}
-              isLoading={isLoading}
-              onClick={() => onPull(10)}
-            />
+          <div className="space-y-6">
+            <CardCarousel />
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <PullButton
+                ref={pullButtonRef}
+                count={1}
+                cost={gachaCostSui}
+                disabled={!currentAccount || !canPull1 || isLoading}
+                isLoading={isLoading}
+                onClick={() => onPull(1)}
+              />
+              <PullButton
+                ref={pull10ButtonRef}
+                count={10}
+                cost={gachaCost10Sui}
+                disabled={!currentAccount || !canPull10 || isLoading}
+                isLoading={isLoading}
+                onClick={() => onPull(10)}
+              />
+            </div>
           </div>
         )}
 
