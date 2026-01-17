@@ -1,9 +1,29 @@
 "use client";
 
-import type * as React from "react";
-import { type Player } from "@/components/game/game-context";
+import * as React from "react";
+import { type Player, type GameCard } from "@/components/game/game-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+
+// Card data mapping for display
+const CARD_DATA_MAP: Record<number, { name: string; description: string }> = {
+  0: { name: "Spy", description: "At round end, if only you played or discarded a Spy, gain 1 token." },
+  1: { name: "Guard", description: "Name a card (except Guard). If that target holds it, they are eliminated." },
+  2: { name: "Priest", description: "Choose and privately look at another player's hand." },
+  3: { name: "Baron", description: "Privately compare hands with another player. Lower card is eliminated." },
+  4: { name: "Handmaid", description: "You are immune to all card effects until your next turn." },
+  5: { name: "Prince", description: "Choose any player. They discard their card and draw a new one." },
+  6: { name: "Chancellor", description: "Draw 2 cards, keep 1, return 2 to bottom of deck." },
+  7: { name: "King", description: "Trade hands with another player." },
+  8: { name: "Countess", description: "Must be discarded if you have King or Prince." },
+  9: { name: "Princess", description: "If discarded (by you or forced), you are eliminated." },
+};
+
+// Helper function to format address: 0xd4f5...9a76
+function formatAddress(address: string): string {
+  if (!address || address.length < 10) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
 
 interface GameTableProps {
   playerCount: number;
@@ -13,9 +33,11 @@ interface GameTableProps {
   selectedTarget: number | null;
   onSelectTarget?: (targetId: number) => void;
   isSelectingTarget?: boolean;
+  selectedCardValue?: number | null; // Card value to allow self-targeting (e.g., Prince = 5)
   opponentCards?: { [key: number]: number };
   deckCount?: number;
   discardCount?: number;
+  discardPile?: GameCard[];
   showStartRoundButton?: boolean;
   onStartRound?: () => void;
   isStartingRound?: boolean;
@@ -23,24 +45,29 @@ interface GameTableProps {
 }
 
 export function GameTable({
-  playerCount,
   players,
   currentPlayerIndex,
   myPlayerIndex,
   selectedTarget,
   onSelectTarget,
   isSelectingTarget = false,
+  selectedCardValue = null,
   opponentCards = {},
   deckCount = 0,
   discardCount = 0,
+  discardPile = [],
   showStartRoundButton = false,
   onStartRound,
   isStartingRound = false,
   isGameEnd = false,
 }: GameTableProps) {
-  // Separate players: human player (bottom) and opponents (around table)
-  const humanPlayer = players[myPlayerIndex];
+  const [showDiscardModal, setShowDiscardModal] = React.useState(false);
+  // Separate players: opponents (around table) - human player is shown in Card Hand at bottom and South position
   const opponents = players.filter((_, idx) => idx !== myPlayerIndex);
+  const humanPlayer = players[myPlayerIndex];
+  
+  // Prince (card value 5) can target self
+  const canTargetSelf = selectedCardValue === 5;
 
   // Calculate positions based on player count
   // Human player is always at South (bottom), opponents are distributed North (top) from East to West
@@ -50,21 +77,21 @@ export function GameTable({
       return { className: "top-4 left-1/2 -translate-x-1/2" };
     }
     if (total === 2) {
-      // 3 players total: 2 opponents at Northeast (Đông Bắc) and Northwest (Tây Bắc)
-      const positions = [
+      // 3 players total: 2 opponents at Northeast and Northwest
+      const positions: { className?: string; style?: React.CSSProperties }[] = [
         { className: "top-4 left-1/4 -translate-x-1/2" },  // Northwest (Tây Bắc) - left side
         { className: "top-4 right-1/4 translate-x-1/2" },  // Northeast (Đông Bắc) - right side
       ];
-      return positions[index] || positions[0];
+      return positions[index] ?? positions[0] ?? { className: "top-4 left-1/2 -translate-x-1/2" };
     }
     if (total === 3) {
       // 4 players total: 3 opponents at West (Tây), North (Bắc), East (Đông)
-      const positions = [
+      const positions: { className?: string; style?: React.CSSProperties }[] = [
         { className: "top-4 left-4" },                      // West (Tây) - left
         { className: "top-4 left-1/2 -translate-x-1/2" },  // North (Bắc) - center
         { className: "top-4 right-4" },                     // East (Đông) - right
       ];
-      return positions[index] || positions[0];
+      return positions[index] ?? positions[0] ?? { className: "top-4 left-1/2 -translate-x-1/2" };
     }
     // 5+ players: distribute evenly from East to West at North
     // Calculate positions evenly spaced from left to right at the top
@@ -85,65 +112,88 @@ export function GameTable({
   return (
     <div className="relative w-full h-full flex items-center justify-center">
       {/* Table background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-amber-900/20 to-amber-950/30 rounded-full border-4 border-amber-700/50" />
+      <div className="absolute inset-0 from-amber-900/20 to-amber-950/30 rounded-full border-4 border-amber-700/50" />
 
       {/* Opponents around the table */}
       {opponents.map((player, idx) => {
         const actualIndex = players.findIndex((p) => p.id === player.id);
         const isActive = actualIndex === currentPlayerIndex && !player.isEliminated;
         const isTargeted = selectedTarget === actualIndex;
-        const isClickable = isSelectingTarget && !player.isEliminated && !player.isProtected && actualIndex !== myPlayerIndex;
+        const isClickable = isSelectingTarget && !player.isEliminated && !player.isProtected;
         const position = getOpponentPosition(idx, opponents.length);
 
         return (
           <div
             key={player.id}
             className={cn(
-              "absolute flex flex-col items-center gap-1 transition-all",
+              "absolute flex flex-col items-center gap-2 transition-all",
               position.className,
-              isClickable && "cursor-pointer",
-              isActive && "scale-110 z-10",
-              isTargeted && "ring-4 ring-green-400 rounded-lg p-2",
-              isClickable && "hover:scale-105"
+              isActive && "scale-110 z-10"
             )}
             style={position.style}
-            onClick={() => isClickable && onSelectTarget?.(actualIndex)}
           >
+            {/* Circular player avatar */}
             <div
               className={cn(
-                "w-16 h-20 md:w-20 md:h-24 rounded-lg border-2 flex flex-col items-center justify-center bg-gradient-to-br transition-all",
+                "relative w-16 h-16 md:w-20 md:h-20 rounded-full border-2 flex items-center justify-center transition-all shadow-lg",
                 isActive
-                  ? "border-amber-400 bg-gradient-to-br from-amber-400 to-amber-600 scale-110"
+                  ? "border-amber-400 from-amber-400 to-amber-600 scale-110 shadow-amber-400/50"
                   : isClickable
-                    ? "border-amber-500 bg-gradient-to-br from-slate-700 to-slate-800 hover:border-amber-400"
-                    : "border-amber-600/50 bg-gradient-to-br from-slate-700/50 to-slate-800/50",
-                player.isEliminated && "opacity-50",
-                player.isProtected && "ring-2 ring-blue-400"
+                    ? "border-amber-500 from-slate-700 to-slate-800 hover:border-amber-400 hover:shadow-amber-400/30 cursor-pointer hover:scale-105"
+                    : "border-amber-600/50 from-slate-700/50 to-slate-800/50",
+                player.isEliminated && "opacity-50 grayscale",
+                player.isProtected && "ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900",
+                isTargeted && "ring-4 ring-green-400"
               )}
+              onClick={() => isClickable && onSelectTarget?.(actualIndex)}
             >
-              <span className="text-lg md:text-xl">{player.name}</span>
+              {/* Player initial or icon */}
+              <span className="text-xl md:text-2xl font-bold text-amber-100">
+                {player.name === 'You' ? '👤' : player.name.slice(0, 1)}
+              </span>
+              
+              {/* Status indicators */}
               {player.isProtected && (
-                <span className="text-xs text-blue-400">🛡️</span>
+                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center border-2 border-slate-900">
+                  <span className="text-xs">🛡️</span>
+                </div>
               )}
               {player.isEliminated && (
-                <span className="text-xs text-red-400">💀</span>
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-red-600 flex items-center justify-center border-2 border-slate-900">
+                  <span className="text-xs">💀</span>
+                </div>
               )}
             </div>
-            <div className="flex gap-1">
-              {Array.from({ length: player.hearts }, (_, i) => (
-                <span key={`heart-${player.id}-${i}`} className="text-red-500 text-xs">
-                  ❤️
-                </span>
-              ))}
+            
+            {/* Player info */}
+            <div className="flex flex-col items-center gap-0.5">
+              <a
+                href={`https://testnet.suivision.xyz/account/${player.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()} // Prevent triggering target selection
+                className="text-xs font-mono text-amber-400/70 hover:text-amber-400 hover:underline transition-colors cursor-pointer"
+              >
+                {formatAddress(player.id)}
+              </a>
+              <div className="flex items-center gap-1 mt-0.5">
+                {Array.from({ length: player.hearts }, (_, i) => (
+                  <span key={`heart-${player.id}-${i}`} className="text-red-500 text-xs">
+                    ❤️
+                  </span>
+                ))}
+              </div>
+              {opponentCards[actualIndex] !== undefined && (
+                <div className="relative mt-1">
+                  <div className="w-8 h-10 md:w-10 md:h-12 rounded-md from-slate-700 to-slate-800 border border-amber-600/50 flex items-center justify-center">
+                    <span className="text-lg md:text-xl">🂠</span>
+                  </div>
+                  <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-400 text-slate-900 font-bold flex items-center justify-center shadow-md text-[10px]">
+                    {opponentCards[actualIndex]}
+                  </div>
+                </div>
+              )}
             </div>
-            <p className="text-xs text-amber-400 font-semibold mt-0.5">
-              {player.hearts} points
-            </p>
-            {opponentCards[actualIndex] !== undefined && (
-              <span className="text-xs text-amber-400/70">
-                {opponentCards[actualIndex]} cards
-              </span>
-            )}
           </div>
         );
       })}
@@ -157,7 +207,7 @@ export function GameTable({
               onClick={onStartRound}
               disabled={isStartingRound}
               size="lg"
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold px-6 py-4 text-base md:text-lg shadow-xl"
+              className="from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold px-6 py-4 text-base md:text-lg shadow-xl"
             >
               {isStartingRound ? 'Starting New Round...' : 'Start New Round'}
             </Button>
@@ -171,7 +221,7 @@ export function GameTable({
         <div className="flex items-center gap-4 md:gap-6">
           {/* Deck */}
           <div className="relative">
-            <div className="relative w-20 h-28 md:w-24 md:h-36 rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-amber-600 shadow-xl">
+            <div className="relative w-20 h-28 md:w-24 md:h-36 rounded-lg from-slate-700 to-slate-800 border-2 border-amber-600 shadow-xl">
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-amber-600/20 border-2 border-amber-600 flex items-center justify-center">
                   <span className="text-xl md:text-2xl">🂠</span>
@@ -190,21 +240,159 @@ export function GameTable({
 
           {/* Discard Pile */}
           <div className="relative">
-            <div className="relative w-20 h-28 md:w-24 md:h-36 rounded-lg border-2 border-dashed border-amber-600/50 flex items-center justify-center bg-slate-800/50">
-              {discardCount > 0 ? (
-                <span className="text-amber-400/70 text-xs md:text-sm font-semibold">
-                  {discardCount}
-                </span>
+            <button
+              type="button"
+              onClick={() => discardCount > 0 && setShowDiscardModal(true)}
+              disabled={discardCount === 0}
+              className={cn(
+                "relative w-20 h-28 md:w-24 md:h-36 rounded-lg border-2 border-dashed flex items-center justify-center transition-all",
+                discardCount > 0
+                  ? "border-amber-600/50 bg-slate-800/50 hover:border-amber-400 hover:bg-slate-800/70 cursor-pointer"
+                  : "border-amber-600/30 bg-slate-800/30 cursor-not-allowed opacity-50"
+              )}
+            >
+              {discardCount > 0 && discardPile.length > 0 ? (
+                // Show the latest discarded card
+                (() => {
+                  const latestCard = discardPile[discardPile.length - 1];
+                  if (!latestCard) return <span className="text-amber-600/30 text-xs">Empty</span>;
+                  const cardData = CARD_DATA_MAP[latestCard.value];
+                  return (
+                    <div className="flex flex-col items-center gap-1 w-full h-full justify-center">
+                      <span className="text-xl md:text-2xl font-bold text-amber-400">
+                        {cardData?.name.slice(0, 1) || '?'}
+                      </span>
+                      <span className="text-sm text-amber-300">{latestCard.value}</span>
+                    </div>
+                  );
+                })()
               ) : (
                 <span className="text-amber-600/30 text-xs">Empty</span>
               )}
-            </div>
+              {/* Show count badge if more than 1 card */}
+              {discardCount > 1 && (
+                <div className="absolute -top-2 -right-2 w-6 h-6 md:w-7 md:h-7 rounded-full bg-amber-400 text-slate-900 font-bold flex items-center justify-center shadow-lg text-xs md:text-sm">
+                  {discardCount}
+                </div>
+              )}
+            </button>
             <p className="text-center mt-1 text-xs text-amber-400 font-medium">
               Discard
             </p>
           </div>
         </div>
       </div>
+
+      {/* Human player at Southwest position */}
+      {humanPlayer && (
+        <div
+          className={cn(
+            "absolute bottom-4 left-80 flex flex-col items-center gap-2 transition-all",
+            myPlayerIndex === currentPlayerIndex && !humanPlayer.isEliminated && "scale-110 z-10"
+          )}
+        >
+          {/* Circular player avatar */}
+          <div
+            className={cn(
+              "relative w-16 h-16 md:w-20 md:h-20 rounded-full border-2 flex items-center justify-center transition-all shadow-lg",
+              myPlayerIndex === currentPlayerIndex && !humanPlayer.isEliminated
+                ? "border-amber-400 from-amber-400 to-amber-600 scale-110 shadow-amber-400/50"
+                : isSelectingTarget && canTargetSelf && !humanPlayer.isEliminated
+                  ? "border-amber-500 from-slate-700 to-slate-800 hover:border-amber-400 hover:shadow-amber-400/30 cursor-pointer hover:scale-105"
+                  : "border-amber-600/50 from-slate-700/50 to-slate-800/50",
+              humanPlayer.isEliminated && "opacity-50 grayscale",
+              humanPlayer.isProtected && "ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900",
+              selectedTarget === myPlayerIndex && "ring-4 ring-green-400"
+            )}
+            onClick={() => {
+              // Prince (card value 5) can target self even when protected
+              if (isSelectingTarget && canTargetSelf && !humanPlayer.isEliminated) {
+                onSelectTarget?.(myPlayerIndex);
+              }
+            }}
+          >
+            {/* Player initial or icon */}
+            <span className="text-xl md:text-2xl font-bold text-amber-100">
+              👤
+            </span>
+            
+            {/* Status indicators */}
+            {humanPlayer.isProtected && (
+              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center border-2 border-slate-900">
+                <span className="text-xs">🛡️</span>
+              </div>
+            )}
+            {humanPlayer.isEliminated && (
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-red-600 flex items-center justify-center border-2 border-slate-900">
+                <span className="text-xs">💀</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Player info */}
+          <div className="flex flex-col items-center gap-0.5">
+            <a
+              href={`https://testnet.suivision.xyz/account/${humanPlayer.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()} // Prevent triggering target selection
+              className="text-xs font-mono text-amber-400/70 hover:text-amber-400 hover:underline transition-colors cursor-pointer"
+            >
+              {formatAddress(humanPlayer.id)}
+            </a>
+            <div className="flex items-center gap-1 mt-0.5">
+              {Array.from({ length: humanPlayer.hearts }, (_, i) => (
+                <span key={`heart-${humanPlayer.id}-${i}`} className="text-red-500 text-xs">
+                  ❤️
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Discard Pile Modal */}
+      {showDiscardModal && (
+        <div 
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowDiscardModal(false)}
+        >
+          <div 
+            className="bg-slate-900 border-2 border-amber-600 rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-amber-400">Discarded Cards</h3>
+              <button
+                type="button"
+                onClick={() => setShowDiscardModal(false)}
+                className="text-amber-400 hover:text-amber-300 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-3 justify-center">
+              {discardPile.map((card) => {
+                const cardData = CARD_DATA_MAP[card.value];
+                return (
+                  <div
+                    key={card.id}
+                    className="w-20 h-28 rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-amber-400 flex flex-col items-center justify-center"
+                  >
+                    <span className="text-xl font-bold text-amber-400">{cardData?.name.slice(0, 1) || '?'}</span>
+                    <span className="text-sm text-amber-300">{card.value}</span>
+                    <span className="text-xs text-amber-400/70 mt-1">{cardData?.name || 'Unknown'}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {discardPile.length === 0 && (
+              <p className="text-center text-amber-400/70 mt-4">No cards discarded yet</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
