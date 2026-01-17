@@ -36,23 +36,26 @@ export const GachaTreasury = new MoveStruct({ name: `${$moduleName}::GachaTreasu
 export interface PullArguments {
     treasury: RawTransactionArgument<string>;
     payment: RawTransactionArgument<string>;
+    amount: RawTransactionArgument<number | bigint>;
 }
 export interface PullOptions {
     package: string;
     arguments: PullArguments | [
         treasury: RawTransactionArgument<string>,
-        payment: RawTransactionArgument<string>
+        payment: RawTransactionArgument<string>,
+        amount: RawTransactionArgument<number | bigint>
     ];
 }
-/** Pull a random card from gacha */
+/** Pull multiple random cards from gacha Cost: 0.01 SUI per card */
 export function pull(options: PullOptions) {
     const packageAddress = options.package;
     const argumentsTypes = [
         `${packageAddress}::gacha::GachaTreasury`,
         '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI>',
+        'u64',
         '0x0000000000000000000000000000000000000000000000000000000000000002::random::Random'
     ] satisfies string[];
-    const parameterNames = ["treasury", "payment"];
+    const parameterNames = ["treasury", "payment", "amount"];
     return (tx: Transaction) => tx.moveCall({
         package: packageAddress,
         module: 'gacha',
@@ -63,23 +66,26 @@ export function pull(options: PullOptions) {
 export interface PullAndKeepArguments {
     treasury: RawTransactionArgument<string>;
     payment: RawTransactionArgument<string>;
+    amount: RawTransactionArgument<number | bigint>;
 }
 export interface PullAndKeepOptions {
     package: string;
     arguments: PullAndKeepArguments | [
         treasury: RawTransactionArgument<string>,
-        payment: RawTransactionArgument<string>
+        payment: RawTransactionArgument<string>,
+        amount: RawTransactionArgument<number | bigint>
     ];
 }
-/** Pull and transfer card to sender */
+/** Pull multiple cards and transfer all to sender Cost: 0.01 SUI per card */
 export function pullAndKeep(options: PullAndKeepOptions) {
     const packageAddress = options.package;
     const argumentsTypes = [
         `${packageAddress}::gacha::GachaTreasury`,
         '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI>',
+        'u64',
         '0x0000000000000000000000000000000000000000000000000000000000000002::random::Random'
     ] satisfies string[];
-    const parameterNames = ["treasury", "payment"];
+    const parameterNames = ["treasury", "payment", "amount"];
     return (tx: Transaction) => tx.moveCall({
         package: packageAddress,
         module: 'gacha',

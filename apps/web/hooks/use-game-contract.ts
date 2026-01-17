@@ -1128,8 +1128,8 @@ export function useIsAlive(room: GameRoomType | null) {
 
 // ============== Gacha Constants ==============
 
-// Gacha cost: 0.05 SUI
-export const GACHA_COST = BigInt(50_000_000);
+// Gacha cost: 0.01 SUI per pull
+export const GACHA_COST = BigInt(10_000_000);
 
 // Rarity constants
 export const Rarity = {
@@ -1180,10 +1180,7 @@ export interface CardNFT {
 
 // ============== Gacha Hooks ==============
 
-// Gacha cost for 10 pulls
-export const GACHA_COST_10 = BigInt(500_000_000);
-
-// Hook to pull a card from gacha
+// Hook to pull cards from gacha (supports multiple pulls)
 export function useGachaPull() {
   const client = useSuiClient();
   const currentAccount = useCurrentAccount();
@@ -1194,148 +1191,86 @@ export function useGachaPull() {
   } = useNetworkConfig();
   const [error, setError] = useState<Error | null>(null);
 
-  const pull = useCallback(async () => {
-    if (!currentAccount) {
-      const err = new Error("Please connect your wallet first");
-      toast.error(err.message);
-      throw err;
-    }
+  const pull = useCallback(
+    async (amount: number = 1) => {
+      if (!currentAccount) {
+        const err = new Error("Please connect your wallet first");
+        toast.error(err.message);
+        throw err;
+      }
 
-    setError(null);
+      if (amount < 1) {
+        const err = new Error("Amount must be at least 1");
+        toast.error(err.message);
+        throw err;
+      }
 
-    try {
-      const tx = new Transaction();
+      setError(null);
 
-      // Split coin for gacha cost
-      const [paymentCoin] = tx.splitCoins(tx.gas, [GACHA_COST]);
+      try {
+        const tx = new Transaction();
 
-      // Call gacha pull_and_keep
-      tx.moveCall({
-        target: `${movePackageId}::gacha::pull_and_keep`,
-        arguments: [
-          tx.object(gachaTreasuryId),
-          paymentCoin,
-          tx.object("0x8"), // Random object
-        ],
-      });
+        // Calculate total cost: 0.01 SUI per pull
+        const totalCost = GACHA_COST * BigInt(amount);
 
-      const result = await signAndExecute({
-        transaction: tx,
-      });
+        // Split coin for gacha cost
+        const [paymentCoin] = tx.splitCoins(tx.gas, [totalCost]);
 
-      const txResponse = await client.waitForTransaction({
-        digest: result.digest,
-        options: {
-          showEffects: true,
-          showObjectChanges: true,
-        },
-      });
-
-      // Find the created card from object changes
-      const createdCard = txResponse.objectChanges?.find(
-        (change) =>
-          change.type === "created" &&
-          change.objectType?.includes("::gacha::Card")
-      );
-
-      toast.success("Card pulled successfully!");
-
-      return {
-        digest: result.digest,
-        cardId:
-          createdCard && "objectId" in createdCard
-            ? createdCard.objectId
-            : null,
-      };
-    } catch (err) {
-      const error = parseContractError(err);
-      setError(error);
-      toast.error(error.message);
-      throw error;
-    }
-  }, [client, currentAccount, signAndExecute, movePackageId, gachaTreasuryId]);
-
-  return {
-    pull,
-    isPending,
-    error,
-  };
-}
-
-// Hook to pull 10 cards from gacha
-export function useGachaPull10() {
-  const client = useSuiClient();
-  const currentAccount = useCurrentAccount();
-  const { mutateAsync: signAndExecute, isPending } =
-    useSignAndExecuteTransaction();
-  const {
-    variables: { movePackageId, gachaTreasuryId },
-  } = useNetworkConfig();
-  const [error, setError] = useState<Error | null>(null);
-
-  const pull10 = useCallback(async () => {
-    if (!currentAccount) {
-      const err = new Error("Please connect your wallet first");
-      toast.error(err.message);
-      throw err;
-    }
-
-    setError(null);
-
-    try {
-      const tx = new Transaction();
-
-      // Call gacha pull_and_keep 10 times
-      for (let i = 0; i < 10; i++) {
-        const paymentCoin = tx.splitCoins(tx.gas, [GACHA_COST])[0]!;
+        // Call gacha pull_and_keep with amount
         tx.moveCall({
           target: `${movePackageId}::gacha::pull_and_keep`,
           arguments: [
             tx.object(gachaTreasuryId),
             paymentCoin,
+            tx.pure.u64(amount),
             tx.object("0x8"), // Random object
           ],
         });
-      }
 
-      const result = await signAndExecute({
-        transaction: tx,
-      });
+        const result = await signAndExecute({
+          transaction: tx,
+        });
 
-      const txResponse = await client.waitForTransaction({
-        digest: result.digest,
-        options: {
-          showEffects: true,
-          showObjectChanges: true,
-        },
-      });
+        const txResponse = await client.waitForTransaction({
+          digest: result.digest,
+          options: {
+            showEffects: true,
+            showObjectChanges: true,
+          },
+        });
 
-      // Find all created cards from object changes
-      const createdCards =
-        txResponse.objectChanges?.filter(
-          (change) =>
-            change.type === "created" &&
-            change.objectType?.includes("::gacha::Card")
-        ) ?? [];
+        // Find all created cards from object changes
+        const createdCards =
+          txResponse.objectChanges?.filter(
+            (change) =>
+              change.type === "created" &&
+              change.objectType?.includes("::gacha::Card")
+          ) ?? [];
 
-      toast.success(`${createdCards.length} cards pulled successfully!`);
-
-      return {
-        digest: result.digest,
-        cardIds: createdCards
+        const cardIds = createdCards
           .map((card) => ("objectId" in card ? card.objectId : null))
-          .filter(Boolean) as string[],
-      };
-    } catch (err) {
-      const error = parseContractError(err);
-      setError(error);
-      toast.error(error.message);
-      throw error;
-    }
-  }, [client, currentAccount, signAndExecute, movePackageId, gachaTreasuryId]);
+          .filter((id): id is string => id !== null);
+
+        toast.success(
+          `${amount} card${amount > 1 ? "s" : ""} pulled successfully!`
+        );
+
+        return {
+          digest: result.digest,
+          cardIds,
+        };
+      } catch (err) {
+        const error = parseContractError(err);
+        setError(error);
+        toast.error(error.message);
+        throw error;
+      }
+    },
+    [client, currentAccount, signAndExecute, movePackageId, gachaTreasuryId]
+  );
 
   return {
-    pull10,
+    pull,
     isPending,
     error,
   };
