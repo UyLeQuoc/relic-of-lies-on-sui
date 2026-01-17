@@ -17,6 +17,7 @@ import { Button } from "../ui/button";
 import { CopyButton } from "../ui/copy-button";
 import { useRouter } from "next/navigation";
 import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useSuiBalance } from "@/hooks/use-sui-balance";
 
 const menuItems = [
   { id: "home", label: "Home", icon: Home },
@@ -32,8 +33,9 @@ export function Sidebar() {
   const router = useRouter();
 
   const currentAccount = useCurrentAccount();
-  console.log(currentAccount);
-
+  const { balance, error } = useSuiBalance(currentAccount?.address ?? "");
+  console.log(error);
+  console.log(balance);
   return (
     <>
       {/* Desktop Sidebar */}
@@ -107,28 +109,32 @@ export function Sidebar() {
 
           <div className="px-3 py-3 border-t border-zinc-800 bg-black/50 overflow-hidden">
             {currentAccount ? (
-              <div className="flex items-center justify-center">
+              <div className="flex items-center">
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex-shrink-0">
                   <Wallet className="w-4 h-4 text-white" />
                 </div>
-                <span
-                  className={`text-sm text-zinc-300 font-mono whitespace-nowrap transition-all duration-400 ${
-                    isExpanded
-                      ? "opacity-100 ml-2 max-w-32"
-                      : "opacity-0 ml-0 max-w-0"
-                  }`}
-                >
-                  {currentAccount.address.slice(0, 6)}...
-                  {currentAccount.address.slice(-4)}
-                </span>
                 <div
-                  className={`transition-all duration-400 ${
+                  className={`flex flex-col overflow-hidden transition-all duration-400 ${
                     isExpanded
-                      ? "opacity-100 ml-1 max-w-8"
+                      ? "opacity-100 ml-2 max-w-40"
                       : "opacity-0 ml-0 max-w-0"
                   }`}
                 >
-                  <CopyButton value={currentAccount.address} />
+                  <div className="flex items-center">
+                    <span className="text-sm text-zinc-300 font-mono whitespace-nowrap">
+                      {currentAccount.address.slice(0, 6)}...
+                      {currentAccount.address.slice(-4)}
+                    </span>
+                    <CopyButton
+                      value={currentAccount.address}
+                      className="ml-1"
+                    />
+                  </div>
+                  {balance && (
+                    <span className="text-xs text-zinc-500 whitespace-nowrap">
+                      {balance} SUI
+                    </span>
+                  )}
                 </div>
               </div>
             ) : (

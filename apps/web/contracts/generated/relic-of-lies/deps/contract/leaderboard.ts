@@ -22,58 +22,6 @@ export const Leaderboard = new MoveStruct({ name: `${$moduleName}::Leaderboard`,
         id: object.UID,
         records: bcs.vector(PlayerRecord)
     } });
-export interface UpdateWinnerArguments {
-    leaderboard: RawTransactionArgument<string>;
-    winnerAddr: RawTransactionArgument<string>;
-}
-export interface UpdateWinnerOptions {
-    package: string;
-    arguments: UpdateWinnerArguments | [
-        leaderboard: RawTransactionArgument<string>,
-        winnerAddr: RawTransactionArgument<string>
-    ];
-}
-/** Update winner's record in leaderboard */
-export function updateWinner(options: UpdateWinnerOptions) {
-    const packageAddress = options.package;
-    const argumentsTypes = [
-        `${packageAddress}::leaderboard::Leaderboard`,
-        'address'
-    ] satisfies string[];
-    const parameterNames = ["leaderboard", "winnerAddr"];
-    return (tx: Transaction) => tx.moveCall({
-        package: packageAddress,
-        module: 'leaderboard',
-        function: 'update_winner',
-        arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
-    });
-}
-export interface UpdateLoserArguments {
-    leaderboard: RawTransactionArgument<string>;
-    loserAddr: RawTransactionArgument<string>;
-}
-export interface UpdateLoserOptions {
-    package: string;
-    arguments: UpdateLoserArguments | [
-        leaderboard: RawTransactionArgument<string>,
-        loserAddr: RawTransactionArgument<string>
-    ];
-}
-/** Update loser's record (increment games_played only) */
-export function updateLoser(options: UpdateLoserOptions) {
-    const packageAddress = options.package;
-    const argumentsTypes = [
-        `${packageAddress}::leaderboard::Leaderboard`,
-        'address'
-    ] satisfies string[];
-    const parameterNames = ["leaderboard", "loserAddr"];
-    return (tx: Transaction) => tx.moveCall({
-        package: packageAddress,
-        module: 'leaderboard',
-        function: 'update_loser',
-        arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
-    });
-}
 export interface GetTopPlayersArguments {
     leaderboard: RawTransactionArgument<string>;
     count: RawTransactionArgument<number | bigint>;

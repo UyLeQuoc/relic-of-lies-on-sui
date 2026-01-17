@@ -3,8 +3,6 @@
 #[allow(lint(public_random))]
 module contract::app;
 
-use sui::coin::Coin;
-use sui::sui::SUI;
 use sui::random::Random;
 use contract::game::{Self, GameRoom, RoomRegistry};
 use contract::leaderboard::{Self, Leaderboard, PlayerRecord};
@@ -14,7 +12,7 @@ use contract::constants;
 
 /// Create a new game room
 /// - name: Room name (cannot be empty)
-/// - max_players: 2-4 players allowed
+/// - max_players: 2-6 players allowed
 /// Returns: Room ID
 public fun create_room(
     registry: &mut RoomRegistry,
@@ -25,13 +23,12 @@ public fun create_room(
     game::create_room(registry, name, max_players, ctx)
 }
 
-/// Join an existing room with 0.1 SUI entry fee
+/// Join an existing room (free entry - no payment required)
 public fun join_room(
     room: &mut GameRoom,
-    payment: Coin<SUI>,
     ctx: &mut TxContext,
 ) {
-    game::join_room(room, payment, ctx);
+    game::join_room(room, ctx);
 }
 
 /// Start a new round (first round or subsequent rounds)
@@ -175,6 +172,7 @@ public fun top_players(leaderboard: &Leaderboard, count: u64): vector<PlayerReco
 }
 
 /// Get a specific player's record
+/// Uses Option macros for cleaner handling
 public fun player_stats(leaderboard: &Leaderboard, player: address): (
     bool,                    // found
     u64,                     // wins

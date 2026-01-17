@@ -30,10 +30,11 @@ fun init(ctx: &mut TxContext) {
     transfer::share_object(leaderboard);
 }
 
-// ============== Public Functions ==============
+// ============== Package Functions ==============
+// These functions are only callable from within the package (game.move)
 
 /// Update winner's record in leaderboard
-public fun update_winner(leaderboard: &mut Leaderboard, winner_addr: address) {
+public(package) fun update_winner(leaderboard: &mut Leaderboard, winner_addr: address) {
     let records = &mut leaderboard.records;
     let idx_opt = find_player_index(records, winner_addr);
     
@@ -64,7 +65,7 @@ public fun update_winner(leaderboard: &mut Leaderboard, winner_addr: address) {
 }
 
 /// Update loser's record (increment games_played only)
-public fun update_loser(leaderboard: &mut Leaderboard, loser_addr: address) {
+public(package) fun update_loser(leaderboard: &mut Leaderboard, loser_addr: address) {
     let records = &mut leaderboard.records;
     let idx_opt = find_player_index(records, loser_addr);
     
