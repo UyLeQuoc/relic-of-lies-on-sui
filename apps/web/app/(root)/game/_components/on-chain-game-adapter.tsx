@@ -413,7 +413,7 @@ function OnChainGameWithUI({
                       <span key={`heart-${humanPlayer.id}-${i}`} className="text-red-500">❤️</span>
                     ))}
                   </div>
-                  <span className="text-amber-400/70">{humanPlayer.hearts} điểm</span>
+                  <span className="text-amber-400/70">{humanPlayer.hearts} points</span>
                 </div>
               </div>
               {gameState.gamePhase === 'chancellorChoice' && gameState.chancellorCards.length > 0 ? (

@@ -137,7 +137,7 @@ export function GameTable({
               ))}
             </div>
             <p className="text-xs text-amber-400 font-semibold mt-0.5">
-              {player.hearts} điểm
+              {player.hearts} points
             </p>
             {opponentCards[actualIndex] !== undefined && (
               <span className="text-xs text-amber-400/70">
