@@ -2,12 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
-import {
-  useGetMyCards,
-  CardNames,
-  Rarity,
-  type CardNFT,
-} from "@/hooks/use-game-contract";
+import { CardNames, Rarity, type CardNFT } from "@/hooks/use-game-contract";
+import { useCollection } from "@/hooks/use-collection";
 import { RarityColors, RarityNames, RarityGlow } from "@/lib/gacha";
 import {
   Sheet,
@@ -167,7 +163,7 @@ function CardDetailSheet({
 
               <Separator />
 
-              <div className="space-y-2 ">
+              <div className="space-y-2">
                 <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                   Statistics
                 </h4>
@@ -191,8 +187,8 @@ function CardDetailSheet({
                 </div>
               </div>
 
-              {card.games_played > 0n && (
-                <div className="space-y-2 ">
+              {card.games_played > BigInt(0) && (
+                <div className="space-y-2">
                   <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                     Win Rate
                   </h4>
@@ -270,7 +266,7 @@ function RaritySection({
 
 export function MyCollectionContent() {
   const currentAccount = useCurrentAccount();
-  const { cards, fetchCards, isLoading } = useGetMyCards();
+  const { cards, isLoading, fetchCards } = useCollection();
   const [selectedCard, setSelectedCard] = useState<CardNFT | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -288,8 +284,9 @@ export function MyCollectionContent() {
     };
 
     for (const card of cards) {
-      if (grouped[card.rarity]) {
-        grouped[card.rarity].push(card);
+      const rarityGroup = grouped[card.rarity];
+      if (rarityGroup) {
+        rarityGroup.push(card);
       }
     }
 
@@ -360,27 +357,27 @@ export function MyCollectionContent() {
           <div className="space-y-10">
             <RaritySection
               rarity={Rarity.MYTHIC}
-              cards={cardsByRarity[Rarity.MYTHIC]}
+              cards={cardsByRarity[Rarity.MYTHIC] ?? []}
               onCardClick={handleCardClick}
             />
             <RaritySection
               rarity={Rarity.LEGENDARY}
-              cards={cardsByRarity[Rarity.LEGENDARY]}
+              cards={cardsByRarity[Rarity.LEGENDARY] ?? []}
               onCardClick={handleCardClick}
             />
             <RaritySection
               rarity={Rarity.EPIC}
-              cards={cardsByRarity[Rarity.EPIC]}
+              cards={cardsByRarity[Rarity.EPIC] ?? []}
               onCardClick={handleCardClick}
             />
             <RaritySection
               rarity={Rarity.RARE}
-              cards={cardsByRarity[Rarity.RARE]}
+              cards={cardsByRarity[Rarity.RARE] ?? []}
               onCardClick={handleCardClick}
             />
             <RaritySection
               rarity={Rarity.COMMON}
-              cards={cardsByRarity[Rarity.COMMON]}
+              cards={cardsByRarity[Rarity.COMMON] ?? []}
               onCardClick={handleCardClick}
             />
           </div>
