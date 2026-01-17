@@ -2,6 +2,7 @@
 
 import { type ActionPhase, type GameCard, type Player } from '@/components/game/game-context';
 import { Button } from '@/components/ui/button';
+import { GameTable } from '@/components/game-table';
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -292,14 +293,22 @@ function OnChainGameWithUI({
   isStartingRound,
 }: any) {
   const currentAccount = useCurrentAccount();
-  const [selectedCard, setSelectedCard] = useState<GameCard | null>(null);
+  const [selectedCardValue, setSelectedCardValue] = useState<number | null>(null);
   const [selectedTarget, setSelectedTarget] = useState<number | null>(null);
   const [selectedGuess, setSelectedGuess] = useState<number | null>(null);
   const [chancellorKeepCard, setChancellorKeepCard] = useState<GameCard | null>(null);
+  const [chancellorReturnOrder, setChancellorReturnOrder] = useState<GameCard[]>([]);
 
   const humanPlayer = gameState.players.find((p: Player) => !p.isBot);
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isMyTurn = currentPlayer && !currentPlayer.isBot && gameState.gamePhase === 'playing';
+  
+  // Find selected card object from hand (based on value, not id, to persist across re-renders)
+  const selectedCard = selectedCardValue ? humanPlayer?.hand.find((c: GameCard) => c.value === selectedCardValue) || null : null;
+  
+  // Check card count - display cards that player currently has on chain
+  const hasOneCard = humanPlayer && humanPlayer.hand.length === 1;
+  const hasTwoCards = humanPlayer && humanPlayer.hand.length === 2;
 
   // Check if card requires target
   const cardRequiresTarget = (card: GameCard | null): boolean => {
@@ -332,7 +341,7 @@ function OnChainGameWithUI({
   }, [selectedCard, gameState.myPlayerIndex, gameState.players]);
 
   const handlePlayCard = async () => {
-    if (!selectedCard) return;
+    if (!selectedCardValue || !selectedCard) return;
     
     try {
       await playTurn(
@@ -341,7 +350,7 @@ function OnChainGameWithUI({
         selectedTarget,
         selectedGuess
       );
-      setSelectedCard(null);
+      setSelectedCardValue(null);
       setSelectedTarget(null);
       setSelectedGuess(null);
       fetchRoom();
@@ -356,238 +365,280 @@ function OnChainGameWithUI({
 
   return (
     <div className={isDarkMode ? "dark" : ""}>
-      <div className="min-h-screen bg-cream dark:bg-midnight transition-colors duration-500 relative overflow-hidden">
-        {/* Background overlays - same as game components */}
-        <div className="absolute inset-0 opacity-30 dark:opacity-10 pointer-events-none bg-[url('/subtle-parchment-texture-with-faint-rose-patterns.jpg')] bg-repeat" />
-        <div className="absolute inset-0 opacity-5 dark:opacity-5 pointer-events-none bg-[url('/delicate-vintage-rose-floral-pattern-seamless.jpg')] bg-repeat" />
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-950 transition-colors duration-500 relative overflow-hidden">
 
         <div className="relative z-10 flex flex-col h-screen">
-          {/* TopBar styled header */}
-          <header className="h-16 bg-crimson/90 dark:bg-midnight-deep/90 backdrop-blur-sm border-b border-gold/30 dark:border-silver/30 px-4 flex items-center justify-between shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gold/20 dark:bg-silver/20 flex items-center justify-center">
-                <span className="text-2xl">💌</span>
-              </div>
-              <div>
-                <h1 className="font-serif text-2xl md:text-3xl font-bold text-gold dark:text-silver tracking-wide italic">
-                  {room.name}
-                </h1>
-                <p className="text-xs text-gold/70 dark:text-silver/70">
-                  Round {gameState.roundNumber} • Pot: {(Number(room.pot.value) / 1_000_000_000).toFixed(3)} SUI
-                </p>
-              </div>
+          {/* Header */}
+          <div className="flex flex-col items-center gap-2 flex-shrink-0 pt-3 pb-2">
+            <h1 className="text-2xl md:text-3xl font-bold text-amber-400">{room.name}</h1>
+            <div className="flex items-center gap-4 text-sm text-amber-300">
+              <span>Round {gameState.roundNumber}</span>
+              <span>•</span>
+              <span>Pot: {(Number(room.pot.value) / 1_000_000_000).toFixed(3)} SUI</span>
             </div>
-            <Button variant="ghost" onClick={() => router.push('/rooms')} className="text-cream dark:text-silver">
+            <Button variant="ghost" onClick={() => router.push('/rooms')} className="text-amber-400 hover:text-amber-300 mt-2">
               Back to Lobby
             </Button>
-          </header>
-
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <main className="flex-1 flex flex-col items-center justify-between gap-4 p-4 overflow-hidden">
-              {/* PlayArea - deck and discard */}
-              <div className="flex-1 flex flex-col items-center justify-center gap-6 py-4">
-                <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-                  {/* Deck */}
-                  <div className="relative">
-                    <div className="relative w-24 h-36 md:w-28 md:h-40 rounded-lg bg-gradient-to-br from-crimson via-crimson-dark to-crimson-deeper dark:from-midnight dark:via-midnight-deep dark:to-midnight-deeper border-2 border-gold dark:border-silver shadow-xl">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gold/20 dark:bg-silver/20 border-2 border-gold dark:border-silver flex items-center justify-center">
-                          <span className="text-2xl md:text-3xl">💌</span>
-                        </div>
-                      </div>
-                      <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gold dark:bg-silver text-crimson-dark dark:text-midnight font-bold flex items-center justify-center shadow-lg">
-                        {gameState.deckCount}
-                      </div>
-                    </div>
-                    <p className="text-center mt-2 text-sm text-crimson-dark dark:text-silver-light font-medium">
-                      Draw Deck
-                    </p>
-                  </div>
-
-                  {/* Discard Pile */}
-                  <div className="relative">
-                    <div className="relative w-24 h-36 md:w-28 md:h-40 rounded-lg border-2 border-dashed border-gold/30 dark:border-silver/30 flex items-center justify-center">
-                      <span className="text-gold/30 dark:text-silver/30 text-sm">
-                        {gameState.discardPile.length > 0 ? gameState.discardPile.length : 'Empty'}
-                      </span>
-                    </div>
-                    <p className="text-center mt-2 text-sm text-crimson-dark dark:text-silver-light font-medium">
-                      Discard ({gameState.discardPile.length})
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* PlayersZone */}
-              <div className="w-full px-2 py-4">
-                <div className="flex flex-wrap justify-center gap-4 md:gap-6 lg:gap-8">
-                  {gameState.players.map((player: Player, index: number) => {
-                    const isActivePlayer = index === gameState.currentPlayerIndex && !player.isEliminated;
-                    return (
-                      <div
-                        key={player.id}
-                        className={`relative flex flex-col items-center p-3 md:p-4 rounded-2xl transition-all duration-300 min-w-[120px] md:min-w-[140px] ${
-                          isActivePlayer ? 'ring-2 ring-gold dark:ring-silver shadow-lg' : ''
-                        } ${player.isEliminated ? 'opacity-60' : ''} bg-cream/50 dark:bg-midnight-light/50`}
-                      >
-                        <div className="w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden border-3 border-gold dark:border-silver mb-2">
-                          <div className="w-full h-full bg-gold/20 dark:bg-silver/20 flex items-center justify-center">
-                            <span className="text-2xl">👤</span>
-                          </div>
-                        </div>
-                        <p className="font-semibold text-crimson-dark dark:text-silver">{player.name}</p>
-                        <div className="flex items-center gap-1 mt-1">
-                          {Array.from({ length: player.hearts }, (_, i) => (
-                            <span key={`heart-${player.id}-${i}`} className="text-red-500">❤️</span>
-                          ))}
-                        </div>
-                        {player.isProtected && (
-                          <span className="text-xs text-blue-500 mt-1">🛡️ Protected</span>
-                        )}
-                        {player.isEliminated && (
-                          <span className="text-xs text-red-500 mt-1">💀 Eliminated</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </main>
-
-            {/* PlayerHUD - hand and actions */}
-            {humanPlayer && gameState.gamePhase === 'playing' && (
-              <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-crimson/95 dark:bg-midnight-deep/95 backdrop-blur-sm border-t border-gold/30 dark:border-silver/30">
-                <div className="max-w-4xl mx-auto">
-                  {gameState.gamePhase === 'chancellorChoice' && gameState.chancellorCards.length > 0 ? (
-                    <div>
-                      <p className="text-foreground mb-4">Choose a card to keep:</p>
-                      <div className="flex gap-4 mb-4">
-                        {gameState.chancellorCards.map((card: GameCard) => (
-                          <button
-                            key={card.id}
-                            type="button"
-                            onClick={() => setChancellorKeepCard(card)}
-                            className={`p-4 rounded-lg border-2 ${
-                              chancellorKeepCard?.id === card.id
-                                ? 'border-gold bg-gold/20'
-                                : 'border-gold/50 hover:border-gold'
-                            }`}
-                          >
-                            <p className="font-bold text-foreground">{card.name}</p>
-                          </button>
-                        ))}
-                      </div>
-                      <Button
-                        onClick={async () => {
-                          if (chancellorKeepCard) {
-                            const returnCards = gameState.chancellorCards.filter((c: GameCard) => c.id !== chancellorKeepCard.id);
-                            await resolveChancellor(roomId, chancellorKeepCard.value, returnCards.map((c: GameCard) => c.value));
-                            setChancellorKeepCard(null);
-                            fetchRoom();
-                          }
-                        }}
-                        disabled={!chancellorKeepCard}
-                      >
-                        Confirm
-                      </Button>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-foreground mb-4">Your Hand:</p>
-                      <div className="flex gap-4 mb-4 flex-wrap">
-                        {humanPlayer.hand.map((card: GameCard) => (
-                          <button
-                            key={card.id}
-                            type="button"
-                            onClick={() => isMyTurn && setSelectedCard(selectedCard?.id === card.id ? null : card)}
-                            disabled={!isMyTurn}
-                            className={`p-4 rounded-lg border-2 transition-all ${
-                              selectedCard?.id === card.id
-                                ? 'border-gold bg-gold/20'
-                                : isMyTurn
-                                  ? 'border-gold/50 hover:border-gold cursor-pointer'
-                                  : 'border-gold/30 opacity-50'
-                            }`}
-                          >
-                            <p className="font-bold text-foreground">{card.name}</p>
-                            <p className="text-sm text-foreground/70">Value: {card.value}</p>
-                          </button>
-                        ))}
-                      </div>
-                      {/* Target Selection */}
-                      {isMyTurn && selectedCard && cardRequiresTarget(selectedCard) && (
-                        <div className="mb-4">
-                          <p className="text-foreground mb-2">Select Target:</p>
-                          <div className="flex gap-2 flex-wrap">
-                            {getValidTargets().map(({ player, index }: { player: Player; index: number }) => (
-                              <button
-                                key={`target-${player.id}-${index}`}
-                                type="button"
-                                onClick={() => setSelectedTarget(selectedTarget === index ? null : index)}
-                                className={`px-3 py-1 rounded border-2 transition-all ${
-                                  selectedTarget === index
-                                    ? 'border-gold bg-gold/20'
-                                    : 'border-gold/50 hover:border-gold'
-                                }`}
-                              >
-                                <span className="text-foreground">{player.name}</span>
-                              </button>
-                            ))}
-                            {getValidTargets().length === 0 && (
-                              <p className="text-foreground/70">No valid targets (all immune)</p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Guess Selection (Guard) */}
-                      {isMyTurn && selectedCard?.value === 1 && selectedTarget !== null && (
-                        <div className="mb-4">
-                          <p className="text-foreground mb-2">Guess a card (not Guard):</p>
-                          <div className="flex gap-2 flex-wrap">
-                            {[0, 2, 3, 4, 5, 6, 7, 8, 9].map(cardValue => {
-                              const cardData = CARD_DATA_MAP[cardValue];
-                              if (!cardData) return null;
-                              return (
-                                <button
-                                  key={cardValue}
-                                  type="button"
-                                  onClick={() => setSelectedGuess(selectedGuess === cardValue ? null : cardValue)}
-                                  className={`px-3 py-1 rounded border-2 transition-all ${
-                                    selectedGuess === cardValue
-                                      ? 'border-gold bg-gold/20'
-                                      : 'border-gold/50 hover:border-gold'
-                                  }`}
-                                >
-                                  <span className="text-foreground">{cardData.name}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Play Button */}
-                      {isMyTurn && selectedCard && (
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={handlePlayCard} 
-                            disabled={
-                              isProcessingAction ||
-                              (cardRequiresTarget(selectedCard) && selectedTarget === null && getValidTargets().length > 0) ||
-                              (cardRequiresGuess(selectedCard) && selectedGuess === null)
-                            }
-                          >
-                            {isProcessingAction ? 'Playing...' : 'Play Card'}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
+
+          {/* Game Table */}
+          <div className="flex-1 flex items-center justify-center min-h-0">
+            <GameTable
+              playerCount={gameState.players.length}
+              players={gameState.players}
+              currentPlayerIndex={gameState.currentPlayerIndex}
+              myPlayerIndex={gameState.myPlayerIndex}
+              selectedTarget={selectedTarget}
+              onSelectTarget={(targetId: number) => setSelectedTarget(targetId)}
+              isSelectingTarget={isMyTurn && selectedCard !== null && cardRequiresTarget(selectedCard)}
+              selectedCardValue={selectedCardValue}
+              opponentCards={Object.fromEntries(
+                gameState.players
+                  .map((p: Player, idx: number) => [idx, p.hand.length] as [number, number])
+                  .filter(([idx]: [number, number]) => Number(idx) !== gameState.myPlayerIndex)
+              )}
+              deckCount={gameState.deckCount}
+              discardCount={gameState.discardPile.length}
+              discardPile={gameState.discardPile}
+              showStartRoundButton={gameState.gamePhase === 'roundEnd' && room.status === 2 && room.players.length >= 2}
+              onStartRound={handleStartRound}
+              isStartingRound={isStartingRound}
+              isGameEnd={gameState.gamePhase === 'gameEnd'}
+            />
+          </div>
+
+          {/* Chancellor Choice UI */}
+          {humanPlayer && gameState.gamePhase === 'chancellorChoice' && gameState.chancellorCards.length > 0 && (
+            <div className="w-full bg-slate-800 border-2 border-amber-600 rounded-lg p-4 flex-shrink-0 flex flex-col gap-4 mx-3 mb-3 max-h-[70vh] overflow-y-auto">
+              <h3 className="text-xl font-bold text-amber-400 text-center">Chancellor - Choose a card to keep</h3>
+              
+              {/* Step 1: Choose card to keep */}
+              {!chancellorKeepCard && (
+                <div>
+                  <p className="text-amber-300 font-semibold mb-3 text-center">Select a card to keep:</p>
+                  <div className="flex gap-3 justify-center flex-wrap">
+                    {gameState.chancellorCards.map((card: GameCard) => (
+                      <button
+                        key={card.id}
+                        type="button"
+                        onClick={() => {
+                          setChancellorKeepCard(card);
+                          const returnCards = gameState.chancellorCards.filter((c: GameCard) => c.id !== card.id);
+                          setChancellorReturnOrder(returnCards);
+                        }}
+                        className="p-4 rounded-lg border-2 transition-all hover:scale-105 border-amber-600/50 hover:border-amber-400 bg-slate-700/50"
+                      >
+                        <p className="font-bold text-amber-400 text-base">{card.name}</p>
+                        <p className="text-xs text-amber-300/70 mt-1">{card.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Arrange return order */}
+              {chancellorKeepCard && chancellorReturnOrder.length === 2 && (
+                <div>
+                  <p className="text-amber-300 font-semibold mb-2 text-center">
+                    Arrange the order of 2 cards to return to bottom of deck:
+                  </p>
+                  <p className="text-xs text-amber-400/70 mb-4 text-center">
+                    Click the swap button or click on a card to change the order
+                  </p>
+                  <div className="flex flex-col items-center gap-3">
+                    {/* Card order display */}
+                    <div className="flex items-center gap-4">
+                      {/* First card position (Bottom of deck - return last) */}
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="text-xs text-amber-400 font-semibold">Bottom of Deck</span>
+                        <span className="text-xs text-amber-400/70">(Return Last)</span>
+                        {chancellorReturnOrder[0] && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (chancellorReturnOrder[0] && chancellorReturnOrder[1]) {
+                                setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
+                              }
+                            }}
+                            className="p-3 rounded-lg border-2 border-amber-400 bg-amber-400/20 transition-all hover:scale-105 min-w-[100px]"
+                          >
+                            <p className="font-bold text-amber-400 text-sm">{chancellorReturnOrder[0].name}</p>
+                            <p className="text-xs text-amber-300/70 mt-1">Value: {chancellorReturnOrder[0].value}</p>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Swap button */}
+                      <div className="flex flex-col items-center gap-1 mt-6">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (chancellorReturnOrder[0] && chancellorReturnOrder[1]) {
+                              setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
+                            }
+                          }}
+                          className="p-2 rounded-lg border-2 border-amber-600 hover:border-amber-400 bg-slate-700/50 hover:bg-slate-700 transition-all"
+                          title="Swap order"
+                        >
+                          <span className="text-amber-400 text-xl">⇅</span>
+                        </button>
+                        <span className="text-xs text-amber-400/70">Swap</span>
+                      </div>
+
+                      {/* Second card position (Top - return first) */}
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="text-xs text-amber-400 font-semibold">Top (Return First)</span>
+                        <span className="text-xs text-amber-400/70">Above Bottom</span>
+                        {chancellorReturnOrder[1] && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (chancellorReturnOrder[0] && chancellorReturnOrder[1]) {
+                                setChancellorReturnOrder([chancellorReturnOrder[1], chancellorReturnOrder[0]]);
+                              }
+                            }}
+                            className="p-3 rounded-lg border-2 border-amber-400 bg-amber-400/20 transition-all hover:scale-105 min-w-[100px]"
+                          >
+                            <p className="font-bold text-amber-400 text-sm">{chancellorReturnOrder[1].name}</p>
+                            <p className="text-xs text-amber-300/70 mt-1">Value: {chancellorReturnOrder[1].value}</p>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Selected card to keep */}
+                    <div className="mt-4 p-3 rounded-lg border-2 border-green-500 bg-green-500/10">
+                      <p className="text-xs text-green-400 mb-1">Card to keep:</p>
+                      <p className="font-bold text-green-400">{chancellorKeepCard.name}</p>
+                    </div>
+
+                    {/* Confirm button */}
+                    <Button
+                      onClick={async () => {
+                        if (chancellorKeepCard && chancellorReturnOrder.length === 2) {
+                          try {
+                            await resolveChancellor(
+                              roomId,
+                              chancellorKeepCard.value,
+                              chancellorReturnOrder.map((c: GameCard) => c.value),
+                              room
+                            );
+                            setChancellorKeepCard(null);
+                            setChancellorReturnOrder([]);
+                            fetchRoom();
+                          } catch (err) {
+                            // Error is handled by the hook
+                          }
+                        }
+                      }}
+                      disabled={!chancellorKeepCard || chancellorReturnOrder.length !== 2 || isProcessingAction}
+                      className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold px-6 py-3"
+                    >
+                      {isProcessingAction ? 'Processing...' : 'Confirm & Return Cards'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Cards - Display at bottom without container */}
+          {humanPlayer && gameState.gamePhase === 'playing' && (
+            <>
+              {/* Cards - Horizontal layout at bottom center */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 justify-center flex-wrap z-10">
+                {humanPlayer.hand.map((card: GameCard) => {
+                  const isSelected = selectedCardValue === card.value;
+                  const canSelect = isMyTurn && !isProcessingAction;
+                  
+                  return (
+                    <button
+                      key={card.id}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (canSelect) {
+                          setSelectedCardValue(isSelected ? null : card.value);
+                        }
+                      }}
+                      disabled={!canSelect}
+                      className={`w-20 h-28 rounded-lg font-bold text-base transition-all transform ${
+                        isSelected
+                          ? 'ring-4 ring-amber-400 scale-105 bg-gradient-to-br from-amber-400 to-amber-600 text-slate-900'
+                          : !isMyTurn || isProcessingAction
+                            ? 'opacity-50 cursor-not-allowed bg-gradient-to-br from-slate-700/50 to-slate-800/50 border-2 border-amber-600/30 text-amber-400/50'
+                            : 'bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-amber-400 text-amber-400 hover:scale-105'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-1 h-full justify-center">
+                        <span className="text-xl">{card.name.slice(0, 1)}</span>
+                        <span className="text-sm">{card.value}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Card description and PLAY Button - Right side */}
+              {selectedCard && (
+                <div className="absolute bottom-4 left-1/2 translate-x-[140px] flex flex-col gap-2 items-start z-20">
+                  {/* PLAY Button */}
+                  {isMyTurn && (
+                    (() => {
+                      const canPlay = 
+                        (!cardRequiresTarget(selectedCard) && !cardRequiresGuess(selectedCard)) ||
+                        (cardRequiresTarget(selectedCard) && selectedTarget !== null && !cardRequiresGuess(selectedCard)) ||
+                        (cardRequiresGuess(selectedCard) && selectedTarget !== null && selectedGuess !== null);
+                      
+                        return (
+                          <Button
+                            onClick={handlePlayCard}
+                            disabled={isProcessingAction || !canPlay}
+                            className="from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-2 px-6 rounded-lg transition-all"
+                          >
+                            {isProcessingAction ? 'Playing...' : 'PLAY'}
+                          </Button>
+                        );
+                      return null;
+                    })()
+                  )}
+                  
+                  {/* Card description */}
+                  <div className="text-xs text-amber-300 bg-slate-900/90 px-2 py-1 rounded border border-amber-600/50 max-w-[200px] whitespace-normal">
+                    {selectedCard.description}
+                  </div>
+                </div>
+              )}
+
+              {/* Guess Selection (Guard) */}
+              {isMyTurn && selectedCard?.value === 1 && selectedTarget !== null && (
+                <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10">
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    {[0, 2, 3, 4, 5, 6, 7, 8, 9].map(cardValue => {
+                      const cardData = CARD_DATA_MAP[cardValue];
+                      if (!cardData) return null;
+                      return (
+                        <button
+                          key={cardValue}
+                          type="button"
+                          onClick={() => setSelectedGuess(selectedGuess === cardValue ? null : cardValue)}
+                          className={`px-2 py-1 text-xs rounded border-2 transition-all ${
+                            selectedGuess === cardValue
+                              ? 'border-amber-400 bg-amber-400/20 text-amber-300'
+                              : 'border-amber-600/50 hover:border-amber-400 text-amber-400'
+                          }`}
+                        >
+                          {cardData.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+
+            </>
+          )}
         </div>
 
         {/* Result Notification */}
