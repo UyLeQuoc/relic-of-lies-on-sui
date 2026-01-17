@@ -53,7 +53,7 @@ export function RoomsLobby() {
     isLoading: isLoadingRooms,
     error: roomsError,
   } = useGetActiveRooms();
-  const { joinRoom, isPending: isJoining, error: joinError } = useJoinRoom();
+  const { joinRoom, isPending: isJoining } = useJoinRoom();
 
   // Fetch rooms on mount and periodically
   useEffect(() => {
@@ -160,8 +160,10 @@ export function RoomsLobby() {
 
   useEffect(() => {
     if (!currentAccount) return;
-    toast.error(roomsError?.message || joinError?.message);
-  }, [roomsError, joinError, currentAccount]);
+    if (roomsError?.message) {
+      toast.error(roomsError.message);
+    }
+  }, [roomsError, currentAccount]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -340,7 +342,7 @@ export function RoomsLobby() {
                             onClick={() => handleJoinRoom(room.id.id)}
                             disabled={isJoining || isJoiningThis}
                           >
-                            {isJoiningThis ? "Joining..." : "Join (0.1 SUI)"}
+                            {isJoiningThis ? "Joining..." : "Join (Free)"}
                           </Button>
                         ) : (
                           <Button className="w-full" variant="outline" disabled>

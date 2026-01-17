@@ -5,7 +5,7 @@
 module contract::game;
 
 use sui::balance::{Self, Balance};
-use sui::coin::{Self, Coin};
+use sui::coin::{Self};
 use sui::sui::SUI;
 use sui::random::Random;
 use contract::constants;
@@ -72,11 +72,9 @@ public fun create_room(
     max_players: u8,
     ctx: &mut TxContext,
 ): ID {
-    assert!(!name.is_empty(), error::empty_room_name());
-    assert!(
-        max_players >= constants::min_players() && max_players <= constants::max_players(),
-        error::invalid_max_players()
-    );
+    // Use boolean check functions for better error handling (Rule 3)
+    assert!(error::is_valid_room_name(&name), error::empty_room_name());
+    assert!(error::is_valid_max_players(max_players), error::invalid_max_players());
     
     let creator = ctx.sender();
     let room_uid = object::new(ctx);
@@ -116,33 +114,19 @@ public fun create_room(
     room_id
 }
 
-/// Join an existing room with payment
+/// Join an existing room (free entry - no payment required)
 public fun join_room(
     room: &mut GameRoom,
-    payment: Coin<SUI>,
     ctx: &mut TxContext,
 ) {
     let sender = ctx.sender();
     
-    assert!(room.status == constants::status_waiting(), error::game_already_started());
-    assert!((room.players.length() as u8) < room.max_players, error::room_full());
+    // Use boolean check functions for better error handling (Rule 3)
+    assert!(error::can_join_room(room.status), error::game_already_started());
+    assert!(error::has_room_space(room.players.length(), room.max_players), error::room_full());
     
     // Check not already in room
-    room.players.do_ref!(|p| {
-        assert!(p.addr != sender, error::already_in_room());
-    });
-    
-    assert!(payment.value() >= constants::entry_fee(), error::insufficient_payment());
-    
-    // Handle exact payment or return change
-    if (payment.value() > constants::entry_fee()) {
-        let mut payment_mut = payment;
-        let entry_balance = payment_mut.balance_mut().split(constants::entry_fee());
-        room.pot.join(entry_balance);
-        transfer::public_transfer(payment_mut, sender);
-    } else {
-        room.pot.join(payment.into_balance());
-    };
+    assert!(!is_player_in_room(room, sender), error::already_in_room());
     
     let player = Player {
         addr: sender,
@@ -171,11 +155,9 @@ public fun start_round(
 ) {
     let sender = ctx.sender();
     
-    assert!(
-        room.status == constants::status_waiting() || room.status == constants::status_round_end(),
-        error::round_in_progress()
-    );
-    assert!((room.players.length() as u8) >= constants::min_players(), error::not_enough_players());
+    // Use boolean check functions for better error handling (Rule 3)
+    assert!(error::can_start_round(room.status), error::round_in_progress());
+    assert!(error::has_enough_players(room.players.length()), error::not_enough_players());
     
     let is_creator = sender == room.creator;
     let is_player = is_player_in_room(room, sender);
@@ -220,6 +202,11 @@ public fun start_round(
         });
     });
     
+    // Draw second card for first player (so they have 2 cards ready to play)
+    utils::draw_card(&mut room.deck).do!(|card| {
+        room.players[0].hand.push_back(card);
+    });
+    
     // Set game status
     room.status = constants::status_playing();
     room.current_turn = 0;
@@ -250,7 +237,8 @@ public fun play_turn(
     let sender = ctx.sender();
     let room_id = room.id.to_inner();
     
-    assert!(room.status == constants::status_playing(), error::game_not_started());
+    // Use boolean check functions for better error handling (Rule 3)
+    assert!(error::is_game_playing(room.status), error::game_not_started());
     assert!(!room.chancellor_pending, error::chancellor_pending());
     
     let current_player_idx = room.current_turn % room.players.length();
@@ -261,15 +249,8 @@ public fun play_turn(
     // Clear immunity at start of turn
     room.players[current_player_idx].is_immune = false;
     
-    // Draw a card first (if deck not empty)
-    let drawn_card = utils::draw_card(&mut room.deck);
-    if (drawn_card.is_some()) {
-        room.players[current_player_idx].hand.push_back(drawn_card.destroy_some());
-    } else if (room.burn_card.is_some()) {
-        room.players[current_player_idx].hand.push_back(*room.burn_card.borrow());
-        room.burn_card = std::option::none();
-    };
-    
+    // Player should already have 2 cards (dealt at start or drawn at end of previous turn)
+    // Verify player has the card they want to play
     assert!(utils::contains(&room.players[current_player_idx].hand, &card), error::card_not_in_hand());
     
     // Check Countess rule: must discard if holding King or Prince
@@ -409,10 +390,11 @@ fun execute_guard(
     let target = *target_idx.borrow();
     let guessed_card = *guess.borrow();
     
-    assert!(guessed_card != constants::card_guard(), error::cannot_guess_guard());
-    assert!(guessed_card <= constants::card_princess(), error::invalid_guess());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_valid_guess(guessed_card), error::invalid_guess());
     
-    assert!(target < room.players.length(), error::invalid_target());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_valid_target_index(target, room.players.length()), error::invalid_target());
     assert!(target != player_idx, error::cannot_target_self());
     assert!(room.players[target].is_alive, error::target_eliminated());
     assert!(!room.players[target].is_immune, error::target_immune());
@@ -439,7 +421,8 @@ fun execute_priest(
     assert!(target_idx.is_some(), error::target_required());
     let target = *target_idx.borrow();
     
-    assert!(target < room.players.length(), error::invalid_target());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_valid_target_index(target, room.players.length()), error::invalid_target());
     assert!(target != player_idx, error::cannot_target_self());
     assert!(room.players[target].is_alive, error::target_eliminated());
     assert!(!room.players[target].is_immune, error::target_immune());
@@ -476,7 +459,8 @@ fun execute_baron(
     assert!(target_idx.is_some(), error::target_required());
     let target = *target_idx.borrow();
     
-    assert!(target < room.players.length(), error::invalid_target());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_valid_target_index(target, room.players.length()), error::invalid_target());
     assert!(target != player_idx, error::cannot_target_self());
     assert!(room.players[target].is_alive, error::target_eliminated());
     assert!(!room.players[target].is_immune, error::target_immune());
@@ -549,7 +533,8 @@ fun execute_prince(
         }
     };
     
-    assert!(target < room.players.length(), error::invalid_target());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_valid_target_index(target, room.players.length()), error::invalid_target());
     assert!(room.players[target].is_alive, error::target_eliminated());
     
     if (target != player_idx) {
@@ -636,7 +621,8 @@ fun execute_king(
     assert!(target_idx.is_some(), error::target_required());
     let target = *target_idx.borrow();
     
-    assert!(target < room.players.length(), error::invalid_target());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_valid_target_index(target, room.players.length()), error::invalid_target());
     assert!(target != player_idx, error::cannot_target_self());
     assert!(room.players[target].is_alive, error::target_eliminated());
     assert!(!room.players[target].is_immune, error::target_immune());
@@ -723,6 +709,20 @@ fun advance_turn(room: &mut GameRoom) {
         
         if (room.players[idx].is_alive) {
             room.current_turn = next_turn;
+            
+            // Draw a card for the next player (so they have 2 cards ready)
+            // Only draw if deck is not empty
+            if (!room.deck.is_empty()) {
+                let drawn_card = utils::draw_card(&mut room.deck);
+                if (drawn_card.is_some()) {
+                    room.players[idx].hand.push_back(drawn_card.destroy_some());
+                };
+            } else if (room.burn_card.is_some()) {
+                // If deck is empty, use burn card
+                room.players[idx].hand.push_back(*room.burn_card.borrow());
+                room.burn_card = std::option::none();
+            };
+            
             return
         };
         next_turn = next_turn + 1;
@@ -756,30 +756,43 @@ fun check_round_winner(room: &GameRoom): std::option::Option<u64> {
         };
     });
     
+    // Only one player alive - they win
     if (alive_count == 1) {
         return std::option::some(last_alive_idx)
     };
     
-    // Deck is empty (and burn card used) - compare hands
+    // Deck is empty and burn card used - check if all alive players have only 1 card
+    // (meaning they've all played their final turn)
     if (room.deck.is_empty() && room.burn_card.is_none()) {
-        let mut highest_card = 0u8;
-        let mut highest_sum = 0u64;
-        let mut winner_idx = 0u64;
-        
+        // Check if all alive players have exactly 1 card (finished their turn)
+        let mut all_have_one_card = true;
         num_players.do!(|i| {
-            if (room.players[i].is_alive && !room.players[i].hand.is_empty()) {
-                let card = room.players[i].hand[0];
-                let discard_sum = utils::cards_sum(&room.players[i].discarded);
-                
-                if (card > highest_card || (card == highest_card && discard_sum > highest_sum)) {
-                    highest_card = card;
-                    highest_sum = discard_sum;
-                    winner_idx = i;
-                };
+            if (room.players[i].is_alive && room.players[i].hand.length() != 1) {
+                all_have_one_card = false;
             };
         });
         
-        return std::option::some(winner_idx)
+        // If all alive players have 1 card, compare hands to determine winner
+        if (all_have_one_card) {
+            let mut highest_card = 0u8;
+            let mut highest_sum = 0u64;
+            let mut winner_idx = 0u64;
+            
+            num_players.do!(|i| {
+                if (room.players[i].is_alive && !room.players[i].hand.is_empty()) {
+                    let card = room.players[i].hand[0];
+                    let discard_sum = utils::cards_sum(&room.players[i].discarded);
+                    
+                    if (card > highest_card || (card == highest_card && discard_sum > highest_sum)) {
+                        highest_card = card;
+                        highest_sum = discard_sum;
+                        winner_idx = i;
+                    };
+                };
+            });
+            
+            return std::option::some(winner_idx)
+        };
     };
     
     std::option::none()
@@ -1030,7 +1043,8 @@ public fun active_rooms(registry: &RoomRegistry): vector<ID> {
 }
 
 public fun cleanup_finished_room(registry: &mut RoomRegistry, room: &GameRoom) {
-    assert!(room.status == constants::status_finished(), error::game_not_finished());
+    // Use boolean check function for better error handling (Rule 3)
+    assert!(error::is_game_finished(room.status), error::game_not_finished());
     
     let room_id = room.id.to_inner();
     let len = registry.active_rooms.length();
