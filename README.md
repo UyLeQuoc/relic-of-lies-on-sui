@@ -367,6 +367,172 @@ export const DEFAULT_SEAL_CONFIG: SealConfig = {
 
 ## Security Model
 
+### Why This Architecture is Secure AND Fully On-Chain
+
+Traditional blockchain games face a fundamental dilemma: **transparency vs. privacy**. Blockchains are inherently public - anyone can read all data. For card games, this means opponents could see your hand by reading the blockchain state.
+
+Our solution combines **Seal Protocol** with a **Commitment Scheme** to achieve both privacy AND full on-chain verification.
+
+#### The Problem with Traditional Approaches
+
+| Approach | Privacy | Verifiable | Decentralized |
+|----------|---------|------------|---------------|
+| Store cards in plaintext | ❌ | ✅ | ✅ |
+| Use centralized server | ✅ | ❌ | ❌ |
+| Client-side only | ✅ | ❌ | ❌ |
+| **Our Approach (Seal + Commitments)** | ✅ | ✅ | ✅ |
+
+### How Seal Protocol Enables Privacy
+
+**Seal** is a threshold decryption system built on Sui. Here's how it works:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           SEAL DECRYPTION FLOW                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. ENCRYPTION (Game Start)                                                 │
+│     ┌──────────┐                                                            │
+│     │ Card Data │──▶ Encrypt with Seal ──▶ Store encrypted blob            │
+│     │ (value=5) │    (threshold keys)       (on Walrus/IPFS)               │
+│     └──────────┘                                                            │
+│                                                                             │
+│  2. ACCESS REQUEST (Player wants to see their card)                         │
+│     ┌──────────┐     ┌──────────────┐     ┌──────────────┐                 │
+│     │  Player  │────▶│ Seal Server  │────▶│ Smart Contract│                │
+│     │          │     │ (asks: can   │     │ (seal_approve) │                │
+│     │          │     │  they access?)│     │               │                │
+│     └──────────┘     └──────────────┘     └──────────────┘                 │
+│                              │                    │                         │
+│                              │◀───────────────────┘                         │
+│                              │  "Yes, player owns card #3"                  │
+│                              ▼                                              │
+│                       Return decryption key share                           │
+│                                                                             │
+│  3. THRESHOLD DECRYPTION                                                    │
+│     Player collects key shares from multiple Seal servers                   │
+│     (e.g., 2 of 3 servers must approve)                                     │
+│     Combines shares to decrypt card data locally                            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Security Properties:**
+
+1. **No Single Point of Failure**: Multiple independent Seal servers must agree
+2. **On-Chain Access Control**: The `seal_approve_card` function in our contract determines who can decrypt
+3. **Trustless**: Seal servers cannot see the decrypted data - they only provide key shares
+4. **Dynamic Permissions**: Access can be granted/revoked (e.g., King swaps hands, Priest views card)
+
+### How Commitments Enable Verification
+
+Even with Seal hiding card values, we need to ensure players don't cheat when playing cards. This is where **cryptographic commitments** come in:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         COMMITMENT SCHEME                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ROUND START (Contract generates):                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐       │
+│  │  Card Index │ Value │ Secret (32 bytes)    │ Commitment          │       │
+│  │─────────────│───────│──────────────────────│─────────────────────│       │
+│  │      0      │   5   │ 0xabc123...          │ hash(5 || 0xabc123) │       │
+│  │      1      │   3   │ 0xdef456...          │ hash(3 || 0xdef456) │       │
+│  │      2      │   9   │ 0x789ghi...          │ hash(9 || 0x789ghi) │       │
+│  │     ...     │  ...  │ ...                  │ ...                 │       │
+│  └─────────────────────────────────────────────────────────────────┘       │
+│                                                                             │
+│  WHAT'S STORED ON-CHAIN:                                                    │
+│  • Card indices assigned to players (public)                                │
+│  • Commitments for all cards (public)                                       │
+│  • Values and secrets (private - only via Seal)                             │
+│                                                                             │
+│  WHEN PLAYER PLAYS A CARD:                                                  │
+│  ┌──────────────────────────────────────────────────────────────────┐      │
+│  │  Player submits: card_index=0, value=5, secret=0xabc123...       │      │
+│  │                                                                   │      │
+│  │  Contract verifies:                                               │      │
+│  │    hash(5 || 0xabc123...) == commitments[0] ✓                    │      │
+│  │                                                                   │      │
+│  │  If match: Card is valid, execute game logic                      │      │
+│  │  If no match: Transaction fails, player caught cheating           │      │
+│  └──────────────────────────────────────────────────────────────────┘      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Why Players Cannot Cheat:**
+
+1. **Cannot Lie About Card Value**: The commitment was created at round start with the true value
+2. **Cannot Reuse Secrets**: Each card has a unique 32-byte random secret
+3. **Cannot Predict Commitments**: Blake2b256 is a one-way hash function
+4. **Cannot Modify History**: Blockchain is immutable
+
+### Fully On-Chain Game Logic
+
+All game rules are enforced by the smart contract:
+
+```move
+// Example: Countess rule enforcement
+public fun play_turn(...) {
+    // If player has Countess (8) with King (7) or Prince (5), MUST play Countess
+    if (has_countess && (has_king || has_prince) && revealed_value != COUNTESS) {
+        abort error::must_play_countess()
+    }
+    
+    // Verify commitment before accepting the play
+    assert!(verify_commitment(revealed_value, secret, commitments[card_index]), 
+            error::invalid_commitment());
+    
+    // Execute card effect...
+}
+```
+
+**What's Verified On-Chain:**
+- Turn order and player validity
+- Card ownership (player actually has the card)
+- Commitment verification (card value is truthful)
+- Game rules (Countess rule, elimination conditions, etc.)
+- Win conditions and token distribution
+
+### Security Comparison
+
+| Attack Vector | Protection |
+|---------------|------------|
+| **Read opponent's hand from blockchain** | Card values encrypted via Seal |
+| **Lie about card value when playing** | Commitment verification fails |
+| **Play card you don't own** | On-chain ownership tracking |
+| **Skip your turn / play out of order** | Turn validation in contract |
+| **Collude with Seal server** | Threshold requirement (multiple servers) |
+| **Replay old transactions** | Sui's transaction uniqueness |
+| **Front-run card plays** | Commitment already locked at round start |
+
+### Trust Assumptions
+
+1. **Sui Network**: Consensus is honest (standard blockchain assumption)
+2. **Seal Servers**: At least `threshold` servers are honest (e.g., 2 of 3)
+3. **Cryptography**: Blake2b256 and Seal's encryption are secure
+4. **Randomness**: Sui Random provides unbiased randomness for shuffling
+
+### Why This is Better Than Alternatives
+
+**vs. Centralized Server:**
+- No single point of failure
+- No trust in game operator
+- Transparent, auditable rules
+
+**vs. Zero-Knowledge Proofs:**
+- Simpler implementation
+- Lower computational cost
+- Faster transactions
+- Still achieves necessary privacy
+
+**vs. Commit-Reveal (without Seal):**
+- Players can see their cards immediately (no waiting for reveal phase)
+- Dynamic access control (Priest can view, King can swap)
+- Better UX while maintaining security
+
 ### On-Chain Security
 
 1. **Commitment Verification**: Players cannot lie about card values
