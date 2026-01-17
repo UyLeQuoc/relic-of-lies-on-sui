@@ -6,20 +6,29 @@ import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@mysten/dapp-kit/dist/index.css';
 
+
 // Config options for the networks you want to connect to
 export const { networkConfig, useNetworkConfig } = createNetworkConfig({
 	testnet: { url: getFullnodeUrl('testnet'),
         variables: {
-			movePackageId: '0xb6518196a527470c019f7be0592a270c3913e81de5fb2398e40c449fc705f368',
-			roomRegistryId: '0x45e48f70e97044a1e8483a737de9758bd7f974129b819a7265d979178fcb8c5c',
-			leaderboardId: '0xd51551dda28c96b903129a52127c574f24edb6b40fd4d94f871af031b46d3550',
+			movePackageId: '0xdcbb888938c246e5c4376e354ab9b6da16053ab65bacb0201278625fbca6bb7b',
+			roomRegistryId: '0x006a11eadd389befdef00365475f39794a0b7dd12b6d88db84916d39540b07ec',
+			leaderboardId: '0xeda1e559dcac3bf72ba93e478344811fcc46796f386ceab35a0c438d6e914b21',
+			gachaTreasuryId: '0x24f86ffab9e8073abcc1837e4903134a9c6eaf1fc66830a060f24e304eae9ea0',
+			marketplaceRegistryId: '0x271bbccb88497fb14745ec44d73f63c0de26a1459c0d0399ba8564a6b592f466',
+			cardId: '0xe25e142d8f3cd2ed18f8737da31783b10de40e84b74501f7adac74fd72c46ee6',
+			publisherId: '0xba1947a28d36d5eec23a4c4535b20de8c2f7b4bbfdda4e09eb46450db56fcf75',
 		},
      },
 	mainnet: { url: getFullnodeUrl('mainnet'),
         variables: {
-			movePackageId: '0xb6518196a527470c019f7be0592a270c3913e81de5fb2398e40c449fc705f368',
-			roomRegistryId: '0x45e48f70e97044a1e8483a737de9758bd7f974129b819a7265d979178fcb8c5c',
-			leaderboardId: '0xd51551dda28c96b903129a52127c574f24edb6b40fd4d94f871af031b46d3550',
+			movePackageId: '0xdcbb888938c246e5c4376e354ab9b6da16053ab65bacb0201278625fbca6bb7b',
+			roomRegistryId: '0x006a11eadd389befdef00365475f39794a0b7dd12b6d88db84916d39540b07ec',
+			leaderboardId: '0xeda1e559dcac3bf72ba93e478344811fcc46796f386ceab35a0c438d6e914b21',
+			gachaTreasuryId: '0x24f86ffab9e8073abcc1837e4903134a9c6eaf1fc66830a060f24e304eae9ea0',
+			marketplaceRegistryId: '0x271bbccb88497fb14745ec44d73f63c0de26a1459c0d0399ba8564a6b592f466',
+			cardId: '0xe25e142d8f3cd2ed18f8737da31783b10de40e84b74501f7adac74fd72c46ee6',
+			publisherId: '0xba1947a28d36d5eec23a4c4535b20de8c2f7b4bbfdda4e09eb46450db56fcf75',
 		},
      },
 });

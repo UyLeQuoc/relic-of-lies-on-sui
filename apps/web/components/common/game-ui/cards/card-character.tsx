@@ -105,6 +105,7 @@ function CardCharacter({
 		: "translate(0, 0)";
 
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: no-mistake
 		<div
 			ref={cardRef}
 			className={cn(
