@@ -811,7 +811,7 @@ function OnChainGameWithUI({
               )}
 
               {/* Cards - Horizontal layout at bottom center */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 justify-center flex-wrap z-10">
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 justify-center flex-wrap z-10">
                 {humanPlayer.hand.map((card: GameCard) => {
                   const isSelected = selectedCardId === card.id;
                   // If mustPlayCountess, only Countess (8) can be selected
@@ -854,7 +854,7 @@ function OnChainGameWithUI({
                     >
                       <GameCardComponent
                         card={card}
-                        size="tiny"
+                        size="small"
                         faceUp
                         selected={isSelected}
                         disabled={!canSelect}
@@ -885,7 +885,7 @@ function OnChainGameWithUI({
 
               {/* Card description and PLAY Button - Right side */}
               {selectedCard && (
-                <div className="absolute bottom-4 left-1/2 translate-x-[152px] h-[180px] flex flex-col justify-between items-start z-20">
+                <div className="absolute bottom-4 left-1/2 translate-x-[152px] h-[200px] flex flex-col justify-between items-start z-20">
                   {/* PLAY Button - Top */}
                   {isMyTurn && (
                     (() => {
@@ -905,18 +905,14 @@ function OnChainGameWithUI({
                       
                       if (requiresTarget) {
                         // If card requires target:
-                        // - Disable if no target selected AND there are valid targets available
-                        // - Allow if no valid targets (can skip)
-                        // - Allow if Prince and can target self (even if no target selected)
+                        // - Disable if no target selected (including Prince - must explicitly select)
+                        // - Allow if no valid targets AND cannot target self (can skip)
                         if (selectedTarget === null) {
-                          if (canTargetSelf) {
-                            // Prince can always play (can target self)
-                            isDisabled = false;
-                          } else if (hasValidTargets) {
-                            // Has valid targets but none selected - disable
+                          if (hasValidTargets || canTargetSelf) {
+                            // Has valid targets or can target self - must select one
                             isDisabled = true;
                           } else {
-                            // No valid targets - allow play (skip)
+                            // No valid targets and cannot target self - allow play (skip)
                             isDisabled = false;
                           }
                         } else {
@@ -946,7 +942,7 @@ function OnChainGameWithUI({
                   )}
                   
                   {/* Card description - Bottom */}
-                  <div className="text-xs text-amber-300 bg-slate-900/90 px-2 py-1 rounded border border-amber-600/50 max-w-[200px] whitespace-normal">
+                  <div className="text-sm text-amber-300 bg-slate-900/90 px-2 py-1 rounded border border-amber-600/50 max-w-[220px] whitespace-normal">
                     {selectedCard.description}
                   </div>
                 </div>
@@ -1061,7 +1057,7 @@ function OnChainGameWithUI({
 
               {/* Guess Selection (Guard) */}
               {isMyTurn && selectedCard?.value === 1 && selectedTarget !== null && (
-                <div className="absolute bottom-[208px] left-1/2 -translate-x-1/2 z-10">
+                <div className="absolute bottom-[240px] left-1/2 -translate-x-1/2 z-10">
                   <div className="flex gap-2 flex-wrap justify-center">
                     {[0, 2, 3, 4, 5, 6, 7, 8, 9].map(cardValue => {
                       const cardData = CARD_DATA_MAP[cardValue];

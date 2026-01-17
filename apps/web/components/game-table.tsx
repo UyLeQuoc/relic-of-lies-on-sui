@@ -4,6 +4,8 @@ import * as React from "react";
 import { type Player, type GameCard } from "@/components/game/game-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { CardCharacter } from "@/components/common/game-ui/cards/card-character";
+import { CardType, CardConceptType, cardsMap } from "@/components/common/game-ui/cards/types";
 
 // Card data mapping for display
 const CARD_DATA_MAP: Record<number, { name: string; description: string }> = {
@@ -17,6 +19,23 @@ const CARD_DATA_MAP: Record<number, { name: string; description: string }> = {
   7: { name: "King", description: "Trade hands with another player." },
   8: { name: "Countess", description: "Must be discarded if you have King or Prince." },
   9: { name: "Princess", description: "If discarded (by you or forced), you are eliminated." },
+};
+
+// Map card value to CardType enum for design system
+const mapCardValueToCardType = (cardValue: number): CardType => {
+  const cardTypeMap: Record<number, CardType> = {
+    0: CardType.Value0,
+    1: CardType.Value1,
+    2: CardType.Value2,
+    3: CardType.Value3,
+    4: CardType.Value4,
+    5: CardType.Value5,
+    6: CardType.Value6,
+    7: CardType.Value7,
+    8: CardType.Value8,
+    9: CardType.Value9,
+  };
+  return cardTypeMap[cardValue] || CardType.Value0;
 };
 
 // Helper function to format address: 0xd4f5...9a76
@@ -236,7 +255,7 @@ export function GameTable({
       })}
 
       {/* Center area - Deck, Discard Pile, and Start Round/New Game Button */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-4 z-0">
+      <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-4 z-0">
         {/* Start New Round Button - Center */}
         {showStartRoundButton && onStartRound ? (
           <div className="flex flex-col items-center gap-2">
@@ -269,17 +288,22 @@ export function GameTable({
           </div>
         ) : (
           /* Deck and Discard Pile */
-          <div className="flex items-center gap-4 md:gap-6">
-          {/* Deck */}
-          <div className="relative">
-            <div className="relative w-20 h-28 md:w-24 md:h-36 rounded-lg from-slate-700 to-slate-800 border-2 border-amber-600 shadow-xl">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-amber-600/20 border-2 border-amber-600 flex items-center justify-center">
-                  <span className="text-xl md:text-2xl">🂠</span>
-                </div>
+          <div className="flex items-end gap-4 md:gap-6">
+          {/* Deck - Using card back from design system */}
+          <div className="relative flex flex-col items-center">
+            <div className="relative">
+              <div 
+                className="h-[180px] rounded-lg overflow-hidden shadow-xl"
+                style={{ aspectRatio: '2/3' }}
+              >
+                <img
+                  src={cardsMap[CardConceptType.RelicOfLies].cardBack}
+                  alt="Deck"
+                  className="h-full w-full object-cover rounded-lg"
+                />
               </div>
               {deckCount > 0 && (
-                <div className="absolute -top-2 -right-2 w-6 h-6 md:w-7 md:h-7 rounded-full bg-amber-400 text-slate-900 font-bold flex items-center justify-center shadow-lg text-xs md:text-sm">
+                <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-amber-400 text-slate-900 font-bold flex items-center justify-center shadow-lg text-sm z-10">
                   {deckCount}
                 </div>
               )}
@@ -290,40 +314,51 @@ export function GameTable({
           </div>
 
           {/* Discard Pile */}
-          <div className="relative">
+          <div className="relative flex flex-col items-center">
             <button
               type="button"
               onClick={() => discardCount > 0 && setShowDiscardModal(true)}
               disabled={discardCount === 0}
               className={cn(
-                "relative w-20 h-28 md:w-24 md:h-36 rounded-lg border-2 border-dashed flex items-center justify-center transition-all",
+                "relative transition-all",
                 discardCount > 0
-                  ? "border-amber-600/50 bg-slate-800/50 hover:border-amber-400 hover:bg-slate-800/70 cursor-pointer"
-                  : "border-amber-600/30 bg-slate-800/30 cursor-not-allowed opacity-50"
+                  ? "hover:scale-105 cursor-pointer"
+                  : "opacity-50 cursor-not-allowed"
               )}
             >
               {discardCount > 0 && discardPile.length > 0 ? (
-                // Show the latest discarded card
+                // Show the latest discarded card using design system
                 (() => {
                   const latestCard = discardPile[discardPile.length - 1];
-                  if (!latestCard) return <span className="text-amber-400/70 text-sm font-medium">Empty</span>;
-                  const cardData = CARD_DATA_MAP[latestCard.value];
+                  if (!latestCard) return (
+                    <div 
+                      className="h-[140px] rounded-lg border-2 border-dashed border-amber-600/30 bg-slate-800/30 flex items-center justify-center"
+                      style={{ aspectRatio: '2/3' }}
+                    >
+                      <span className="text-amber-400/70 text-sm font-medium">Empty</span>
+                    </div>
+                  );
                   return (
-                    <div className="flex flex-col items-center gap-1 w-full h-full justify-center">
-                      <span className="text-xl md:text-2xl font-bold text-amber-400">
-                        {cardData?.name.slice(0, 1) || '?'}
-                      </span>
-                      <span className="text-sm text-amber-300">{latestCard.value}</span>
+                    <div className="relative">
+                      <CardCharacter
+                        cardType={mapCardValueToCardType(latestCard.value)}
+                        size="xs"
+                      />
+                      {/* Show count badge if more than 1 card */}
+                      {discardCount > 1 && (
+                        <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-amber-400 text-slate-900 font-bold flex items-center justify-center shadow-lg text-sm z-10">
+                          {discardCount}
+                        </div>
+                      )}
                     </div>
                   );
                 })()
               ) : (
-                <span className="text-amber-400/70 text-sm font-medium">Empty</span>
-              )}
-              {/* Show count badge if more than 1 card */}
-              {discardCount > 1 && (
-                <div className="absolute -top-2 -right-2 w-6 h-6 md:w-7 md:h-7 rounded-full bg-amber-400 text-slate-900 font-bold flex items-center justify-center shadow-lg text-xs md:text-sm">
-                  {discardCount}
+                <div 
+                  className="h-[180px] rounded-lg border-2 border-dashed border-amber-600/30 bg-slate-800/30 flex items-center justify-center"
+                  style={{ aspectRatio: '2/3' }}
+                >
+                  <span className="text-amber-400/70 text-sm font-medium">Empty</span>
                 </div>
               )}
             </button>
@@ -441,7 +476,7 @@ export function GameTable({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4 min-w-56">
-              <h3 className="text-xl font-bold text-amber-400">Discarded Cards</h3>
+              <h3 className="text-xl font-bold text-amber-400">Discarded Cards ({discardPile.length})</h3>
               <button
                 type="button"
                 onClick={() => setShowDiscardModal(false)}
@@ -450,17 +485,19 @@ export function GameTable({
                 ×
               </button>
             </div>
-            <div className="flex flex-wrap gap-3 justify-center">
+            <div className="flex flex-wrap gap-4 justify-center">
               {discardPile.map((card) => {
                 const cardData = CARD_DATA_MAP[card.value];
                 return (
                   <div
                     key={card.id}
-                    className="w-20 h-28 rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-amber-400 flex flex-col items-center justify-center"
+                    className="flex flex-col items-center gap-1"
                   >
-                    <span className="text-xl font-bold text-amber-400">{cardData?.name.slice(0, 1) || '?'}</span>
-                    <span className="text-sm text-amber-300">{card.value}</span>
-                    <span className="text-xs text-amber-400/70 mt-1">{cardData?.name || 'Unknown'}</span>
+                    <CardCharacter
+                      cardType={mapCardValueToCardType(card.value)}
+                      size="xs"
+                    />
+                    <span className="text-xs text-amber-400 font-medium">{cardData?.name || 'Unknown'}</span>
                   </div>
                 );
               })}
