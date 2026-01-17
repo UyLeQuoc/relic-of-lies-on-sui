@@ -8,6 +8,7 @@ import {
   Menu,
   Newspaper,
   Scroll,
+  Trophy,
   Users,
   Wallet,
   X,
@@ -29,7 +30,18 @@ import {
 const menuItems = [
   { id: "home", label: "Home", icon: Home, href: "/" },
   { id: "rooms", label: "Rooms", icon: Gamepad2, href: "/rooms" },
-  { id: "how-to-play", label: "How to Play", icon: BookOpen, href: "/how-to-play" },
+  {
+    id: "leaderboard",
+    label: "Leaderboard",
+    icon: Trophy,
+    href: "/leader-board",
+  },
+  {
+    id: "how-to-play",
+    label: "How to Play",
+    icon: BookOpen,
+    href: "/how-to-play",
+  },
   { id: "friends", label: "Friends", icon: Users, href: "/friends" },
   { id: "quests", label: "Quests", icon: Scroll, href: "/quests" },
   { id: "news", label: "News", icon: Newspaper, href: "/news" },
@@ -125,7 +137,11 @@ export default function Header() {
               className="md:hidden text-zinc-400 hover:text-white"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
             </Button>
           </div>
         </div>
@@ -171,7 +187,9 @@ export default function Header() {
                       <CopyButton value={currentAccount.address} />
                     </div>
                     {balance && (
-                      <span className="text-xs text-zinc-500">{balance} SUI</span>
+                      <span className="text-xs text-zinc-500">
+                        {balance} SUI
+                      </span>
                     )}
                   </div>
                 </div>
