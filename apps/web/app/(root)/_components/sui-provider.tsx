@@ -17,11 +17,10 @@ export const { networkConfig, useNetworkConfig } = createNetworkConfig({
 			leaderboardId: '0xdb9ee3f2bbea162572ef819a959720f58289956061948740837379bcb4db7220',
 			gachaTreasuryId: '0xe766f9bb6e635d10cf96fdabdc820ca8ff4d05bb7e90aaa6f58ef327a9df37aa',
 			marketplaceRegistryId: '0xeff646d75222ee3d4f9ba7a097529174d92706a4bbb7198d3cb2d24e5dc01b94',
-			// V2 Contract (ZK version) - TODO: Update after deployment
-			movePackageIdV2: '0x98a1b82e288942f1795bb1b58035cdd73c04f1911fe8ee2043831d9a7c901197',
-			roomRegistryIdV2: '0x7c35aae80e1bb7fee01396f489fda5083bd6001610800c9c7a9709a226eab17b',
-			leaderboardIdV2: '0x7bd812af716141309e7d71fe32b2548a96246ada358ecf7e0dc17abc67af97fa',
-			zkVerificationKeysId: '0x2df598804ddd49019dfbc9fc725a1467aaa48db09d412f0000724963b4b3c2fc',
+			// V3 
+			movePackageIdV3: '0x5f23787151dba4ae05e9be85fd64a9702beb9661cd586c2e3df1764a0fd60298',
+			roomRegistryIdV3: '0x6892fda03ef4b70b569c464841fcc385cd52b86645ba8416fa7546ac3fcddec5',
+			leaderboardIdV3: '0xa173241835aac6adb32fbbbca205794cd5943ad9b06e917d697cc21594439ad7',
 		},
      },
 	mainnet: { url: getFullnodeUrl('mainnet'),
@@ -32,11 +31,10 @@ export const { networkConfig, useNetworkConfig } = createNetworkConfig({
 			leaderboardId: '0x0000000000000000000000000000000000000000000000000000000000000000',
 			gachaTreasuryId: '0x0000000000000000000000000000000000000000000000000000000000000000',
 			marketplaceRegistryId: '0x0000000000000000000000000000000000000000000000000000000000000000',
-			// V2 Contract (ZK version) - TODO: Update after deployment
-			movePackageIdV2: '0x0000000000000000000000000000000000000000000000000000000000000000',
-			roomRegistryIdV2: '0x0000000000000000000000000000000000000000000000000000000000000000',
-			leaderboardIdV2: '0x0000000000000000000000000000000000000000000000000000000000000000',
-			zkVerificationKeysId: '0x0000000000000000000000000000000000000000000000000000000000000000',
+			// V3 
+			movePackageIdV3: '0x0000000000000000000000000000000000000000000000000000000000000000',
+			roomRegistryIdV3: '0x0000000000000000000000000000000000000000000000000000000000000000',
+			leaderboardIdV3: '0x0000000000000000000000000000000000000000000000000000000000000000',
 		},
      },
 });
@@ -76,6 +74,7 @@ export default function SuiProvider({ children }: { children: React.ReactNode })
 						overrides: {
 							packages: {
 								'@local-pkg/contract': config.variables.movePackageId,
+								'@local-pkg/contract-v3': config.variables.movePackageIdV3,
 							},
 						},
 					},
