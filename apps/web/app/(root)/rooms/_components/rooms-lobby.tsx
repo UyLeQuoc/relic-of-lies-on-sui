@@ -30,6 +30,7 @@ import {
 import { RefreshCw, Search, Users, Coins } from "lucide-react";
 import LoginComponent from "@/components/common/login";
 import { CreateRoom } from "./create-room";
+import { toast } from "sonner";
 
 type StatusFilter = "all" | "0" | "1" | "2" | "3";
 
@@ -157,6 +158,11 @@ export function RoomsLobby() {
     });
   }, [rooms, searchQuery, statusFilter, playerCountFilter]);
 
+  useEffect(() => {
+    if (!currentAccount) return;
+    toast.error(roomsError?.message || joinError?.message);
+  }, [roomsError, joinError, currentAccount]);
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -250,17 +256,6 @@ export function RoomsLobby() {
                 error={createError}
               />
             </div>
-
-            {/* Error Messages */}
-            {(roomsError || joinError) && (
-              <Card className="mb-6 border-destructive">
-                <CardContent className="pt-6">
-                  <p className="text-sm text-destructive">
-                    {roomsError?.message || joinError?.message}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Rooms Grid */}
             {isLoadingRooms && rooms.length === 0 ? (
