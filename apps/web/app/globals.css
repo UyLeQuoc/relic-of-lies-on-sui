@@ -160,3 +160,33 @@
 .animate-scale-in {
 	animation: scale-in 0.3s ease-out forwards;
 }
+
+/* Underlight glow animation for nav */
+@keyframes underlight-glow {
+	0%, 100% {
+		opacity: 0.6;
+		filter: blur(4px);
+	}
+	50% {
+		opacity: 1;
+		filter: blur(6px);
+	}
+}
+
+@keyframes underlight-shimmer {
+	0% {
+		background-position: -200% center;
+	}
+	100% {
+		background-position: 200% center;
+	}
+}
+
+.animate-underlight-glow {
+	animation: underlight-glow 2s ease-in-out infinite;
+}
+
+.animate-underlight-shimmer {
+	background-size: 200% 100%;
+	animation: underlight-shimmer 3s ease-in-out infinite;
+}
