@@ -10,6 +10,7 @@ import {
   CardCarousel,
 } from "@/components/gacha";
 import { useGacha, useGachaAnimations } from "@/hooks/use-gacha";
+import { Ripple } from "@/components/ui/ripple";
 
 export function GachaContent() {
   const {
@@ -86,8 +87,9 @@ export function GachaContent() {
   return (
     <div
       ref={containerRef}
-      className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background via-background to-muted/20"
+      className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background via-background to-muted/20 "
     >
+      <Ripple className="animate-pulse"/>
       <div className="w-full max-w-4xl mx-auto space-y-8">
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold font-god-of-war tracking-wider">

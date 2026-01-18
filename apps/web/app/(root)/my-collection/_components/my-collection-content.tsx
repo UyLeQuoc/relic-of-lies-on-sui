@@ -35,6 +35,7 @@ import { ArrowUpCircle, Check, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UpgradePanel } from "./upgrade-panel";
 import { UpgradeAnimation } from "./upgrade-animation";
+import { GridPattern } from "@/components/ui/grid-pattern";
 
 const RARITY_OPTIONS = [
   {
@@ -638,6 +639,7 @@ export function MyCollectionContent() {
 
   return (
     <div className="min-h-screen flex flex-col p-4 md:p-8 bg-gradient-to-b from-background via-background to-muted/20">
+       
       <div className="w-full max-w-7xl mx-auto space-y-8">
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold font-god-of-war tracking-wider">

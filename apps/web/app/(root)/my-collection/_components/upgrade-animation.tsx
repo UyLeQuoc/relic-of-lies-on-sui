@@ -2,9 +2,40 @@
 
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
+import confetti from "canvas-confetti";
 import { CardNames, type CardNFT } from "@/hooks/use-game-contract";
 import { RarityColors, RarityNames, RarityGlow } from "@/lib/gacha";
 import { cn } from "@/lib/utils";
+
+function triggerSuccessConfetti() {
+  const end = Date.now() + 1 * 1000; // 1 second
+  const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
+
+  const frame = () => {
+    if (Date.now() > end) return;
+
+    confetti({
+      particleCount: 2,
+      angle: 60,
+      spread: 55,
+      startVelocity: 60,
+      origin: { x: 0, y: 0.5 },
+      colors: colors,
+    });
+    confetti({
+      particleCount: 2,
+      angle: 120,
+      spread: 55,
+      startVelocity: 60,
+      origin: { x: 1, y: 0.5 },
+      colors: colors,
+    });
+
+    requestAnimationFrame(frame);
+  };
+
+  frame();
+}
 
 interface UpgradeAnimationProps {
   cards: [CardNFT, CardNFT, CardNFT];
@@ -66,6 +97,9 @@ export function UpgradeAnimation({
       // Success animation
       setPhase("result");
       setShowResult(true);
+
+      // Trigger confetti
+      triggerSuccessConfetti();
 
       // Hide the merged cards
       gsap.to([card1, card2, card3], {
