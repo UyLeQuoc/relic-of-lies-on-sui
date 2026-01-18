@@ -14,7 +14,8 @@ import {
   User,
   Wallet,
   X,
-  ShoppingCart
+  ShoppingCart,
+  Grid3x3
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -49,6 +50,12 @@ const menuItems = [
     label: "Collection",
     icon: Layers,
     href: "/my-collection",
+  },
+  {
+    id: "my-deck",
+    label: "My Deck",
+    icon: Grid3x3,
+    href: "/my-deck",
   },
   {
     id: "marketplace",
