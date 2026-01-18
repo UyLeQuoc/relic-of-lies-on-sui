@@ -1,17 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useCurrentAccount } from "@mysten/dapp-kit";
-import {
-  CardNames,
-  CardType,
-  Rarity,
-} from "@/hooks/use-game-contract";
-import { useMarketplace } from "@/hooks/use-marketplace";
-import { RarityColors, RarityNames } from "@/lib/gacha";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+import { CardDetailDialog } from "@/components/card/card-detail-dialog";
+import { NFTCard } from "@/components/card/nft-card";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -19,12 +10,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Search, X } from "lucide-react";
-import { NFTCard } from "@/components/card/nft-card";
-import { CardDetailDialog } from "@/components/card/card-detail-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  CardNames,
+  CardType,
+  Rarity,
+} from "@/hooks/use-game-contract";
 import type { MarketplaceListing } from "@/hooks/use-marketplace";
-import type { CardNFT } from "@/hooks/use-game-contract";
+import { useMarketplace } from "@/hooks/use-marketplace";
+import { RarityColors } from "@/lib/gacha";
+import { useCurrentAccount } from "@mysten/dapp-kit";
+import { Search, X } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useMemo, useState } from "react";
 
 const RARITY_OPTIONS = [
   {

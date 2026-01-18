@@ -52,17 +52,15 @@ export function useMarketplace() {
       const cardType = `${movePackageId}::gacha::Card`;
       const policyType = `0x2::transfer_policy::TransferPolicy<${cardType}>`;
 
-      const sharedResponse = await client.queryObjects({
-        filter: {
-          StructType: policyType,
-        },
+      const sharedResponse = await client.getObject({
+        id: policyType,
         options: {
-          showContent: true,
+          showBcs: true,
         },
       });
 
-      if (sharedResponse.data.length > 0) {
-        const policyId = sharedResponse.data[0].data?.objectId || null;
+      if (sharedResponse.data?.bcs?.dataType === "moveObject") {
+        const policyId = sharedResponse.data.objectId || null;
         setTransferPolicyId(policyId);
         return policyId;
       }
@@ -94,11 +92,9 @@ export function useMarketplace() {
 
       while (hasMore) {
         const kioskCaps = await client.getOwnedObjects({
-          filter: {
-            StructType: "0x2::kiosk::KioskOwnerCap",
-          },
+          owner: policyId as string,
           options: {
-            showContent: true,
+            showBcs: true,
           },
           limit: 50,
           cursor: cursor ?? undefined,
@@ -106,17 +102,13 @@ export function useMarketplace() {
 
         for (const capObj of kioskCaps.data) {
           if (
-            capObj.data?.content?.dataType === "moveObject" &&
-            capObj.data.content.fields
+            capObj.data?.bcs?.dataType === "moveObject" &&
+            capObj.data.bcs.type === "0x2::kiosk::KioskOwnerCap"
           ) {
-            const fields = capObj.data.content.fields as Record<
-              string,
-              unknown
-            >;
-            const kioskId = fields.for as string;
+            const kioskId = (capObj.data.owner as { AddressOwner: string }).AddressOwner;
             const owner = capObj.data.owner;
 
-            if (typeof owner === "object" && "AddressOwner" in owner) {
+            if (owner && typeof owner === "object" && "AddressOwner" in owner) {
               const seller = owner.AddressOwner as string;
 
               try {
@@ -140,27 +132,27 @@ export function useMarketplace() {
                         const listingObj = await client.getObject({
                           id: field.objectId,
                           options: {
-                            showContent: true,
+                            showBcs: true,
                             showType: true,
                           },
                         });
 
                         if (
-                          listingObj.data?.content?.dataType === "moveObject" &&
-                          listingObj.data.content.fields
+                          listingObj.data?.bcs?.dataType === "moveObject" &&
+                          listingObj.data.bcs.type === "0x2::marketplace::Listing"
                         ) {
-                          const listingFields = listingObj.data.content
-                            .fields as Record<string, unknown>;
+                          const listingFields = listingObj.data.bcs
+                            .bcsBytes as unknown as Record<string, unknown>;
                           const price = BigInt(
-                            (listingFields.price as string) || "0"
+                            (listingFields.price as unknown as { value: string })?.value || "0"
                           );
-                          const itemId = listingFields.id as string;
+                          const itemId = (listingFields.card as unknown as { id: string }).id;
 
                           if (itemId) {
                             const cardObj = await client.getObject({
                               id: itemId,
                               options: {
-                                showContent: true,
+                                showBcs: true,
                                 showType: true,
                               },
                             });
