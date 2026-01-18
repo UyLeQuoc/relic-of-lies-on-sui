@@ -20,13 +20,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import {
-  useGetLeaderboard,
+  useLeaderboardV4,
   type PlayerRecordType,
-} from "@/hooks/use-game-contract";
+} from "@/hooks/use-game-contract-v4";
 
 export function LeaderboardContent() {
-  const { leaderboard, fetchLeaderboard, isLoading, error } =
-    useGetLeaderboard();
+  const {
+    leaderboard,
+    refetch: fetchLeaderboard,
+    isLoading,
+    error,
+  } = useLeaderboardV4();
 
   // client-side pagination
   const [page, setPage] = useState(1);
