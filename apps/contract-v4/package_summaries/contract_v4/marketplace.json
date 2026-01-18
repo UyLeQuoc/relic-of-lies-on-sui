@@ -1,0 +1,1221 @@
+{
+  "id": {
+    "address": "contract_v4",
+    "name": "marketplace"
+  },
+  "doc": " Marketplace module for Love Letter NFT Cards\n Single global marketplace where users can list and buy cards",
+  "immediate_dependencies": [
+    {
+      "address": "contract_v4",
+      "name": "gacha"
+    },
+    {
+      "address": "sui",
+      "name": "balance"
+    },
+    {
+      "address": "sui",
+      "name": "coin"
+    },
+    {
+      "address": "sui",
+      "name": "object"
+    },
+    {
+      "address": "sui",
+      "name": "sui"
+    },
+    {
+      "address": "sui",
+      "name": "table"
+    },
+    {
+      "address": "sui",
+      "name": "transfer"
+    },
+    {
+      "address": "sui",
+      "name": "tx_context"
+    }
+  ],
+  "attributes": [
+    {
+      "Parameterized": [
+        "allow",
+        [
+          {
+            "Name": "unused_const"
+          },
+          {
+            "Parameterized": [
+              "lint",
+              [
+                {
+                  "Name": "public_entry"
+                }
+              ]
+            ]
+          },
+          {
+            "Parameterized": [
+              "lint",
+              [
+                {
+                  "Name": "self_transfer"
+                }
+              ]
+            ]
+          },
+          {
+            "Parameterized": [
+              "lint",
+              [
+                {
+                  "Name": "share_owned"
+                }
+              ]
+            ]
+          }
+        ]
+      ]
+    }
+  ],
+  "functions": {
+    "init": {
+      "source_index": 0,
+      "index": 0,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "list_card": {
+      "source_index": 1,
+      "index": 1,
+      "doc": " List a card for sale\n Returns a receipt that can be used to delist",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "card",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "contract_v4",
+                "name": "gacha"
+              },
+              "name": "Card",
+              "type_arguments": []
+            }
+          }
+        },
+        {
+          "name": "price",
+          "type_": "u64"
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "contract_v4",
+              "name": "marketplace"
+            },
+            "name": "ListingReceipt",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "list_card_and_keep_receipt": {
+      "source_index": 2,
+      "index": 2,
+      "doc": " List a card and transfer receipt to sender",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": true,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "card",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "contract_v4",
+                "name": "gacha"
+              },
+              "name": "Card",
+              "type_arguments": []
+            }
+          }
+        },
+        {
+          "name": "price",
+          "type_": "u64"
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "update_price": {
+      "source_index": 3,
+      "index": 3,
+      "doc": " Update listing price",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "receipt",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "ListingReceipt",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_price",
+          "type_": "u64"
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "delist_card": {
+      "source_index": 4,
+      "index": 4,
+      "doc": " Delist a card (cancel listing)",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "receipt",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "contract_v4",
+                "name": "marketplace"
+              },
+              "name": "ListingReceipt",
+              "type_arguments": []
+            }
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "contract_v4",
+              "name": "gacha"
+            },
+            "name": "Card",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "delist_card_and_keep": {
+      "source_index": 5,
+      "index": 5,
+      "doc": " Delist and transfer card back to seller",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": true,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "receipt",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "contract_v4",
+                "name": "marketplace"
+              },
+              "name": "ListingReceipt",
+              "type_arguments": []
+            }
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "purchase_card": {
+      "source_index": 6,
+      "index": 6,
+      "doc": " Purchase a card from the marketplace",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "listing_id",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "sui",
+                "name": "object"
+              },
+              "name": "ID",
+              "type_arguments": []
+            }
+          }
+        },
+        {
+          "name": "payment",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "sui",
+                "name": "coin"
+              },
+              "name": "Coin",
+              "type_arguments": [
+                {
+                  "phantom": true,
+                  "argument": {
+                    "Datatype": {
+                      "module": {
+                        "address": "sui",
+                        "name": "sui"
+                      },
+                      "name": "SUI",
+                      "type_arguments": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "contract_v4",
+              "name": "gacha"
+            },
+            "name": "Card",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "purchase_card_and_keep": {
+      "source_index": 7,
+      "index": 7,
+      "doc": " Purchase and transfer to buyer",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": true,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "listing_id",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "sui",
+                "name": "object"
+              },
+              "name": "ID",
+              "type_arguments": []
+            }
+          }
+        },
+        {
+          "name": "payment",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "sui",
+                "name": "coin"
+              },
+              "name": "Coin",
+              "type_arguments": [
+                {
+                  "phantom": true,
+                  "argument": {
+                    "Datatype": {
+                      "module": {
+                        "address": "sui",
+                        "name": "sui"
+                      },
+                      "name": "SUI",
+                      "type_arguments": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "withdraw_fees": {
+      "source_index": 8,
+      "index": 8,
+      "doc": " Withdraw accumulated fees",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type_": "u64"
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "sui",
+              "name": "coin"
+            },
+            "name": "Coin",
+            "type_arguments": [
+              {
+                "phantom": true,
+                "argument": {
+                  "Datatype": {
+                    "module": {
+                      "address": "sui",
+                      "name": "sui"
+                    },
+                    "name": "SUI",
+                    "type_arguments": []
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "update_fee_percentage": {
+      "source_index": 9,
+      "index": 9,
+      "doc": " Update fee percentage (admin only - should add AdminCap)",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_fee",
+          "type_": "u64"
+        }
+      ],
+      "return_": []
+    },
+    "listing_price": {
+      "source_index": 10,
+      "index": 10,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "listing_id",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "sui",
+                "name": "object"
+              },
+              "name": "ID",
+              "type_arguments": []
+            }
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "listing_seller": {
+      "source_index": 11,
+      "index": 11,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "listing_id",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "sui",
+                "name": "object"
+              },
+              "name": "ID",
+              "type_arguments": []
+            }
+          }
+        }
+      ],
+      "return_": [
+        "address"
+      ]
+    },
+    "listing_exists": {
+      "source_index": 12,
+      "index": 12,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "listing_id",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "sui",
+                "name": "object"
+              },
+              "name": "ID",
+              "type_arguments": []
+            }
+          }
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "total_listings": {
+      "source_index": 13,
+      "index": 13,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "total_volume": {
+      "source_index": 14,
+      "index": 14,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "fee_percentage": {
+      "source_index": 15,
+      "index": 15,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "accumulated_fees": {
+      "source_index": 16,
+      "index": 16,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "marketplace",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "marketplace"
+                  },
+                  "name": "Marketplace",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    }
+  },
+  "structs": {
+    "Listing": {
+      "index": 0,
+      "doc": " A listing in the marketplace",
+      "attributes": [],
+      "abilities": [
+        "Store"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "card": {
+            "index": 0,
+            "doc": " The card being sold",
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "contract_v4",
+                  "name": "gacha"
+                },
+                "name": "Card",
+                "type_arguments": []
+              }
+            }
+          },
+          "price": {
+            "index": 1,
+            "doc": " Price in MIST",
+            "type_": "u64"
+          },
+          "seller": {
+            "index": 2,
+            "doc": " Seller address",
+            "type_": "address"
+          }
+        }
+      }
+    },
+    "Marketplace": {
+      "index": 1,
+      "doc": " Global marketplace - shared object",
+      "attributes": [],
+      "abilities": [
+        "Key"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "id": {
+            "index": 0,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "object"
+                },
+                "name": "UID",
+                "type_arguments": []
+              }
+            }
+          },
+          "listings": {
+            "index": 1,
+            "doc": " All active listings, keyed by listing ID",
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "table"
+                },
+                "name": "Table",
+                "type_arguments": [
+                  {
+                    "phantom": true,
+                    "argument": {
+                      "Datatype": {
+                        "module": {
+                          "address": "sui",
+                          "name": "object"
+                        },
+                        "name": "ID",
+                        "type_arguments": []
+                      }
+                    }
+                  },
+                  {
+                    "phantom": true,
+                    "argument": {
+                      "Datatype": {
+                        "module": {
+                          "address": "contract_v4",
+                          "name": "marketplace"
+                        },
+                        "name": "Listing",
+                        "type_arguments": []
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "total_listings": {
+            "index": 2,
+            "doc": " Total number of listings ever created",
+            "type_": "u64"
+          },
+          "total_volume": {
+            "index": 3,
+            "doc": " Total volume traded (in MIST)",
+            "type_": "u64"
+          },
+          "fee_percentage": {
+            "index": 4,
+            "doc": " Fee percentage (out of 10000, e.g., 250 = 2.5%)",
+            "type_": "u64"
+          },
+          "fees": {
+            "index": 5,
+            "doc": " Accumulated fees",
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "balance"
+                },
+                "name": "Balance",
+                "type_arguments": [
+                  {
+                    "phantom": true,
+                    "argument": {
+                      "Datatype": {
+                        "module": {
+                          "address": "sui",
+                          "name": "sui"
+                        },
+                        "name": "SUI",
+                        "type_arguments": []
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "ListingReceipt": {
+      "index": 2,
+      "doc": " Receipt for a listing - proves ownership",
+      "attributes": [],
+      "abilities": [
+        "Key",
+        "Store"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "id": {
+            "index": 0,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "object"
+                },
+                "name": "UID",
+                "type_arguments": []
+              }
+            }
+          },
+          "listing_id": {
+            "index": 1,
+            "doc": " The listing ID this receipt is for",
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "object"
+                },
+                "name": "ID",
+                "type_arguments": []
+              }
+            }
+          },
+          "seller": {
+            "index": 2,
+            "doc": " Original seller",
+            "type_": "address"
+          }
+        }
+      }
+    }
+  },
+  "enums": {}
+}

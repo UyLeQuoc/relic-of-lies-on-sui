@@ -1,0 +1,3329 @@
+{
+  "id": {
+    "address": "contract_v4",
+    "name": "game"
+  },
+  "doc": " Game module for Love Letter 2019 Premium Edition with Seal Encryption\n Contains core game logic with encrypted cards and pending action pattern",
+  "immediate_dependencies": [
+    {
+      "address": "contract_v4",
+      "name": "constants"
+    },
+    {
+      "address": "contract_v4",
+      "name": "decryptable"
+    },
+    {
+      "address": "contract_v4",
+      "name": "error"
+    },
+    {
+      "address": "contract_v4",
+      "name": "events"
+    },
+    {
+      "address": "contract_v4",
+      "name": "leaderboard"
+    },
+    {
+      "address": "contract_v4",
+      "name": "seal_access"
+    },
+    {
+      "address": "contract_v4",
+      "name": "utils"
+    },
+    {
+      "address": "std",
+      "name": "option"
+    },
+    {
+      "address": "std",
+      "name": "string"
+    },
+    {
+      "address": "std",
+      "name": "vector"
+    },
+    {
+      "address": "sui",
+      "name": "balance"
+    },
+    {
+      "address": "sui",
+      "name": "coin"
+    },
+    {
+      "address": "sui",
+      "name": "object"
+    },
+    {
+      "address": "sui",
+      "name": "sui"
+    },
+    {
+      "address": "sui",
+      "name": "transfer"
+    },
+    {
+      "address": "sui",
+      "name": "tx_context"
+    }
+  ],
+  "attributes": [
+    {
+      "Parameterized": [
+        "allow",
+        [
+          {
+            "Parameterized": [
+              "lint",
+              [
+                {
+                  "Name": "self_transfer"
+                }
+              ]
+            ]
+          }
+        ]
+      ]
+    }
+  ],
+  "functions": {
+    "init": {
+      "source_index": 0,
+      "index": 0,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "create_room": {
+      "source_index": 1,
+      "index": 1,
+      "doc": " Create a new game room",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "registry",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "RoomRegistry",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "string"
+              },
+              "name": "String",
+              "type_arguments": []
+            }
+          }
+        },
+        {
+          "name": "max_players",
+          "type_": "u8"
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "sui",
+              "name": "object"
+            },
+            "name": "ID",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "join_room": {
+      "source_index": 2,
+      "index": 2,
+      "doc": " Join an existing room",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "start_new_game": {
+      "source_index": 3,
+      "index": 3,
+      "doc": " Start a completely new game (reset everything including tokens)\n Can only be called when game is finished",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "submit_encrypted_deck": {
+      "source_index": 4,
+      "index": 4,
+      "doc": " Submit encrypted deck (called by frontend after local shuffle and encryption)",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "ciphertexts",
+          "type_": {
+            "vector": {
+              "vector": "u8"
+            }
+          }
+        },
+        {
+          "name": "hashes",
+          "type_": {
+            "vector": {
+              "vector": "u8"
+            }
+          }
+        },
+        {
+          "name": "nonces",
+          "type_": {
+            "vector": {
+              "vector": "u8"
+            }
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "start_round_internal": {
+      "source_index": 5,
+      "index": 5,
+      "doc": " Internal function to start round after deck submission",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "_ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "play_turn": {
+      "source_index": 6,
+      "index": 6,
+      "doc": " Play a turn - player reveals card value with proof",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "card_index",
+          "type_": "u64"
+        },
+        {
+          "name": "plaintext_data",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "target_idx",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u64"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "guess",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u8"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "respond_guard": {
+      "source_index": 7,
+      "index": 7,
+      "doc": " Respond to Guard guess",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "card_index",
+          "type_": "u64"
+        },
+        {
+          "name": "plaintext_data",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "respond_baron": {
+      "source_index": 8,
+      "index": 8,
+      "doc": " Respond to Baron comparison",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "card_index",
+          "type_": "u64"
+        },
+        {
+          "name": "plaintext_data",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "respond_prince": {
+      "source_index": 9,
+      "index": 9,
+      "doc": " Respond to Prince discard",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "card_index",
+          "type_": "u64"
+        },
+        {
+          "name": "plaintext_data",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "resolve_chancellor": {
+      "source_index": 10,
+      "index": 10,
+      "doc": " Resolve Chancellor action",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "keep_card_index",
+          "type_": "u64"
+        },
+        {
+          "name": "return_indices",
+          "type_": {
+            "vector": "u64"
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "execute_card_effect": {
+      "source_index": 11,
+      "index": 11,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "card",
+          "type_": "u8"
+        },
+        {
+          "name": "target_idx",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u64"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "guess",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u8"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "execute_spy": {
+      "source_index": 12,
+      "index": 12,
+      "doc": " Spy (0): No immediate effect",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "execute_guard": {
+      "source_index": 13,
+      "index": 13,
+      "doc": " Guard (1): Set pending response for target to reveal",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "target_idx",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u64"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "guess",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u8"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "execute_priest": {
+      "source_index": 14,
+      "index": 14,
+      "doc": " Priest (2): Grant temporary access to view target's card",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "target_idx",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u64"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "execute_baron": {
+      "source_index": 15,
+      "index": 15,
+      "doc": " Baron (3): Set pending response for comparison",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "target_idx",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u64"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "execute_handmaid": {
+      "source_index": 16,
+      "index": 16,
+      "doc": " Handmaid (4): Become immune",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "execute_prince": {
+      "source_index": 17,
+      "index": 17,
+      "doc": " Prince (5): Set pending response for target to reveal and discard",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "target_idx",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u64"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "execute_chancellor": {
+      "source_index": 18,
+      "index": 18,
+      "doc": " Chancellor (6): Draw 2 cards, keep 1, return 2",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "execute_king": {
+      "source_index": 19,
+      "index": 19,
+      "doc": " King (7): Swap hands",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "target_idx",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "option"
+              },
+              "name": "Option",
+              "type_arguments": [
+                {
+                  "phantom": false,
+                  "argument": "u64"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "execute_countess": {
+      "source_index": 20,
+      "index": 20,
+      "doc": " Countess (8): No effect",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "execute_princess": {
+      "source_index": 21,
+      "index": 21,
+      "doc": " Princess (9): Instant elimination",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "set_revealed_value": {
+      "source_index": 22,
+      "index": 22,
+      "doc": " Helper to set revealed value at index (Move doesn't support index assignment)",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "revealed_values",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "vector": {
+                  "Datatype": {
+                    "module": {
+                      "address": "std",
+                      "name": "option"
+                    },
+                    "name": "Option",
+                    "type_arguments": [
+                      {
+                        "phantom": false,
+                        "argument": "u8"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "index",
+          "type_": "u64"
+        },
+        {
+          "name": "value",
+          "type_": "u8"
+        }
+      ],
+      "return_": []
+    },
+    "log_discard": {
+      "source_index": 23,
+      "index": 23,
+      "doc": " Helper to log a discarded card",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_addr",
+          "type_": "address"
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "card_value",
+          "type_": "u8"
+        },
+        {
+          "name": "card_index",
+          "type_": "u64"
+        },
+        {
+          "name": "reason",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "std",
+                "name": "string"
+              },
+              "name": "String",
+              "type_arguments": []
+            }
+          }
+        }
+      ],
+      "return_": []
+    },
+    "is_player_in_room": {
+      "source_index": 24,
+      "index": 24,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "addr",
+          "type_": "address"
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "all_others_immune": {
+      "source_index": 25,
+      "index": 25,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "hand_contains_value": {
+      "source_index": 26,
+      "index": 26,
+      "doc": " Check if player's hand contains a specific card value (using revealed_values)",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "value",
+          "type_": "u8"
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "eliminate_player": {
+      "source_index": 27,
+      "index": 27,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "eliminator_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "card_used",
+          "type_": "u8"
+        }
+      ],
+      "return_": []
+    },
+    "advance_turn": {
+      "source_index": 28,
+      "index": 28,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "check_round_end": {
+      "source_index": 29,
+      "index": 29,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "check_round_winner": {
+      "source_index": 30,
+      "index": 30,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "option"
+            },
+            "name": "Option",
+            "type_arguments": [
+              {
+                "phantom": false,
+                "argument": "u64"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "resolve_round": {
+      "source_index": 31,
+      "index": 31,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "winner_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "check_spy_bonus": {
+      "source_index": 32,
+      "index": 32,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "option"
+            },
+            "name": "Option",
+            "type_arguments": [
+              {
+                "phantom": false,
+                "argument": "u64"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "check_game_winner": {
+      "source_index": 33,
+      "index": 33,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "option"
+            },
+            "name": "Option",
+            "type_arguments": [
+              {
+                "phantom": false,
+                "argument": "u64"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "resolve_game": {
+      "source_index": 34,
+      "index": 34,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Private",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "leaderboard",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "leaderboard"
+                  },
+                  "name": "Leaderboard",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "winner_idx",
+          "type_": "u64"
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "seal_approve_card": {
+      "source_index": 35,
+      "index": 35,
+      "doc": " Entry function for Seal servers to verify card access",
+      "attributes": [],
+      "visibility": "Private",
+      "entry": true,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "seal_id",
+          "type_": {
+            "vector": "u8"
+          }
+        },
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "room_id": {
+      "source_index": 36,
+      "index": 36,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "sui",
+              "name": "object"
+            },
+            "name": "ID",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "room_name": {
+      "source_index": 37,
+      "index": 37,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "room_status": {
+      "source_index": 38,
+      "index": 38,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u8"
+      ]
+    },
+    "room_current_turn": {
+      "source_index": 39,
+      "index": 39,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "room_round_number": {
+      "source_index": 40,
+      "index": 40,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u8"
+      ]
+    },
+    "current_player_address": {
+      "source_index": 41,
+      "index": 41,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "address"
+      ]
+    },
+    "player_hand_indices": {
+      "source_index": 42,
+      "index": 42,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_addr",
+          "type_": "address"
+        }
+      ],
+      "return_": [
+        {
+          "vector": "u64"
+        }
+      ]
+    },
+    "player_discarded": {
+      "source_index": 43,
+      "index": 43,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_addr",
+          "type_": "address"
+        }
+      ],
+      "return_": [
+        {
+          "vector": "u8"
+        }
+      ]
+    },
+    "player_tokens": {
+      "source_index": 44,
+      "index": 44,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_addr",
+          "type_": "address"
+        }
+      ],
+      "return_": [
+        "u8"
+      ]
+    },
+    "player_is_alive": {
+      "source_index": 45,
+      "index": 45,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_addr",
+          "type_": "address"
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "get_seal_namespace": {
+      "source_index": 46,
+      "index": 46,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "vector": "u8"
+        }
+      ]
+    },
+    "deck_size": {
+      "source_index": 47,
+      "index": 47,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "is_pending_action": {
+      "source_index": 48,
+      "index": 48,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "is_chancellor_pending": {
+      "source_index": 49,
+      "index": 49,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "all_players": {
+      "source_index": 50,
+      "index": 50,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "vector": "address"
+        }
+      ]
+    },
+    "discarded_cards_log": {
+      "source_index": 51,
+      "index": 51,
+      "doc": " Get the game log (discarded cards in order)",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Reference": [
+            false,
+            {
+              "vector": {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "DiscardedCardEntry",
+                  "type_arguments": []
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "discarded_cards_log_length": {
+      "source_index": 52,
+      "index": 52,
+      "doc": " Get number of entries in the game log",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "discarded_card_entry": {
+      "source_index": 53,
+      "index": 53,
+      "doc": " Get a specific entry from the game log",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "index",
+          "type_": "u64"
+        }
+      ],
+      "return_": [
+        "address",
+        "u64",
+        "u8",
+        "u64",
+        "u64",
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "active_rooms": {
+      "source_index": 54,
+      "index": 54,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "registry",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "RoomRegistry",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "vector": {
+            "Datatype": {
+              "module": {
+                "address": "sui",
+                "name": "object"
+              },
+              "name": "ID",
+              "type_arguments": []
+            }
+          }
+        }
+      ]
+    },
+    "cleanup_finished_room": {
+      "source_index": 55,
+      "index": 55,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "registry",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "RoomRegistry",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    }
+  },
+  "structs": {
+    "Player": {
+      "index": 0,
+      "doc": " Player state in a game",
+      "attributes": [],
+      "abilities": [
+        "Copy",
+        "Drop",
+        "Store"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "addr": {
+            "index": 0,
+            "doc": null,
+            "type_": "address"
+          },
+          "hand": {
+            "index": 1,
+            "doc": " Card indices in hand (NOT card values - values are encrypted)",
+            "type_": {
+              "vector": "u64"
+            }
+          },
+          "discarded": {
+            "index": 2,
+            "doc": " Revealed discarded cards (values visible after discard)",
+            "type_": {
+              "vector": "u8"
+            }
+          },
+          "is_alive": {
+            "index": 3,
+            "doc": null,
+            "type_": "bool"
+          },
+          "is_immune": {
+            "index": 4,
+            "doc": null,
+            "type_": "bool"
+          },
+          "tokens": {
+            "index": 5,
+            "doc": null,
+            "type_": "u8"
+          },
+          "has_played_spy": {
+            "index": 6,
+            "doc": null,
+            "type_": "bool"
+          }
+        }
+      }
+    },
+    "PendingAction": {
+      "index": 1,
+      "doc": " Pending action that requires response",
+      "attributes": [],
+      "abilities": [
+        "Copy",
+        "Drop",
+        "Store"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "action_type": {
+            "index": 0,
+            "doc": null,
+            "type_": "u8"
+          },
+          "initiator": {
+            "index": 1,
+            "doc": " Player who initiated the action",
+            "type_": "address"
+          },
+          "initiator_idx": {
+            "index": 2,
+            "doc": null,
+            "type_": "u64"
+          },
+          "responder": {
+            "index": 3,
+            "doc": " Player who needs to respond",
+            "type_": "address"
+          },
+          "responder_idx": {
+            "index": 4,
+            "doc": null,
+            "type_": "u64"
+          },
+          "data": {
+            "index": 5,
+            "doc": " Additional data (e.g., guess for Guard, attacker's card value for Baron)",
+            "type_": {
+              "vector": "u8"
+            }
+          },
+          "card_index": {
+            "index": 6,
+            "doc": " Card index involved (target's card)",
+            "type_": "u64"
+          }
+        }
+      }
+    },
+    "DiscardedCardEntry": {
+      "index": 2,
+      "doc": " Discarded card entry for game log",
+      "attributes": [],
+      "abilities": [
+        "Copy",
+        "Drop",
+        "Store"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "player_addr": {
+            "index": 0,
+            "doc": " Player who discarded the card",
+            "type_": "address"
+          },
+          "player_idx": {
+            "index": 1,
+            "doc": null,
+            "type_": "u64"
+          },
+          "card_value": {
+            "index": 2,
+            "doc": " Card value",
+            "type_": "u8"
+          },
+          "card_index": {
+            "index": 3,
+            "doc": " Card index in encrypted_cards",
+            "type_": "u64"
+          },
+          "turn_number": {
+            "index": 4,
+            "doc": " Turn number when discarded",
+            "type_": "u64"
+          },
+          "reason": {
+            "index": 5,
+            "doc": " Reason for discard (played, prince_effect, baron_loss, etc.)",
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "std",
+                  "name": "string"
+                },
+                "name": "String",
+                "type_arguments": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "GameRoom": {
+      "index": 3,
+      "doc": " Game room with Seal integration - shared object",
+      "attributes": [],
+      "abilities": [
+        "Key"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "id": {
+            "index": 0,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "object"
+                },
+                "name": "UID",
+                "type_arguments": []
+              }
+            }
+          },
+          "name": {
+            "index": 1,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "std",
+                  "name": "string"
+                },
+                "name": "String",
+                "type_arguments": []
+              }
+            }
+          },
+          "creator": {
+            "index": 2,
+            "doc": null,
+            "type_": "address"
+          },
+          "pot": {
+            "index": 3,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "balance"
+                },
+                "name": "Balance",
+                "type_arguments": [
+                  {
+                    "phantom": true,
+                    "argument": {
+                      "Datatype": {
+                        "module": {
+                          "address": "sui",
+                          "name": "sui"
+                        },
+                        "name": "SUI",
+                        "type_arguments": []
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "players": {
+            "index": 4,
+            "doc": null,
+            "type_": {
+              "vector": {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "Player",
+                  "type_arguments": []
+                }
+              }
+            }
+          },
+          "encrypted_cards": {
+            "index": 5,
+            "doc": " All 21 encrypted cards",
+            "type_": {
+              "vector": {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "decryptable"
+                  },
+                  "name": "Decryptable",
+                  "type_arguments": []
+                }
+              }
+            }
+          },
+          "deck_indices": {
+            "index": 6,
+            "doc": " Remaining card indices in deck (not dealt yet)",
+            "type_": {
+              "vector": "u64"
+            }
+          },
+          "burn_card_index": {
+            "index": 7,
+            "doc": " Burn card index",
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "std",
+                  "name": "option"
+                },
+                "name": "Option",
+                "type_arguments": [
+                  {
+                    "phantom": false,
+                    "argument": "u64"
+                  }
+                ]
+              }
+            }
+          },
+          "public_card_indices": {
+            "index": 8,
+            "doc": " Public card indices for 2-player game",
+            "type_": {
+              "vector": "u64"
+            }
+          },
+          "revealed_values": {
+            "index": 9,
+            "doc": " Revealed card values (after decryption)",
+            "type_": {
+              "vector": {
+                "Datatype": {
+                  "module": {
+                    "address": "std",
+                    "name": "option"
+                  },
+                  "name": "Option",
+                  "type_arguments": [
+                    {
+                      "phantom": false,
+                      "argument": "u8"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "status": {
+            "index": 10,
+            "doc": null,
+            "type_": "u8"
+          },
+          "current_turn": {
+            "index": 11,
+            "doc": null,
+            "type_": "u64"
+          },
+          "max_players": {
+            "index": 12,
+            "doc": null,
+            "type_": "u8"
+          },
+          "round_number": {
+            "index": 13,
+            "doc": null,
+            "type_": "u8"
+          },
+          "tokens_to_win": {
+            "index": 14,
+            "doc": null,
+            "type_": "u8"
+          },
+          "discarded_cards_log": {
+            "index": 15,
+            "doc": " Ordered list of discarded cards for game log",
+            "type_": {
+              "vector": {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "DiscardedCardEntry",
+                  "type_arguments": []
+                }
+              }
+            }
+          },
+          "pending_action": {
+            "index": 16,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "std",
+                  "name": "option"
+                },
+                "name": "Option",
+                "type_arguments": [
+                  {
+                    "phantom": false,
+                    "argument": {
+                      "Datatype": {
+                        "module": {
+                          "address": "contract_v4",
+                          "name": "game"
+                        },
+                        "name": "PendingAction",
+                        "type_arguments": []
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "chancellor_pending": {
+            "index": 17,
+            "doc": null,
+            "type_": "bool"
+          },
+          "chancellor_player_idx": {
+            "index": 18,
+            "doc": null,
+            "type_": "u64"
+          },
+          "chancellor_card_indices": {
+            "index": 19,
+            "doc": null,
+            "type_": {
+              "vector": "u64"
+            }
+          },
+          "seal_access": {
+            "index": 20,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "contract_v4",
+                  "name": "seal_access"
+                },
+                "name": "SealAccessState",
+                "type_arguments": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "RoomRegistry": {
+      "index": 4,
+      "doc": " Registry to track all active rooms",
+      "attributes": [],
+      "abilities": [
+        "Key"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "id": {
+            "index": 0,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "object"
+                },
+                "name": "UID",
+                "type_arguments": []
+              }
+            }
+          },
+          "active_rooms": {
+            "index": 1,
+            "doc": null,
+            "type_": {
+              "vector": {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "object"
+                  },
+                  "name": "ID",
+                  "type_arguments": []
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "enums": {}
+}

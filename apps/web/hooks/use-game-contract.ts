@@ -1339,8 +1339,6 @@ export function useGachaUpgrade() {
             change.objectType?.includes("::gacha::Card")
         );
 
-        toast.success("Upgrade complete!");
-
         return {
           digest: result.digest,
           cardId:
@@ -1351,7 +1349,6 @@ export function useGachaUpgrade() {
       } catch (err) {
         const error = parseContractError(err);
         setError(error);
-        toast.error(error.message);
         throw error;
       }
     },

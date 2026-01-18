@@ -6,8 +6,8 @@ const config: SuiCodegenConfig = {
 	prune: false,
 	packages: [
 		{
-			package: '@local-pkg/contract',
-			path: './apps/contract',
+			package: '@local-pkg/contract-v4',
+			path: './apps/contract-v4',
 		},
 	],
 };

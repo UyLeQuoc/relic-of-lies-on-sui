@@ -1,0 +1,458 @@
+{
+  "id": {
+    "address": "contract_v4",
+    "name": "utils"
+  },
+  "doc": " Utility functions for Love Letter 2019 Premium Edition with Seal Encryption\n Contains helper functions for deck manipulation and vector operations",
+  "immediate_dependencies": [
+    {
+      "address": "contract_v4",
+      "name": "constants"
+    },
+    {
+      "address": "std",
+      "name": "option"
+    },
+    {
+      "address": "std",
+      "name": "string"
+    },
+    {
+      "address": "std",
+      "name": "vector"
+    }
+  ],
+  "attributes": [],
+  "functions": {
+    "create_deck": {
+      "source_index": 0,
+      "index": 0,
+      "doc": " Create a fresh deck of 21 cards for Love Letter 2019 Premium Edition\n Returns: vector of card values [0-9] with correct counts",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [],
+      "return_": [
+        {
+          "vector": "u8"
+        }
+      ]
+    },
+    "draw_card_index": {
+      "source_index": 1,
+      "index": 1,
+      "doc": " Draw card index from deck indices",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "deck_indices",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "vector": "u64"
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "option"
+            },
+            "name": "Option",
+            "type_arguments": [
+              {
+                "phantom": false,
+                "argument": "u64"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "insert_index_at_bottom": {
+      "source_index": 2,
+      "index": 2,
+      "doc": " Insert card index at bottom of deck",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "deck_indices",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "vector": "u64"
+              }
+            ]
+          }
+        },
+        {
+          "name": "card_idx",
+          "type_": "u64"
+        }
+      ],
+      "return_": []
+    },
+    "insert_indices_at_bottom": {
+      "source_index": 3,
+      "index": 3,
+      "doc": " Insert multiple indices at bottom",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "deck_indices",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "vector": "u64"
+              }
+            ]
+          }
+        },
+        {
+          "name": "indices",
+          "type_": {
+            "vector": "u64"
+          }
+        }
+      ],
+      "return_": []
+    },
+    "is_valid_card": {
+      "source_index": 4,
+      "index": 4,
+      "doc": " Check if a card value is valid (0-9)",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "card",
+          "type_": "u8"
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "card_name": {
+      "source_index": 5,
+      "index": 5,
+      "doc": " Get card name for display",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "card",
+          "type_": "u8"
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "string"
+            },
+            "name": "String",
+            "type_arguments": []
+          }
+        }
+      ]
+    },
+    "find_index": {
+      "source_index": 6,
+      "index": 6,
+      "doc": " Find index of a value in a vector",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [
+        {
+          "name": "T",
+          "constraints": [
+            "Copy",
+            "Drop"
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "name": "vec",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "vector": {
+                  "NamedTypeParameter": "T"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "value",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "NamedTypeParameter": "T"
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        {
+          "Datatype": {
+            "module": {
+              "address": "std",
+              "name": "option"
+            },
+            "name": "Option",
+            "type_arguments": [
+              {
+                "phantom": false,
+                "argument": "u64"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "remove_first": {
+      "source_index": 7,
+      "index": 7,
+      "doc": " Remove first occurrence of a value from vector\n Returns true if removed, false if not found",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [
+        {
+          "name": "T",
+          "constraints": [
+            "Copy",
+            "Drop"
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "name": "vec",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "vector": {
+                  "NamedTypeParameter": "T"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "value",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "NamedTypeParameter": "T"
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "contains": {
+      "source_index": 8,
+      "index": 8,
+      "doc": " Check if vector contains a value",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [
+        {
+          "name": "T",
+          "constraints": [
+            "Copy",
+            "Drop"
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "name": "vec",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "vector": {
+                  "NamedTypeParameter": "T"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "value",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "NamedTypeParameter": "T"
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "cards_sum": {
+      "source_index": 9,
+      "index": 9,
+      "doc": " Sum of all cards in a vector (for tiebreaker using discarded cards)",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "cards",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "vector": "u8"
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    },
+    "has_played_spy": {
+      "source_index": 10,
+      "index": 10,
+      "doc": " Check if a player has played Spy (check discarded pile)",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "discarded",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "vector": "u8"
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "is_holding_spy": {
+      "source_index": 11,
+      "index": 11,
+      "doc": " Check if a player is holding Spy",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "hand",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "vector": "u8"
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "bool"
+      ]
+    },
+    "count_occurrences": {
+      "source_index": 12,
+      "index": 12,
+      "doc": " Count occurrences of a value in vector",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [
+        {
+          "name": "T",
+          "constraints": [
+            "Copy",
+            "Drop"
+          ]
+        }
+      ],
+      "parameters": [
+        {
+          "name": "vec",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "vector": {
+                  "NamedTypeParameter": "T"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "value",
+          "type_": {
+            "Reference": [
+              false,
+              {
+                "NamedTypeParameter": "T"
+              }
+            ]
+          }
+        }
+      ],
+      "return_": [
+        "u64"
+      ]
+    }
+  },
+  "structs": {},
+  "enums": {}
+}
