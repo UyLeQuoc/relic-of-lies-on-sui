@@ -17,10 +17,10 @@ export const { networkConfig, useNetworkConfig } = createNetworkConfig({
 			leaderboardId: '0xdb9ee3f2bbea162572ef819a959720f58289956061948740837379bcb4db7220',
 			gachaTreasuryId: '0xe766f9bb6e635d10cf96fdabdc820ca8ff4d05bb7e90aaa6f58ef327a9df37aa',
 			marketplaceRegistryId: '0xeff646d75222ee3d4f9ba7a097529174d92706a4bbb7198d3cb2d24e5dc01b94',
-			// V3 
-			movePackageIdV3: '0x5f23787151dba4ae05e9be85fd64a9702beb9661cd586c2e3df1764a0fd60298',
-			roomRegistryIdV3: '0x6892fda03ef4b70b569c464841fcc385cd52b86645ba8416fa7546ac3fcddec5',
-			leaderboardIdV3: '0xa173241835aac6adb32fbbbca205794cd5943ad9b06e917d697cc21594439ad7',
+			// V4 
+			movePackageIdV4: '0x81c19bd1c422b0f87d43fd479004a96deca87aae52cbe701af28e0c7e5305514',
+			roomRegistryIdV4: '0x845a71763f70cc49bae6076cf44dab94d71bb22f988ce8ab1b3784b2910929d6',
+			leaderboardIdV4: '0xd082439e7881fb786d69527dd96b9471113e8c257ec1f31bfdad2e2d64ead572',
 		},
      },
 	mainnet: { url: getFullnodeUrl('mainnet'),
@@ -31,10 +31,10 @@ export const { networkConfig, useNetworkConfig } = createNetworkConfig({
 			leaderboardId: '0x0000000000000000000000000000000000000000000000000000000000000000',
 			gachaTreasuryId: '0x0000000000000000000000000000000000000000000000000000000000000000',
 			marketplaceRegistryId: '0x0000000000000000000000000000000000000000000000000000000000000000',
-			// V3 
-			movePackageIdV3: '0x0000000000000000000000000000000000000000000000000000000000000000',
-			roomRegistryIdV3: '0x0000000000000000000000000000000000000000000000000000000000000000',
-			leaderboardIdV3: '0x0000000000000000000000000000000000000000000000000000000000000000',
+			// V4 
+			movePackageIdV4: '0x0000000000000000000000000000000000000000000000000000000000000000',
+			roomRegistryIdV4: '0x0000000000000000000000000000000000000000000000000000000000000000',
+			leaderboardIdV4: '0x0000000000000000000000000000000000000000000000000000000000000000',
 		},
      },
 });
@@ -74,7 +74,7 @@ export default function SuiProvider({ children }: { children: React.ReactNode })
 						overrides: {
 							packages: {
 								'@local-pkg/contract': config.variables.movePackageId,
-								'@local-pkg/contract-v3': config.variables.movePackageIdV3,
+								'@local-pkg/contract-v4': config.variables.movePackageIdV4,
 							},
 						},
 					},

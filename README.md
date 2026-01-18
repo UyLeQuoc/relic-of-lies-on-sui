@@ -1,18 +1,418 @@
 # Relic of Lies - Love Letter Card Game on Sui
 
-A decentralized implementation of the classic **Love Letter** card game on the **Sui blockchain**, featuring **Seal Protocol** for card privacy and cryptographic verification.
+A decentralized implementation of the classic **Love Letter** card game on the **Sui blockchain**, with **cryptographic commitment verification** for provably fair gameplay.
 
 ## Overview
 
-Relic of Lies brings the beloved Love Letter card game to Web3 with a unique twist: **your cards are truly private**. Using the Seal threshold decryption protocol, only you can see your hand until cards are played and verified on-chain.
+Relic of Lies brings the beloved Love Letter card game to Web3 with full on-chain game logic. The smart contract uses a **commitment scheme** to ensure players cannot cheat - when you play a card, the contract cryptographically verifies you're telling the truth about its value.
 
 ### Key Features
 
-- **Private Hands**: Card values are encrypted and only visible to their owners
-- **On-Chain Verification**: Commitment scheme ensures players cannot lie about card values
+- **Provably Fair**: Commitment scheme ensures players cannot lie about card values
+- **Fully On-Chain**: All game logic enforced by smart contract
 - **Real-Time Multiplayer**: 2-4 players per game room
 - **Leaderboard**: Track wins, losses, and player rankings
 - **Modern UI**: Beautiful, responsive interface with animations
+
+---
+
+## Current Implementation Status
+
+### What's Implemented
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Commitment Scheme** | ✅ Complete | `hash(value \|\| secret)` verification on-chain |
+| **On-Chain Game Logic** | ✅ Complete | All card effects, turn order, win conditions |
+| **Sui Random** | ✅ Complete | VRF-based deck shuffling |
+| **Seal Access Control** | ✅ Complete | `seal_approve_card` entry function ready |
+| **Frontend UI** | ✅ Complete | Full game interface with card animations |
+
+### What's NOT Yet Implemented
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Seal Encryption** | ❌ Not Applied | Card values currently stored as plaintext on-chain |
+| **Walrus Storage** | ❌ Not Applied | No encrypted blob storage |
+| **Threshold Decryption** | ❌ Not Applied | Frontend reads values directly from contract |
+
+### Current Privacy Model
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      CURRENT IMPLEMENTATION                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ON-CHAIN (SealedGameRoom struct):                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐       │
+│  │  deck_values: vector<u8>      ← Card values (PLAINTEXT!)        │       │
+│  │  deck_secrets: vector<vector<u8>>  ← Secrets (PLAINTEXT!)       │       │
+│  │  commitments: vector<vector<u8>>   ← hash(value || secret)      │       │
+│  │  player.hand: vector<u64>     ← Card indices only               │       │
+│  └─────────────────────────────────────────────────────────────────┘       │
+│                                                                             │
+│  FRONTEND (useDecryptCards hook):                                           │
+│  ┌─────────────────────────────────────────────────────────────────┐       │
+│  │  // Currently reads directly from on-chain data:                 │       │
+│  │  const value = room.deck_values[cardIndex];     // No encryption │       │
+│  │  const secret = room.deck_secrets[cardIndex];   // No encryption │       │
+│  └─────────────────────────────────────────────────────────────────┘       │
+│                                                                             │
+│  ⚠️  Anyone can read all card values by querying the blockchain!           │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Why This Model? What's the Purpose?
+
+The current implementation serves as a **foundation and proof-of-concept** for the full Seal-integrated version:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    PURPOSE OF CURRENT IMPLEMENTATION                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. COMMITMENT VERIFICATION PROOF-OF-CONCEPT                                │
+│     ─────────────────────────────────────────                               │
+│     • Demonstrates that players CANNOT lie about card values                │
+│     • Contract verifies hash(value || secret) == commitment                 │
+│     • This logic remains UNCHANGED when Seal is added                       │
+│                                                                             │
+│  2. COMPLETE GAME LOGIC IMPLEMENTATION                                      │
+│     ────────────────────────────────────                                    │
+│     • All 10 card effects fully implemented and tested                      │
+│     • Turn order, elimination, win conditions all on-chain                  │
+│     • Pending actions (Guard response, Baron comparison)                    │
+│     • Chancellor resolution flow                                            │
+│                                                                             │
+│  3. SEAL ACCESS CONTROL READY                                               │
+│     ──────────────────────────                                              │
+│     • seal_approve_card entry function already implemented                  │
+│     • SealAccessState tracks card ownership                                 │
+│     • Temporary access for Priest effect                                    │
+│     • Ownership swap for King effect                                        │
+│     → Just needs Seal SDK integration on frontend                           │
+│                                                                             │
+│  4. FRONTEND UI COMPLETE                                                    │
+│     ─────────────────────                                                   │
+│     • Card display, animations, game table                                  │
+│     • useDecryptCards hook ready to swap implementation                     │
+│     • Pending action UI (Guard/Baron responses)                             │
+│     • Chancellor choice interface                                           │
+│                                                                             │
+│  5. TESTING & DEVELOPMENT                                                   │
+│     ────────────────────────                                                │
+│     • Easier to debug without encryption layer                              │
+│     • Can verify game logic correctness                                     │
+│     • Frontend can be fully tested                                          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**In summary:** The current model implements **everything except the encryption layer**. When Seal is integrated:
+- Smart contract changes: Store blob IDs instead of plaintext values
+- Frontend changes: Call Seal SDK in `useDecryptCards` instead of reading directly
+- **All game logic remains the same**
+
+### How to Integrate Seal (Based on `apps/seal` Example)
+
+The `apps/seal` folder contains a working example of Seal integration. Here's how to apply it to the game:
+
+#### Step 1: Encrypt Card Data at Round Start
+
+```typescript
+// Based on apps/seal/frontend/src/EncryptAndUpload.tsx
+import { SealClient } from '@mysten/seal';
+
+const sealClient = new SealClient({
+  suiClient,
+  serverConfigs: [
+    { objectId: "0x73d05d62c18d9374e3ea529e8e0ed6161da1a141a94d3f76ae3fe4e99356db75", weight: 1 },
+    { objectId: "0xf5d14a81a982144ae441cd7d64b09027f116a468bd36e7eca494f750591623c8", weight: 1 },
+  ],
+  verifyKeyServers: false,
+});
+
+// Encrypt each card's (value, secret) pair
+const cardData = new Uint8Array([cardValue, ...secretBytes]);
+const policyObjectBytes = fromHex(roomId);  // Room ID as namespace
+const nonce = crypto.getRandomValues(new Uint8Array(5));
+const sealId = toHex(new Uint8Array([...policyObjectBytes, ...nonce, cardIndex]));
+
+const { encryptedObject } = await sealClient.encrypt({
+  threshold: 2,
+  packageId: PACKAGE_ID,
+  id: sealId,
+  data: cardData,
+});
+
+// Upload to Walrus
+const response = await fetch(`${WALRUS_PUBLISHER_URL}/v1/blobs?epochs=1`, {
+  method: 'PUT',
+  body: encryptedObject,
+});
+const { blobId } = await response.json();
+```
+
+#### Step 2: Store Blob IDs On-Chain (Contract Change)
+
+```move
+// Instead of storing plaintext values:
+public struct SealedGameRoom has key, store {
+    // REMOVE: deck_values: vector<u8>,
+    // REMOVE: deck_secrets: vector<vector<u8>>,
+    
+    // ADD: References to encrypted blobs on Walrus
+    encrypted_blob_ids: vector<String>,
+    commitments: vector<vector<u8>>,  // Keep for verification
+    seal_access: SealAccessState,
+}
+```
+
+#### Step 3: Decrypt Cards Using Seal SDK
+
+```typescript
+// Based on apps/seal/frontend/src/AllowlistView.tsx and utils.ts
+import { SealClient, SessionKey, EncryptedObject } from '@mysten/seal';
+
+// 1. Create or load session key
+const sessionKey = await SessionKey.create({
+  address: playerAddress,
+  packageId: PACKAGE_ID,
+  ttlMin: 10,
+  suiClient,
+});
+
+// 2. Sign personal message to authorize session
+const signature = await signPersonalMessage(sessionKey.getPersonalMessage());
+await sessionKey.setPersonalMessageSignature(signature);
+
+// 3. Download encrypted blob from Walrus
+const response = await fetch(`${WALRUS_AGGREGATOR_URL}/v1/blobs/${blobId}`);
+const encryptedData = new Uint8Array(await response.arrayBuffer());
+
+// 4. Build approval transaction (calls seal_approve_card)
+const sealId = EncryptedObject.parse(encryptedData).id;
+const tx = new Transaction();
+tx.moveCall({
+  target: `${PACKAGE_ID}::sealed_game::seal_approve_card`,
+  arguments: [tx.pure.vector('u8', fromHex(sealId)), tx.object(roomId)],
+});
+const txBytes = await tx.build({ client: suiClient, onlyTransactionKind: true });
+
+// 5. Fetch decryption keys from Seal servers
+await sealClient.fetchKeys({ ids: [sealId], txBytes, sessionKey, threshold: 2 });
+
+// 6. Decrypt locally
+const decryptedData = await sealClient.decrypt({
+  data: encryptedData,
+  sessionKey,
+  txBytes,
+});
+
+// decryptedData contains [cardValue, ...secretBytes]
+const cardValue = decryptedData[0];
+const secret = Array.from(decryptedData.slice(1));
+```
+
+#### Step 4: The `seal_approve_card` Entry Function (Already Implemented)
+
+```move
+// apps/contract_v3/sources/sealed_game.move - Line 1188
+entry fun seal_approve_card(
+    seal_id: vector<u8>,
+    room: &SealedGameRoom,
+    ctx: &TxContext
+) {
+    let caller = ctx.sender();
+    let namespace = room.id.to_inner().to_bytes();
+    
+    // Verify namespace prefix (seal_id starts with room ID)
+    assert!(utils::is_prefix(&namespace, &seal_id), error::invalid_namespace());
+    
+    // Extract card index from seal_id
+    let card_index = utils::extract_card_index_from_seal_id(&seal_id, namespace.length());
+    
+    // Check if caller can access this card (owner or temporary access)
+    assert!(
+        seal_access::can_access_card(&room.seal_access, caller, card_index),
+        error::no_access()
+    );
+}
+```
+
+This function is called by Seal servers to verify if a player has permission to decrypt a card.
+
+#### Architecture with Seal
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         SEAL INTEGRATION FLOW                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ROUND START (Frontend encrypts, uploads to Walrus):                        │
+│  ┌─────────────────────────────────────────────────────────────────┐       │
+│  │  For each card:                                                  │       │
+│  │    1. sealClient.encrypt({ data: [value, ...secret], id })      │       │
+│  │    2. Upload encryptedObject to Walrus → get blobId             │       │
+│  │    3. Store blobId on-chain via start_round()                   │       │
+│  └─────────────────────────────────────────────────────────────────┘       │
+│                                                                             │
+│  PLAYER VIEWS CARD (Frontend decrypts via Seal):                            │
+│  ┌─────────────────────────────────────────────────────────────────┐       │
+│  │  1. Download encrypted blob from Walrus                          │       │
+│  │  2. Create SessionKey + sign personal message                    │       │
+│  │  3. Build tx calling seal_approve_card                           │       │
+│  │  4. sealClient.fetchKeys() → Seal servers verify via contract   │       │
+│  │  5. sealClient.decrypt() → Get [value, secret] locally          │       │
+│  └─────────────────────────────────────────────────────────────────┘       │
+│                                                                             │
+│  SEAL SERVER VERIFICATION:                                                  │
+│  ┌─────────────────────────────────────────────────────────────────┐       │
+│  │  Seal server simulates tx with seal_approve_card                 │       │
+│  │  → Contract checks: Does caller own this card?                   │       │
+│  │  → If yes: Return key share                                      │       │
+│  │  → If no: Reject (NoAccessError)                                 │       │
+│  └─────────────────────────────────────────────────────────────────┘       │
+│                                                                             │
+│  ✅ Only card owners can decrypt                                           │
+│  ✅ Seal servers never see decrypted data                                  │
+│  ✅ Threshold requirement (2 of N servers)                                 │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Setup Requirements for Seal Integration
+
+To enable Seal encryption, you need to configure the following:
+
+#### 1. Install Seal SDK
+
+```bash
+# Add to apps/web/package.json
+bun add @mysten/seal
+```
+
+#### 2. Seal Server Configuration (Testnet)
+
+```typescript
+// Seal key servers on testnet (already deployed by Mysten Labs)
+const SEAL_SERVER_OBJECT_IDS = [
+  "0x73d05d62c18d9374e3ea529e8e0ed6161da1a141a94d3f76ae3fe4e99356db75",
+  "0xf5d14a81a982144ae441cd7d64b09027f116a468bd36e7eca494f750591623c8",
+];
+
+const sealClient = new SealClient({
+  suiClient,
+  serverConfigs: SEAL_SERVER_OBJECT_IDS.map((id) => ({
+    objectId: id,
+    weight: 1,
+  })),
+  verifyKeyServers: false,
+});
+```
+
+#### 3. Walrus Storage Configuration (Testnet)
+
+Walrus is the decentralized storage layer for encrypted blobs. Configure proxy in `next.config.js`:
+
+```javascript
+// next.config.js
+module.exports = {
+  async rewrites() {
+    return [
+      // Walrus Aggregators (for downloading blobs)
+      {
+        source: '/walrus/aggregator/:path*',
+        destination: 'https://aggregator.walrus-testnet.walrus.space/:path*',
+      },
+      // Walrus Publishers (for uploading blobs)
+      {
+        source: '/walrus/publisher/:path*',
+        destination: 'https://publisher.walrus-testnet.walrus.space/:path*',
+      },
+    ];
+  },
+};
+```
+
+**Available Walrus Services (Testnet):**
+
+| Provider | Aggregator URL | Publisher URL |
+|----------|----------------|---------------|
+| walrus.space | `https://aggregator.walrus-testnet.walrus.space` | `https://publisher.walrus-testnet.walrus.space` |
+| staketab.org | `https://wal-aggregator-testnet.staketab.org` | `https://wal-publisher-testnet.staketab.org` |
+| redundex.com | `https://walrus-testnet-aggregator.redundex.com` | `https://walrus-testnet-publisher.redundex.com` |
+| nodes.guru | `https://walrus-testnet-aggregator.nodes.guru` | `https://walrus-testnet-publisher.nodes.guru` |
+| banansen.dev | `https://aggregator.walrus.banansen.dev` | `https://publisher.walrus.banansen.dev` |
+| everstake.one | `https://walrus-testnet-aggregator.everstake.one` | `https://walrus-testnet-publisher.everstake.one` |
+
+#### 4. Session Key Storage (Optional but Recommended)
+
+Use IndexedDB to persist session keys across page reloads:
+
+```bash
+bun add idb-keyval
+```
+
+```typescript
+import { get, set } from 'idb-keyval';
+
+// Save session key
+await set('sessionKey', sessionKey.export());
+
+// Load session key
+const imported = await get('sessionKey');
+if (imported) {
+  const sessionKey = await SessionKey.import(imported, suiClient);
+  if (!sessionKey.isExpired()) {
+    // Reuse existing session key
+  }
+}
+```
+
+#### 5. Contract Changes Required
+
+The smart contract needs to store blob IDs instead of plaintext values:
+
+```move
+// apps/contract_v3/sources/sealed_game.move
+
+public struct SealedGameRoom has key, store {
+    // REMOVE these (plaintext):
+    // deck_values: vector<u8>,
+    // deck_secrets: vector<vector<u8>>,
+    
+    // ADD this (encrypted references):
+    encrypted_blob_ids: vector<String>,  // Walrus blob IDs
+    
+    // KEEP these:
+    commitments: vector<vector<u8>>,     // For verification
+    seal_access: SealAccessState,        // Access control
+}
+```
+
+#### 6. Summary of Required Changes
+
+| Component | Current | With Seal |
+|-----------|---------|-----------|
+| **Package** | - | Add `@mysten/seal`, `idb-keyval` |
+| **Contract** | `deck_values`, `deck_secrets` (plaintext) | `encrypted_blob_ids` (references) |
+| **Frontend** | Read directly from chain | Encrypt/decrypt via Seal SDK |
+| **Storage** | On-chain | Walrus (encrypted blobs) |
+| **Config** | - | Walrus proxy, Seal server IDs |
+
+#### 7. Environment Variables
+
+```env
+# .env.local
+NEXT_PUBLIC_SEAL_SERVER_1=0x73d05d62c18d9374e3ea529e8e0ed6161da1a141a94d3f76ae3fe4e99356db75
+NEXT_PUBLIC_SEAL_SERVER_2=0xf5d14a81a982144ae441cd7d64b09027f116a468bd36e7eca494f750591623c8
+NEXT_PUBLIC_WALRUS_AGGREGATOR=https://aggregator.walrus-testnet.walrus.space
+NEXT_PUBLIC_WALRUS_PUBLISHER=https://publisher.walrus-testnet.walrus.space
+```
+
+---
 
 ## Tech Stack
 
@@ -40,7 +440,7 @@ Relic of Lies brings the beloved Love Letter card game to Web3 with a unique twi
 | **Sui Move** | Smart contract language |
 | **Sui Random** | On-chain randomness for deck shuffling |
 | **Blake2b256** | Cryptographic hashing for commitments |
-| **Seal Protocol** | Threshold decryption for card privacy |
+| **Seal Access Control** | Entry function ready for Seal integration (not yet active) |
 
 ### Development Tools
 
@@ -367,73 +767,43 @@ export const DEFAULT_SEAL_CONFIG: SealConfig = {
 
 ## Security Model
 
-### Why This Architecture is Secure AND Fully On-Chain
+### Current Approach: Commitment-Based Verification
 
-Traditional blockchain games face a fundamental dilemma: **transparency vs. privacy**. Blockchains are inherently public - anyone can read all data. For card games, this means opponents could see your hand by reading the blockchain state.
-
-Our solution combines **Seal Protocol** with a **Commitment Scheme** to achieve both privacy AND full on-chain verification.
-
-#### The Problem with Traditional Approaches
-
-| Approach | Privacy | Verifiable | Decentralized |
-|----------|---------|------------|---------------|
-| Store cards in plaintext | ❌ | ✅ | ✅ |
-| Use centralized server | ✅ | ❌ | ❌ |
-| Client-side only | ✅ | ❌ | ❌ |
-| **Our Approach (Seal + Commitments)** | ✅ | ✅ | ✅ |
-
-### How Seal Protocol Enables Privacy
-
-**Seal** is a threshold decryption system built on Sui. Here's how it works:
+Our architecture uses a **Cryptographic Commitment Scheme** to ensure game integrity while keeping all logic fully on-chain.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           SEAL DECRYPTION FLOW                              │
+│                    COMMITMENT-BASED GAME ARCHITECTURE                       │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  1. ENCRYPTION (Game Start)                                                 │
-│     ┌──────────┐                                                            │
-│     │ Card Data │──▶ Encrypt with Seal ──▶ Store encrypted blob            │
-│     │ (value=5) │    (threshold keys)       (on Walrus/IPFS)               │
-│     └──────────┘                                                            │
+│  ON-CHAIN (Stored in Smart Contract)                                        │
+│  ───────────────────────────────────                                        │
+│  • Room state & player addresses                                            │
+│  • Card indices assigned to each player                                     │
+│  • Deck values & secrets (generated by contract)                            │
+│  • Commitments: hash(value || secret) for each card                         │
+│  • Discarded cards (publicly revealed)                                      │
+│  • All game rules enforced by contract                                      │
 │                                                                             │
-│  2. ACCESS REQUEST (Player wants to see their card)                         │
-│     ┌──────────┐     ┌──────────────┐     ┌──────────────┐                 │
-│     │  Player  │────▶│ Seal Server  │────▶│ Smart Contract│                │
-│     │          │     │ (asks: can   │     │ (seal_approve) │                │
-│     │          │     │  they access?)│     │               │                │
-│     └──────────┘     └──────────────┘     └──────────────┘                 │
-│                              │                    │                         │
-│                              │◀───────────────────┘                         │
-│                              │  "Yes, player owns card #3"                  │
-│                              ▼                                              │
-│                       Return decryption key share                           │
-│                                                                             │
-│  3. THRESHOLD DECRYPTION                                                    │
-│     Player collects key shares from multiple Seal servers                   │
-│     (e.g., 2 of 3 servers must approve)                                     │
-│     Combines shares to decrypt card data locally                            │
+│  SECURITY GUARANTEE                                                         │
+│  ─────────────────                                                          │
+│  Players CANNOT lie about card values because:                              │
+│  1. Contract generates values & secrets at round start                      │
+│  2. When playing, player must provide value + secret                        │
+│  3. Contract verifies: hash(value || secret) == stored commitment           │
+│  4. If mismatch → transaction fails                                         │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Key Security Properties:**
-
-1. **No Single Point of Failure**: Multiple independent Seal servers must agree
-2. **On-Chain Access Control**: The `seal_approve_card` function in our contract determines who can decrypt
-3. **Trustless**: Seal servers cannot see the decrypted data - they only provide key shares
-4. **Dynamic Permissions**: Access can be granted/revoked (e.g., King swaps hands, Priest views card)
-
-### How Commitments Enable Verification
-
-Even with Seal hiding card values, we need to ensure players don't cheat when playing cards. This is where **cryptographic commitments** come in:
+### How the Commitment Scheme Works
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         COMMITMENT SCHEME                                   │
+│                         COMMITMENT SCHEME FLOW                              │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  ROUND START (Contract generates):                                          │
+│  1. ROUND START (Contract generates using Sui Random):                      │
 │  ┌─────────────────────────────────────────────────────────────────┐       │
 │  │  Card Index │ Value │ Secret (32 bytes)    │ Commitment          │       │
 │  │─────────────│───────│──────────────────────│─────────────────────│       │
@@ -443,107 +813,155 @@ Even with Seal hiding card values, we need to ensure players don't cheat when pl
 │  │     ...     │  ...  │ ...                  │ ...                 │       │
 │  └─────────────────────────────────────────────────────────────────┘       │
 │                                                                             │
-│  WHAT'S STORED ON-CHAIN:                                                    │
-│  • Card indices assigned to players (public)                                │
-│  • Commitments for all cards (public)                                       │
-│  • Values and secrets (private - only via Seal)                             │
+│  2. CARD DEALING:                                                           │
+│     • Players receive card INDICES (e.g., player 1 gets card #0, #5)       │
+│     • Frontend reads deck_values[index] and deck_secrets[index]            │
+│     • Only the player's client shows them their actual card values          │
 │                                                                             │
-│  WHEN PLAYER PLAYS A CARD:                                                  │
+│  3. PLAYING A CARD:                                                         │
 │  ┌──────────────────────────────────────────────────────────────────┐      │
-│  │  Player submits: card_index=0, value=5, secret=0xabc123...       │      │
+│  │  Player submits transaction:                                      │      │
+│  │    - card_index = 0                                               │      │
+│  │    - revealed_value = 5                                           │      │
+│  │    - secret = 0xabc123...                                         │      │
 │  │                                                                   │      │
 │  │  Contract verifies:                                               │      │
-│  │    hash(5 || 0xabc123...) == commitments[0] ✓                    │      │
+│  │    blake2b256(5 || 0xabc123...) == commitments[0] ✓              │      │
 │  │                                                                   │      │
-│  │  If match: Card is valid, execute game logic                      │      │
-│  │  If no match: Transaction fails, player caught cheating           │      │
+│  │  ✓ Match → Execute card effect                                    │      │
+│  │  ✗ No match → Transaction ABORTED (cheating detected)             │      │
 │  └──────────────────────────────────────────────────────────────────┘      │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Why Players Cannot Cheat:**
+### Why This is Secure
 
-1. **Cannot Lie About Card Value**: The commitment was created at round start with the true value
-2. **Cannot Reuse Secrets**: Each card has a unique 32-byte random secret
-3. **Cannot Predict Commitments**: Blake2b256 is a one-way hash function
-4. **Cannot Modify History**: Blockchain is immutable
-
-### Fully On-Chain Game Logic
-
-All game rules are enforced by the smart contract:
+#### 1. Players Cannot Lie About Card Values
 
 ```move
-// Example: Countess rule enforcement
-public fun play_turn(...) {
-    // If player has Countess (8) with King (7) or Prince (5), MUST play Countess
-    if (has_countess && (has_king || has_prince) && revealed_value != COUNTESS) {
-        abort error::must_play_countess()
-    }
-    
-    // Verify commitment before accepting the play
-    assert!(verify_commitment(revealed_value, secret, commitments[card_index]), 
-            error::invalid_commitment());
-    
-    // Execute card effect...
+// In play_turn():
+let expected_commitment = commitments[card_index];
+let actual_commitment = create_commitment(revealed_value, secret);
+assert!(expected_commitment == actual_commitment, E_INVALID_COMMITMENT);
+```
+
+The commitment was created by the **contract itself** at round start. Players don't know other players' secrets, so they cannot forge a valid commitment for a different card value.
+
+#### 2. Secrets Are Unpredictable
+
+Each card's secret is a **32-byte random value** generated using Sui's on-chain randomness:
+
+```move
+// In start_round():
+let mut random_generator = random::new_generator(r, ctx);
+let secrets = generate_secrets(&mut random_generator, deck_size);
+```
+
+- Secrets are generated AFTER players join (no pre-computation)
+- Uses Sui Random (VRF-based, unpredictable)
+- Each card has a unique secret
+
+#### 3. Commitments Are One-Way
+
+```move
+public fun create_commitment(value: u8, secret: &vector<u8>): vector<u8> {
+    let mut data = vector::empty<u8>();
+    vector::push_back(&mut data, value);
+    vector::append(&mut data, *secret);
+    blake2b256(&data)  // One-way hash function
 }
 ```
 
-**What's Verified On-Chain:**
-- Turn order and player validity
-- Card ownership (player actually has the card)
-- Commitment verification (card value is truthful)
-- Game rules (Countess rule, elimination conditions, etc.)
-- Win conditions and token distribution
+Given a commitment, it's computationally infeasible to:
+- Find the original value without the secret
+- Find a different (value, secret) pair that produces the same commitment
 
-### Security Comparison
+#### 4. All Game Logic is On-Chain
+
+```move
+// Countess rule - MUST play Countess if holding King or Prince
+if (has_card_value(player, COUNTESS) && 
+    (has_card_value(player, KING) || has_card_value(player, PRINCE))) {
+    assert!(revealed_value == COUNTESS, E_MUST_PLAY_COUNTESS);
+}
+
+// Turn validation
+assert!(room.current_turn % players_count == player_idx, E_NOT_YOUR_TURN);
+
+// Card ownership
+assert!(vector::contains(&player.hand, &card_index), E_CARD_NOT_IN_HAND);
+```
+
+**Everything is enforced by the smart contract:**
+- Turn order
+- Card ownership
+- Game rules (Countess, Princess elimination, etc.)
+- Win conditions
+- Token distribution
+
+### Security Properties
+
+| Property | How It's Achieved |
+|----------|-------------------|
+| **Integrity** | Commitment verification ensures truthful card plays |
+| **Fairness** | Sui Random provides unbiased deck shuffling |
+| **Immutability** | Blockchain state cannot be modified after commit |
+| **Transparency** | All rules are in open-source smart contract |
+| **Atomicity** | Sui transactions are all-or-nothing |
+
+### Attack Prevention
 
 | Attack Vector | Protection |
 |---------------|------------|
-| **Read opponent's hand from blockchain** | Card values encrypted via Seal |
-| **Lie about card value when playing** | Commitment verification fails |
-| **Play card you don't own** | On-chain ownership tracking |
-| **Skip your turn / play out of order** | Turn validation in contract |
-| **Collude with Seal server** | Threshold requirement (multiple servers) |
-| **Replay old transactions** | Sui's transaction uniqueness |
-| **Front-run card plays** | Commitment already locked at round start |
+| **Lie about card value** | Commitment verification fails → tx aborted |
+| **Play card you don't own** | `player.hand.contains(card_index)` check |
+| **Play out of turn** | `current_turn % player_count == your_index` check |
+| **Replay transaction** | Sui's transaction uniqueness (object versions) |
+| **Front-run to see cards** | Commitments locked at round start, values revealed only when played |
+| **Predict deck order** | Sui Random (VRF) is unpredictable |
 
 ### Trust Assumptions
 
 1. **Sui Network**: Consensus is honest (standard blockchain assumption)
-2. **Seal Servers**: At least `threshold` servers are honest (e.g., 2 of 3)
-3. **Cryptography**: Blake2b256 and Seal's encryption are secure
-4. **Randomness**: Sui Random provides unbiased randomness for shuffling
+2. **Sui Random**: VRF provides unbiased, unpredictable randomness
+3. **Cryptography**: Blake2b256 is collision-resistant and pre-image resistant
+4. **Client Honesty**: Players don't share their card info with opponents (social, not cryptographic)
 
-### Why This is Better Than Alternatives
+### Why Fully On-Chain?
 
-**vs. Centralized Server:**
-- No single point of failure
-- No trust in game operator
-- Transparent, auditable rules
+**All critical game state and logic lives in the smart contract:**
 
-**vs. Zero-Knowledge Proofs:**
-- Simpler implementation
-- Lower computational cost
-- Faster transactions
-- Still achieves necessary privacy
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    FULLY ON-CHAIN BENEFITS                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ✓ No centralized server to trust or maintain                  │
+│  ✓ Game rules are transparent and auditable                    │
+│  ✓ No single point of failure                                  │
+│  ✓ Censorship resistant                                        │
+│  ✓ Provably fair (randomness from Sui VRF)                     │
+│  ✓ Immutable game history                                      │
+│  ✓ Composable with other Sui protocols                         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-**vs. Commit-Reveal (without Seal):**
-- Players can see their cards immediately (no waiting for reveal phase)
-- Dynamic access control (Priest can view, King can swap)
-- Better UX while maintaining security
+### Comparison with Alternatives
 
-### On-Chain Security
+| Approach | Verifiable | Decentralized | Complexity | Our Choice |
+|----------|------------|---------------|------------|------------|
+| Centralized server | ❌ | ❌ | Low | ❌ |
+| Client-side only | ❌ | ✅ | Low | ❌ |
+| Zero-Knowledge Proofs | ✅ | ✅ | Very High | ❌ |
+| **Commitment Scheme** | ✅ | ✅ | Medium | ✅ |
 
-1. **Commitment Verification**: Players cannot lie about card values
-2. **State Validation**: All game rules enforced on-chain
-3. **Access Control**: Only valid players can interact with rooms
-
-### Off-Chain Security (Seal)
-
-1. **Threshold Decryption**: Multiple Seal servers required
-2. **Session Keys**: Time-limited decryption permissions
-3. **Access Policies**: On-chain verification before decryption
+**Why Commitments over ZK Proofs?**
+- Simpler implementation and auditing
+- Lower gas costs
+- Faster transaction times
+- Sufficient for card game use case (don't need to hide computation, just values)
 
 ## Project Structure
 

@@ -1,0 +1,13 @@
+[package]
+name = "relic-of-lies-v4"
+version = "0.0.1"
+edition = "2024.beta"
+
+[dependencies]
+
+[addresses]
+contract_v4 = "0x0"
+
+[dev-dependencies]
+
+[dev-addresses]
