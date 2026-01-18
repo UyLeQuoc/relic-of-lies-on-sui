@@ -191,6 +191,7 @@ export function OnChainGameAdapter({ roomId }: OnChainGameAdapterProps) {
         message: err instanceof Error ? err.message : 'Unknown error',
       });
     }
+    window.location.reload();
   };
 
   // Show loading while checking wallet

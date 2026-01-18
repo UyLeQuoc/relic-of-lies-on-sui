@@ -9,12 +9,12 @@ Relic of Lies is a strategic card game for 2-4 players where you must eliminate 
 ## Game Setup
 
 ### 1. Room Creation
-- Player creates a room (pays 0.1 SUI entry fee)
+- Player creates a room (Free fee)
 - Sets room name and max players (2-4)
 - Room is created as a shared object on Sui blockchain
 
 ### 2. Players Join
-- Other players join the room (each pays 0.1 SUI)
+- Other players join the room (each pays 0.0 SUI)
 - Entry fees accumulate in the prize pool
 - Game starts when minimum 2 players join
 
