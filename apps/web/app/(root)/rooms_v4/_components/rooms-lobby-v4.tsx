@@ -30,7 +30,6 @@ import {
 import { RefreshCw, Search, Users, Lock, Shield } from "lucide-react";
 import LoginComponent from "@/components/common/login";
 import { CreateRoomV4 } from "./create-room-v4";
-import { toast } from "sonner";
 
 type StatusFilter = "all" | "0" | "1" | "2" | "3";
 
@@ -65,10 +64,26 @@ export function RoomsLobbyV4() {
   }, [currentAccount, fetchRooms]);
 
   const handleCreateRoom = async (name: string, maxPlayers: number) => {
-    const result = await createRoom(name, maxPlayers);
-    fetchRooms();
-    if (result.roomId) {
-      router.push(`/game_v4?roomId=${result.roomId}`);
+    try {
+      const result = await createRoom(name, maxPlayers);
+      fetchRooms();
+      
+      if (result.roomId) {
+        // Automatically join the room after creating it
+        try {
+          await joinRoom(result.roomId);
+          // Wait a bit for the join transaction to be processed
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (joinErr) {
+          console.error("Failed to auto-join room:", joinErr);
+          // Continue anyway - user can manually join
+        }
+        
+        router.push(`/game_v4?roomId=${result.roomId}`);
+      }
+    } catch (err) {
+      console.error("Failed to create room:", err);
+      // Error is already handled by the hook
     }
   };
 
@@ -158,10 +173,12 @@ export function RoomsLobbyV4() {
     });
   }, [rooms, searchQuery, statusFilter, playerCountFilter]);
 
+  // Error handling - removed toast notification
+  // Rooms error will be handled by UI state instead
   useEffect(() => {
     if (!currentAccount) return;
     if (roomsError?.message) {
-      toast.error(roomsError.message);
+      console.error("Rooms error:", roomsError.message);
     }
   }, [roomsError, currentAccount]);
 

@@ -1512,7 +1512,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
           <div className="flex items-center justify-center gap-2 mb-4">
             <Lock className="h-6 w-6 text-amber-400" />
             <h1 
-              className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 tracking-wider"
+              className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 tracking-wider"
               style={{ fontFamily: "var(--font-god-of-war), serif" }}
             >
               {room.name}
@@ -1520,7 +1520,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
           </div>
 
           <div className="bg-slate-800/50 rounded-lg p-4 mb-6 border border-amber-600/30">
-            <p className="text-violet-300/80 text-lg mb-2">
+            <p className="text-amber-300/80 text-lg mb-2">
               Players: {room.players.length}/{room.max_players}
             </p>
             <div className="space-y-2">
@@ -1696,7 +1696,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         {/* Chancellor Choice UI */}
         {humanPlayer && gameState.gamePhase === "chancellorChoice" && gameState.chancellorCards.length > 0 && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col gap-4 z-30 pointer-events-none">
-            <div className="pointer-events-auto flex flex-col gap-4 backdrop-blur-sm rounded-lg p-4 border border-amber-600/50 bg-slate-900/80">
+            <div className="pointer-events-auto flex flex-col gap-4 backdrop-blur-sm rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-amber-400">Tactician: Choose card to keep</h3>
 
@@ -1823,7 +1823,22 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
                           if (!canSelect) return;
                           const newSelectedId = isSelected ? null : card.id;
                           setSelectedCardId(newSelectedId);
-                          if (!newSelectedId) {
+                          // Reset target and guess when selecting a card that doesn't require them
+                          if (newSelectedId) {
+                            const newSelectedCard = humanPlayer?.hand.find((c: GameCard) => c.id === newSelectedId);
+                            if (newSelectedCard && !cardRequiresTarget(newSelectedCard)) {
+                              setSelectedTarget(null);
+                            } else if (newSelectedCard && cardRequiresTarget(newSelectedCard)) {
+                              // If new card requires target but is not Prince, and current target is self, reset target
+                              if (newSelectedCard.value !== 5 && selectedTarget === gameState.myPlayerIndex) {
+                                setSelectedTarget(null);
+                              }
+                            }
+                            if (newSelectedCard && !cardRequiresGuess(newSelectedCard)) {
+                              setSelectedGuess(null);
+                            }
+                          } else {
+                            // Deselecting card - reset everything
                             setSelectedTarget(null);
                             setSelectedGuess(null);
                           }
@@ -1888,7 +1903,6 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
             {/* Guess Selection (Knight) */}
             {isMyTurn && selectedCard?.value === 1 && selectedTarget !== null && (
               <div className="absolute bottom-[240px] left-1/2 -translate-x-1/2 z-10">
-                <p className="text-amber-300 text-sm mb-2 text-center">Guess a card (not Knight):</p>
                 <div className="flex gap-2 flex-wrap justify-center">
                   {[0, 2, 3, 4, 5, 6, 7, 8, 9].map((cardValue) => {
                     const cardData = CARD_DATA_MAP[cardValue];
@@ -1904,7 +1918,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
                             : "border-amber-600/50 hover:border-amber-400 text-amber-400"
                         }`}
                       >
-                        {cardData.name}
+                        {cardValue}. {cardData.name}
                       </button>
                     );
                   })}
@@ -2057,12 +2071,12 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
             onClick={() => setShowHealerModal(false)}
           >
             <div
-              className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-8 max-w-md border-2 border-purple-500/50 shadow-2xl shadow-purple-500/20 cursor-default text-center"
+              className="rounded-xl p-8 max-w-md cursor-default text-center"
               role="dialog"
             >
               <div className="flex items-center justify-center gap-2 mb-4">
-                <Eye className="h-6 w-6 text-purple-400" />
-                <h3 className="text-2xl font-bold text-purple-400">Healer Vision</h3>
+                <Eye className="h-6 w-6 text-amber-400" />
+                <h3 className="text-2xl font-bold text-amber-400">Healer Vision</h3>
               </div>
               
               <p className="text-amber-300/80 mb-6">
@@ -2071,7 +2085,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               
               <div className="flex justify-center mb-6">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-purple-500/30 blur-xl rounded-full" />
+                  <div className="absolute inset-0 bg-amber-500/30 blur-xl rounded-full" />
                   <CardCharacter 
                     cardType={mapCardValueToCardType(healerRevealedCard.cardValue)} 
                     size="md" 
@@ -2094,7 +2108,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               
               <Button
                 onClick={() => setShowHealerModal(false)}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="bg-amber-600 hover:bg-amber-700 text-white"
               >
                 Got it!
               </Button>
@@ -2107,7 +2121,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
           <button
             type="button"
             onClick={() => setShowHealerModal(true)}
-            className="fixed bottom-4 left-4 z-40 bg-purple-600/90 hover:bg-purple-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all hover:scale-105"
+            className="fixed bottom-4 left-4 z-40 bg-amber-600/90 hover:bg-amber-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all hover:scale-105"
           >
             <Eye className="h-5 w-5" />
             <div className="text-left">
@@ -2139,7 +2153,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
             onClick={() => setShowDiscardModal(false)}
           >
             <div 
-              className="rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto animate-scale-in bg-slate-900/95 border border-amber-600/30 text-left"
+              className="rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto animate-scale-in text-left"
             >
               <div className="flex justify-center items-center mb-4 min-w-56">
                 <h3 className="text-xl font-bold text-amber-400">Discarded Cards ({visibleLogEntries.length})</h3>
