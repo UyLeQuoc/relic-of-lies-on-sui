@@ -2200,7 +2200,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         {/* Game Log */}
         {room.discarded_cards_log.length > 0 && (
           <div className="absolute bottom-4 right-4 z-20 w-64">
-            <div className="bg-slate-800/90 rounded-lg p-3 border border-amber-600/30 max-h-40 overflow-y-auto">
+            <div className="backdrop-blur-xl rounded-lg p-3 max-h-40 overflow-y-auto">
               <h4 className="text-xs font-semibold text-amber-400 mb-2">Game Log</h4>
               <div className="space-y-1">
                 {room.discarded_cards_log.slice(-5).map((entry, idx) => (
