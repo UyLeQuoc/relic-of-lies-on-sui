@@ -124,7 +124,7 @@ export const cardsMap: Record<CardConceptType, CardConceptValue> = {
 				value: 6,
 				name: "Tactician",
 				description:
-					"Draw 2 cards. Keep one and place the others at the bottom.",
+					"Draw 2 cards. Keep one and place the others at bottom in any order",
 				image: `${imagePrefixPath}/characters/6.png`,
 				valueStyle: "left-[10%]",
 			},

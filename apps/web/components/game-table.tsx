@@ -51,6 +51,12 @@ interface GameTableProps {
   onStartNewGame?: () => void;
   winnerName?: string | null;
   onViewDiscard?: () => void; // Callback to show discard pile modal in parent
+  roundWinner?: {
+    playerIndex: number;
+    playerName: string;
+    reason: string;
+    cardValue?: number;
+  } | null;
 }
 
 export function GameTable({
@@ -72,6 +78,7 @@ export function GameTable({
   onStartNewGame,
   winnerName = null,
   onViewDiscard,
+  roundWinner = null,
 }: GameTableProps) {
   // Separate players: opponents (around table) - human player is shown in Card Hand at bottom and South position
   const opponents = players.filter((_, idx) => idx !== myPlayerIndex);
@@ -258,6 +265,13 @@ export function GameTable({
                     <span className="text-xs">💀</span>
                   </div>
                 )}
+                
+                {/* Round Winner Crown */}
+                {roundWinner && roundWinner.playerIndex === actualIndex && (
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 animate-bounce">
+                    <span className="text-3xl drop-shadow-lg">👑</span>
+                  </div>
+                )}
               </div>
 
               {/* Opponent card count - Right side of avatar */}
@@ -284,13 +298,25 @@ export function GameTable({
               >
                 {formatAddress(player.id)}
               </a>
-              <div className="flex items-center gap-1 mt-0.5">
+              <div className="flex items-center gap-1 mt-1">
                 {Array.from({ length: player.hearts }, (_, i) => (
-                  <span key={`heart-${player.id}-${i}`} className="text-red-500 text-xs">
-                    ❤️
-                  </span>
+                  <img 
+                    key={`token-${player.id}-${i}`} 
+                    src="/images/logo/main.png" 
+                    alt="Token" 
+                    className="w-6 h-6 object-contain drop-shadow-[0_0_6px_rgba(251,191,36,0.9)] brightness-110"
+                  />
                 ))}
               </div>
+              
+              {/* Round Winner Reason */}
+              {roundWinner && roundWinner.playerIndex === actualIndex && (
+                <div className="mt-2 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full shadow-lg animate-pulse">
+                  <span className="text-xs font-bold text-slate-900">
+                    🏆 {roundWinner.reason}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -300,32 +326,40 @@ export function GameTable({
       <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-4 z-0">
         {/* Start New Round Button - Center */}
         {showStartRoundButton && onStartRound ? (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-3">
             <Button
               onClick={onStartRound}
               disabled={isStartingRound}
               size="lg"
-              className="from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold px-6 py-4 text-base md:text-lg shadow-xl"
+              className="relative overflow-hidden bg-gradient-to-b from-amber-500 via-amber-600 to-amber-700 hover:from-amber-400 hover:via-amber-500 hover:to-amber-600 text-slate-900 font-bold px-8 py-5 text-lg md:text-xl rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_6px_0_0_#92400e,0_8px_30px_rgba(245,158,11,0.5)] hover:shadow-[0_3px_0_0_#92400e,0_5px_20px_rgba(245,158,11,0.6)] hover:translate-y-[3px] active:translate-y-[6px] active:shadow-none border-2 border-amber-400/60"
+              style={{ fontFamily: 'var(--font-god-of-war), serif' }}
             >
-              {isStartingRound ? 'Starting New Round...' : 'Start New Round'}
+              <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]">
+                {isStartingRound ? '🎴 Preparing...' : '🎴 Start New Round'}
+              </span>
             </Button>
             {isGameEnd && (
-              <p className="text-center text-amber-400 font-semibold text-sm mt-2">Game Ended!</p>
+              <p className="text-center text-amber-400 font-semibold text-sm mt-1 drop-shadow-lg">⚔️ Game Ended! ⚔️</p>
             )}
           </div>
         ) : isGameEnd && onStartNewGame ? (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-3">
             {winnerName && (
-              <p className="text-center text-amber-400 font-semibold text-lg mb-2">
-                {winnerName} Won!
-              </p>
+              <div className="text-center mb-2">
+                <p className="text-amber-400 font-bold text-xl drop-shadow-lg" style={{ fontFamily: 'var(--font-god-of-war), serif' }}>
+                  👑 {winnerName} Won! 👑
+                </p>
+              </div>
             )}
             <Button
               onClick={onStartNewGame}
               size="lg"
-              className="from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold px-6 py-4 text-base md:text-lg shadow-xl"
+              className="relative overflow-hidden bg-gradient-to-b from-purple-500 via-purple-600 to-purple-800 hover:from-purple-400 hover:via-purple-500 hover:to-purple-700 text-white font-bold px-8 py-5 text-lg md:text-xl rounded-lg transition-all shadow-[0_6px_0_0_#581c87,0_8px_30px_rgba(168,85,247,0.5)] hover:shadow-[0_3px_0_0_#581c87,0_5px_20px_rgba(168,85,247,0.6)] hover:translate-y-[3px] active:translate-y-[6px] active:shadow-none border-2 border-purple-400/60"
+              style={{ fontFamily: 'var(--font-god-of-war), serif' }}
             >
-              Start New Game
+              <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+                ✨ Start New Game ✨
+              </span>
             </Button>
           </div>
         ) : (
@@ -586,6 +620,13 @@ export function GameTable({
                 <span className="text-xs">💀</span>
               </div>
             )}
+            
+            {/* Round Winner Crown */}
+            {roundWinner && roundWinner.playerIndex === myPlayerIndex && (
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 animate-bounce">
+                <span className="text-3xl drop-shadow-lg">👑</span>
+              </div>
+            )}
           </div>
           
           {/* Player info */}
@@ -599,13 +640,25 @@ export function GameTable({
             >
               {formatAddress(humanPlayer.id)}
             </a>
-            <div className="flex items-center gap-1 mt-0.5">
+            <div className="flex items-center gap-1 mt-1">
               {Array.from({ length: humanPlayer.hearts }, (_, i) => (
-                <span key={`heart-${humanPlayer.id}-${i}`} className="text-red-500 text-xs">
-                  ❤️
-                </span>
+                <img 
+                  key={`token-${humanPlayer.id}-${i}`} 
+                  src="/images/logo/main.png" 
+                  alt="Token" 
+                  className="w-6 h-6 object-contain drop-shadow-[0_0_6px_rgba(251,191,36,0.9)] brightness-110"
+                />
               ))}
             </div>
+            
+            {/* Round Winner Reason */}
+            {roundWinner && roundWinner.playerIndex === myPlayerIndex && (
+              <div className="mt-2 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full shadow-lg animate-pulse">
+                <span className="text-xs font-bold text-slate-900">
+                  🏆 {roundWinner.reason}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}

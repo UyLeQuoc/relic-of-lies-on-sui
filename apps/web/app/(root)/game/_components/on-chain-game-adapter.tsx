@@ -27,7 +27,7 @@ const CARD_DATA_MAP: Record<number, Omit<GameCard, "id">> = {
   3: { type: "baron", name: "Baron", value: 3, description: "Privately compare hands with another player. Lower card is eliminated.", count: 2 },
   4: { type: "handmaid", name: "Handmaid", value: 4, description: "You are immune to all card effects until your next turn.", count: 2 },
   5: { type: "prince", name: "Prince", value: 5, description: "Choose any player. They discard their card and draw a new one.", count: 2 },
-  6: { type: "chancellor", name: "Chancellor", value: 6, description: "Draw 2 cards, keep 1, return 2 to bottom of deck.", count: 2 },
+  6: { type: "chancellor", name: "Chancellor", value: 6, description: "Draw 2 cards, keep 1, return 2 to bottom of deck in any order.", count: 2 },
   7: { type: "king", name: "King", value: 7, description: "Trade hands with another player.", count: 1 },
   8: { type: "countess", name: "Countess", value: 8, description: "Must be discarded if you have King or Prince.", count: 1 },
   9: { type: "princess", name: "Princess", value: 9, description: "If discarded (by you or forced), you are eliminated.", count: 1 },
@@ -337,8 +337,21 @@ function OnChainGameWithUI({
   const playButtonRef = useRef<HTMLButtonElement>(null);
   const turnIndicatorRef = useRef<HTMLDivElement>(null);
   const prevHandLength = useRef<number>(0);
+  const prevHandCardsRef = useRef<GameCard[]>([]);
   const headerRef = useRef<HTMLDivElement>(null);
   const prevRoundRef = useRef<number>(0);
+  
+  // Flag to skip animation on initial page load
+  const isInitialLoadRef = useRef<boolean>(true);
+  
+  // Draw card animation state
+  const [drawCardAnimation, setDrawCardAnimation] = useState<{
+    drawnCards: GameCard[];
+    isRoundStart: boolean;
+  } | null>(null);
+  
+  // State to hide newly drawn cards until animation completes
+  const [hiddenDrawnCards, setHiddenDrawnCards] = useState<Set<string>>(new Set());
   
   // Track previous discard state to detect new cards played by any player
   const prevDiscardPileRef = useRef<GameCard[]>([]);
@@ -368,6 +381,15 @@ function OnChainGameWithUI({
     wizardPlayerIndex: number;
     timestamp: number;
   } | null>(null);
+  
+  // Round winner display state
+  const [roundWinner, setRoundWinner] = useState<{
+    playerIndex: number;
+    playerName: string;
+    reason: string;
+    cardValue?: number;
+  } | null>(null);
+  const prevGamePhaseRef = useRef<string>('');
 
   const humanPlayer = gameState.players.find((p: Player) => !p.isBot);
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
@@ -1154,66 +1176,223 @@ function OnChainGameWithUI({
     
   }, [wizardEffectAnimation, gameState.myPlayerIndex, gameState.players.length]);
 
-  // GSAP: Animate cards when hand changes (new card drawn) - AFTER room state updates
-  useLayoutEffect(() => {
-    if (!cardsContainerRef.current || !humanPlayer) return;
+  // Detect when new cards are drawn and trigger animation
+  useEffect(() => {
+    if (!humanPlayer) return;
     
-    const currentHandLength = humanPlayer.hand.length;
-    const cards = cardsContainerRef.current.querySelectorAll('.game-card-item');
+    const currentHand = humanPlayer.hand;
+    const prevHand = prevHandCardsRef.current;
+    const currentHandLength = currentHand.length;
     
-    // If new card was drawn (hand grew), animate the new card
-    if (currentHandLength > prevHandLength.current && cards.length > 0) {
-      // Delay to ensure state has updated
-      setTimeout(() => {
-        const newCard = cards[cards.length - 1];
-        if (newCard) {
-          gsap.fromTo(newCard, 
-            { 
-              y: -100, 
-              opacity: 0, 
-              scale: 0.5,
-              rotateY: 180,
-            },
-            { 
-              y: 0, 
-              opacity: 1, 
-              scale: 1,
-              rotateY: 0,
-              duration: 0.6,
-              ease: "back.out(1.7)",
-            }
-          );
-        }
-      }, 100);
-    }
-    // If all cards are new (round start), stagger animate all
-    else if (prevHandLength.current === 0 && currentHandLength > 0) {
-      setTimeout(() => {
-        const allCards = cardsContainerRef.current?.querySelectorAll('.game-card-item');
-        if (allCards && allCards.length > 0) {
-          gsap.fromTo(allCards,
-            { 
-              y: -150, 
-              opacity: 0, 
-              scale: 0.3,
-              rotateY: 180,
-            },
-            { 
-              y: 0, 
-              opacity: 1, 
-              scale: 1,
-              rotateY: 0,
-              duration: 0.7,
-              ease: "back.out(1.7)",
-              stagger: 0.15,
-            }
-          );
-        }
-      }, 100);
+    // Skip animation on initial page load
+    if (isInitialLoadRef.current) {
+      // Initialize refs with current state
+      prevHandLength.current = currentHandLength;
+      prevHandCardsRef.current = [...currentHand];
+      isInitialLoadRef.current = false;
+      return;
     }
     
+    // Check if cards were drawn (hand grew)
+    if (currentHandLength > prevHandLength.current) {
+      // Find the new cards by comparing IDs
+      const prevIds = new Set(prevHand.map((c: GameCard) => c.id));
+      const newCards = currentHand.filter((c: GameCard) => !prevIds.has(c.id));
+      
+      if (newCards.length > 0) {
+        // Check if it's a round start (no previous cards)
+        const isRoundStart = prevHandLength.current === 0;
+        
+        // Hide new cards until animation completes
+        setHiddenDrawnCards(prev => {
+          const newSet = new Set(prev);
+          newCards.forEach((c: GameCard) => newSet.add(c.id));
+          return newSet;
+        });
+        
+        setDrawCardAnimation({
+          drawnCards: newCards,
+          isRoundStart,
+        });
+      }
+    }
+    
+    // Update refs
     prevHandLength.current = currentHandLength;
-  }, [humanPlayer, humanPlayer?.hand.length]);
+    prevHandCardsRef.current = [...currentHand];
+  }, [humanPlayer, humanPlayer?.hand]);
+  
+  // GSAP: Draw card animation - card slides from deck to hand, then flips to reveal
+  useLayoutEffect(() => {
+    if (!drawCardAnimation) return;
+    
+    const { drawnCards, isRoundStart } = drawCardAnimation;
+    
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Deck position (center of table)
+    const deckX = viewportWidth / 2 - 80;
+    const deckY = viewportHeight * 0.4;
+    
+    // Player's hand position (bottom center, slightly to the right)
+    const handY = viewportHeight - 120;
+    const handXOffset = 80; // Offset to the right
+    
+    // Get card data from cardsMap
+    const cardConcept = cardsMap[CardConceptType.RelicOfLies];
+    
+    // Card size for animation - match "sm" size in CardCharacter (200px height, aspect 2:3)
+    const cardHeight = 200;
+    const cardWidth = Math.round((cardHeight * 2) / 3); // ~133px
+    
+    // Font sizes matching CardCharacter sm size
+    const valueFontSize = Math.round(cardHeight * cardConcept.valueFontSize);
+    const nameFontSize = Math.round(cardHeight * cardConcept.nameFontSize);
+    const descriptionFontSize = Math.round(cardHeight * cardConcept.descriptionFontSize);
+    
+    // Animate each drawn card
+    drawnCards.forEach((card: GameCard, index: number) => {
+      const cardTypeKey = `Value${card.value}` as CardType;
+      const cardInfo = cardConcept.cards[cardTypeKey];
+      
+      if (!cardInfo) return;
+      
+      // Calculate target X position (offset to the right)
+      const totalCards = drawnCards.length;
+      const spacing = 150;
+      const baseX = viewportWidth / 2 + handXOffset;
+      const startX = baseX - ((totalCards - 1) * spacing) / 2;
+      const targetX = startX + index * spacing;
+      
+      // Create animated card element with flip container
+      const animatedCard = document.createElement('div');
+      animatedCard.className = 'fixed z-[100] pointer-events-none';
+      animatedCard.style.willChange = 'transform, left, top';
+      animatedCard.style.perspective = '1000px';
+      animatedCard.innerHTML = `
+        <div class="card-flip-inner" style="width: ${cardWidth}px; height: ${cardHeight}px; transform-style: preserve-3d; position: relative;">
+          <!-- Card Back -->
+          <div class="absolute inset-0 rounded-lg overflow-hidden" style="backface-visibility: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            <img src="${cardConcept.cardBack}" alt="Card Back" class="w-full h-full object-cover" />
+          </div>
+          <!-- Card Front with value, name, and description -->
+          <div class="absolute inset-0 rounded-lg overflow-hidden" style="backface-visibility: hidden; transform: rotateY(180deg); box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            <img src="${cardInfo.image}" alt="${cardInfo.name}" class="absolute inset-0 w-full h-full object-contain z-0" />
+            <img src="${cardConcept.frame}" alt="Frame" class="absolute inset-0 w-full h-full object-cover z-10" />
+            <span class="absolute z-20 drop-shadow-lg" style="color: #d2ac77; top: 1.8%; left: 10.5%; font-size: ${valueFontSize}px; font-family: var(--font-faith-collapsing), serif; font-weight: bold;">${cardInfo.value}</span>
+            <span class="absolute z-20 truncate" style="color: #402716; top: 3.3%; left: 60%; transform: translateX(-50%); font-size: ${nameFontSize}px; font-family: var(--font-god-of-war), serif; max-width: 70%; font-weight: bold;">${cardInfo.name}</span>
+            <span class="absolute z-20 text-center left-1/2 -translate-x-1/2" style="color: rgba(0,0,0,0.8); bottom: 10%; font-size: ${descriptionFontSize}px; font-family: var(--font-helvetica), sans-serif; width: 72%; font-weight: 600; line-height: 1.2;">${cardInfo.description}</span>
+          </div>
+        </div>
+      `;
+      
+      // Initial position at deck
+      animatedCard.style.left = `${deckX}px`;
+      animatedCard.style.top = `${deckY}px`;
+      animatedCard.style.transform = 'translate(-50%, -50%)';
+      document.body.appendChild(animatedCard);
+      
+      const flipInner = animatedCard.querySelector('.card-flip-inner') as HTMLElement;
+      
+      // Delay for stagger effect at round start
+      const staggerDelay = isRoundStart ? index * 0.2 : 0;
+      
+      // Timeline for slide then flip
+      const tl = gsap.timeline({ delay: staggerDelay });
+      
+      // Phase 1: Slide from deck to hand
+      tl.to(animatedCard, {
+        left: targetX,
+        top: handY,
+        duration: 0.5,
+        ease: "power3.out",
+      });
+      
+      // Phase 2: Flip card to reveal
+      tl.to(flipInner, {
+        rotateY: 180,
+        duration: 0.4,
+        ease: "power2.inOut",
+      });
+      
+      // Phase 3: Fade out quickly and reveal the actual card
+      tl.to(animatedCard, {
+        opacity: 0,
+        duration: 0.15,
+        delay: 0.2,
+        ease: "power2.in",
+        onComplete: () => {
+          animatedCard.remove();
+          
+          // Reveal this card in hand
+          setHiddenDrawnCards(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(card.id);
+            return newSet;
+          });
+          
+          // Clear animation state after last card
+          if (index === drawnCards.length - 1) {
+            setDrawCardAnimation(null);
+          }
+        },
+      });
+    });
+    
+  }, [drawCardAnimation]);
+  
+  // Detect round end and show winner
+  useEffect(() => {
+    // Only trigger when game phase changes to roundEnd
+    if (gameState.gamePhase === 'roundEnd' && prevGamePhaseRef.current !== 'roundEnd') {
+      // Find the winner(s) - players who are still alive
+      const alivePlayers = gameState.players
+        .map((p: Player, idx: number) => ({ player: p, index: idx }))
+        .filter((item: { player: Player; index: number }) => !item.player.isEliminated);
+      
+      if (alivePlayers.length === 1) {
+        // Single winner - last one standing
+        const winner = alivePlayers[0];
+        const cardInHand = winner.player.hand[0];
+        setRoundWinner({
+          playerIndex: winner.index,
+          playerName: winner.player.name,
+          reason: 'Last one standing!',
+          cardValue: cardInHand?.value,
+        });
+      } else if (alivePlayers.length > 1) {
+        // Multiple alive - compare cards (showdown)
+        let highestValue = -1;
+        let winner: { player: Player; index: number } | null = null;
+        
+        for (const item of alivePlayers) {
+          const cardInHand = item.player.hand[0];
+          if (cardInHand && cardInHand.value > highestValue) {
+            highestValue = cardInHand.value;
+            winner = item;
+          }
+        }
+        
+        if (winner) {
+          setRoundWinner({
+            playerIndex: winner.index,
+            playerName: winner.player.name,
+            reason: `Highest card (${highestValue})!`,
+            cardValue: highestValue,
+          });
+        }
+      }
+    }
+    
+    // Clear winner when new round starts
+    if (gameState.gamePhase === 'playing' && prevGamePhaseRef.current === 'roundEnd') {
+      setRoundWinner(null);
+    }
+    
+    prevGamePhaseRef.current = gameState.gamePhase;
+  }, [gameState.gamePhase, gameState.players]);
 
   // GSAP: Turn indicator pulse animation
   useLayoutEffect(() => {
@@ -1369,6 +1548,7 @@ function OnChainGameWithUI({
                 ? gameState.players.find((p: Player) => p.hearts >= gameState.heartsToWin)?.name || null
                 : null}
               onViewDiscard={() => setShowDiscardModal(true)}
+              roundWinner={roundWinner}
             />
           </div>
 
@@ -1577,7 +1757,7 @@ function OnChainGameWithUI({
                 ref={cardsContainerRef}
                 className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 justify-center flex-wrap z-10"
               >
-                {humanPlayer.hand.map((card: GameCard) => {
+                {humanPlayer.hand.filter((c: GameCard) => !hiddenDrawnCards.has(c.id)).map((card: GameCard) => {
                   const isSelected = selectedCardId === card.id;
                   // If mustPlayCountess, only Countess (8) can be selected
                   const isCountess = card.value === 8;
@@ -1679,9 +1859,12 @@ function OnChainGameWithUI({
                           ref={playButtonRef}
                           onClick={handlePlayCard}
                           disabled={isDisabled}
-                          className="from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-6 text-lg rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="relative overflow-hidden bg-gradient-to-b from-amber-500 via-amber-600 to-amber-700 hover:from-amber-400 hover:via-amber-500 hover:to-amber-600 text-slate-900 font-bold py-4 px-8 text-lg rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_4px_0_0_#92400e,0_6px_20px_rgba(245,158,11,0.4)] hover:shadow-[0_2px_0_0_#92400e,0_4px_15px_rgba(245,158,11,0.5)] hover:translate-y-[2px] active:translate-y-[4px] active:shadow-none border-2 border-amber-400/50"
+                          style={{ fontFamily: 'var(--font-god-of-war), serif' }}
                         >
-                          {isProcessingAction ? 'Playing...' : 'PLAY'}
+                          <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]">
+                            {isProcessingAction ? '⚔️ Playing...' : '⚔️ PLAY'}
+                          </span>
                         </Button>
                       );
                     })()
