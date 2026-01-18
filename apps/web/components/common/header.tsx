@@ -11,16 +11,16 @@ import {
   Menu,
   Settings,
   Sparkles,
-  Trophy,
   User,
   Wallet,
   X,
+  ShoppingCart
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useCurrentAccount, useDisconnectWallet } from "@mysten/dapp-kit";
-import { useSuiBalance } from "@/hooks/use-sui-balance";
+import { useBalance } from "@/contexts/balance-context";
 import { CopyButton } from "../ui/copy-button";
 import { Button } from "../ui/button";
 import LoginComponent from "./login";
@@ -36,12 +36,7 @@ import {
 const menuItems = [
   { id: "home", label: "Home", icon: Home, href: "/" },
   { id: "rooms", label: "Rooms", icon: Gamepad2, href: "/rooms" },
-  {
-    id: "leaderboard",
-    label: "Leaderboard",
-    icon: Trophy,
-    href: "/leader-board",
-  },
+  
   {
     id: "how-to-play",
     label: "How to Play",
@@ -55,13 +50,19 @@ const menuItems = [
     icon: Layers,
     href: "/my-collection",
   },
+  {
+    id: "marketplace",
+    label: "Marketplace",
+    icon: ShoppingCart,
+    href: "/marketplace",
+  }
 ];
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const currentAccount = useCurrentAccount();
-  const { balance } = useSuiBalance(currentAccount?.address ?? "");
+  const { balance } = useBalance();
   const { mutate: disconnect } = useDisconnectWallet();
 
   return (
@@ -91,14 +92,28 @@ export default function Header() {
                 <Link
                   key={item.id}
                   href={item.href}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`relative flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-zinc-800 text-white"
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                      ? "text-white"
+                      : "text-zinc-400 hover:text-white"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
+                  {isActive && (
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-full h-[3px] rounded-full overflow-visible">
+                      {/* Core light line */}
+                      <span className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400 to-transparent rounded-full" />
+                      {/* Inner glow */}
+                      <span className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-400 to-transparent blur-[2px] animate-pulse rounded-full" />
+                      {/* Outer glow */}
+                      <span className="absolute -inset-1 bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent blur-md animate-underlight-glow rounded-full" />
+                      {/* Wide ambient glow */}
+                      <span className="absolute -inset-2 bg-gradient-to-r from-transparent via-blue-500/30 to-transparent blur-xl animate-underlight-glow rounded-full" />
+                      {/* Shimmer effect */}
+                      <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-underlight-shimmer rounded-full" />
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -220,14 +235,26 @@ export default function Header() {
                     key={item.id}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors ${
+                    className={`relative flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors ${
                       isActive
-                        ? "bg-zinc-800 text-white"
+                        ? "text-white"
                         : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
                     }`}
                   >
                     <Icon className="w-5 h-5" />
                     <span>{item.label}</span>
+                    {isActive && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-3/4 rounded-full overflow-visible">
+                        {/* Core light line */}
+                        <span className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-400 to-transparent rounded-full" />
+                        {/* Inner glow */}
+                        <span className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-400 to-transparent blur-[2px] animate-pulse rounded-full" />
+                        {/* Outer glow */}
+                        <span className="absolute -inset-1 bg-gradient-to-b from-transparent via-cyan-500/60 to-transparent blur-md animate-underlight-glow rounded-full" />
+                        {/* Wide ambient glow */}
+                        <span className="absolute -inset-2 bg-gradient-to-b from-transparent via-blue-500/30 to-transparent blur-xl animate-underlight-glow rounded-full" />
+                      </span>
+                    )}
                   </Link>
                 );
               })}

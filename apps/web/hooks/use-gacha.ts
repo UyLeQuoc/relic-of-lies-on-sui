@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
-import { useSuiBalance } from "@/hooks/use-sui-balance";
+import { useBalance } from "@/contexts/balance-context";
 import {
   useGachaPull,
   useGetMyCards,
@@ -19,9 +19,7 @@ export interface PulledCard extends CardNFT {
 export function useGacha() {
   const client = useSuiClient();
   const currentAccount = useCurrentAccount();
-  const { balance, refetch: refetchBalance } = useSuiBalance(
-    currentAccount?.address
-  );
+  const { balance, refetch: refetchBalance } = useBalance();
   const { pull, isPending: isPulling } = useGachaPull();
   const { cards, fetchCards } = useGetMyCards();
 

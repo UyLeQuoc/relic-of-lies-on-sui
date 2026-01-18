@@ -3,6 +3,7 @@
 import { ThemeProvider } from "next-themes";
 import type React from "react";
 import SuiProvider from "./sui-provider";
+import { BalanceProvider } from "@/contexts/balance-context";
 
 export default function AppProvider({
 	children,
@@ -17,7 +18,9 @@ export default function AppProvider({
 			disableTransitionOnChange
 		>
 			<SuiProvider>
-				{children}
+				<BalanceProvider>
+					{children}
+				</BalanceProvider>
 			</SuiProvider>
 		</ThemeProvider>
 	);
