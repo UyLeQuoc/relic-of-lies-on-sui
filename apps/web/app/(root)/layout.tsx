@@ -8,7 +8,7 @@ export default function Layout({
 }>) {
   return (
     <AppProvider>
-      <div className="flex flex-col min-h-screen overflow-x-hidden">
+      <div className="flex flex-col min-h-screen overflow-x-hidden uyuyuy">
         <main className="flex-1">{children}</main>
         <Toaster position="top-right" richColors />
       </div>
