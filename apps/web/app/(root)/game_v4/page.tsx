@@ -1,8 +1,9 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { SealedGameV4 } from "./_components/sealed-game-v4";
+import { SealedGameAdapterV4 } from "./_components/sealed-game-adapter-v4";
 import { Suspense } from "react";
+import { Loader2 } from "lucide-react";
 
 function GameV4Content() {
   const searchParams = useSearchParams();
@@ -10,13 +11,13 @@ function GameV4Content() {
 
   if (!roomId) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">No Room Selected</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-2xl font-bold text-white">No Room Selected</h1>
+          <p className="text-amber-300/70 mt-2">
             Please select a room from the lobby.
           </p>
-          <a href="/rooms_v4" className="mt-4 inline-block text-primary underline">
+          <a href="/rooms_v4" className="mt-4 inline-block text-amber-400 underline hover:text-amber-300">
             Go to Lobby
           </a>
         </div>
@@ -24,15 +25,18 @@ function GameV4Content() {
     );
   }
 
-  return <SealedGameV4 roomId={roomId} />;
+  return <SealedGameAdapterV4 roomId={roomId} />;
 }
 
 export default function GameV4Page() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-amber-400" />
+            <p className="text-amber-300">Loading game...</p>
+          </div>
         </div>
       }
     >

@@ -35,7 +35,7 @@ import {
 
 const menuItems = [
   { id: "home", label: "Home", icon: Home, href: "/" },
-  { id: "rooms", label: "Rooms", icon: Gamepad2, href: "/rooms" },
+  { id: "rooms", label: "Rooms", icon: Gamepad2, href: "/rooms_v4" },
   
   {
     id: "how-to-play",
@@ -125,7 +125,7 @@ export default function Header() {
             {currentAccount ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 transition-colors cursor-pointer">
+                  <button type="button" className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 transition-colors cursor-pointer">
                     <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 shrink-0">
                       <Wallet className="w-3.5 h-3.5 text-white" />
                     </div>

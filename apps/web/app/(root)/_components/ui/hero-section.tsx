@@ -42,7 +42,7 @@ export default function HeroSection() {
               size="lg" 
               className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-base px-8 py-6 min-w-[200px] group border-0"
             >
-              <Link href="/rooms" className="flex items-center gap-2">
+              <Link href="/rooms_v4" className="flex items-center gap-2">
                 <Gamepad2 className="w-5 h-5" />
                 Play Now
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

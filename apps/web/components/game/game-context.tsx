@@ -20,6 +20,7 @@ export type ActionPhase =
 	| "result";
 
 export type CardType =
+  | "unknown"
 	| "guard"
 	| "priest"
 	| "baron"
