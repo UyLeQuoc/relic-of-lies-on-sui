@@ -228,8 +228,11 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     opponentCard: GameCard;
     opponentAddress: string;
     result: 'win' | 'lose' | 'tie';
+    myPlayerIndex: number;
+    targetPlayerIndex: number;
   } | null>(null);
   const lastBerserkerPlayRef = useRef<{ targetIndex: number; myCardValue: number; timestamp: number } | null>(null);
+  const [berserkerAnimationComplete, setBerserkerAnimationComplete] = useState(false);
 
   // Animation refs
   const headerRef = useRef<HTMLDivElement>(null);
@@ -784,19 +787,26 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         result = 'tie';
       }
       
+      // Reset animation state before showing comparison
+      setBerserkerAnimationComplete(false);
+      
       setBerserkerComparison({
         myCard: createCard(myCardValue, 'my-baron-card'),
         myAddress: myPlayer?.id || '',
         opponentCard: createCard(opponentCardValue, 'opponent-baron-card'),
         opponentAddress: targetPlayer.id,
         result,
+        myPlayerIndex: gameState.myPlayerIndex,
+        targetPlayerIndex: targetIndex,
       });
       
       lastBerserkerPlayRef.current = null;
       
+      // Auto-hide modal after 10 seconds (after animation completes)
       setTimeout(() => {
         setBerserkerComparison(null);
-      }, 10000);
+        setBerserkerAnimationComplete(false);
+      }, 12000); // 10 seconds after animation + 2 seconds for animation itself
     }
   }, [room, gameState, humanPlayer]);
 
@@ -1179,6 +1189,144 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [thrownCardAnimation]);
+
+  // GSAP: Berserker (Baron) comparison animation - 2 cards fly in and compare
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally not including gameState to prevent re-triggering animation
+  useLayoutEffect(() => {
+    if (!berserkerComparison || !gameState || berserkerAnimationComplete) return;
+    
+    const { myCard, opponentCard, myPlayerIndex, targetPlayerIndex, result } = berserkerComparison;
+    
+    const cardConcept = cardsMap[CardConceptType.RelicOfLies];
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const centerX = viewportWidth / 2;
+    const centerY = viewportHeight * 0.4;
+    
+    const cardHeight = 200;
+    const cardWidth = Math.round((cardHeight * 2) / 3);
+    const valueFontSize = Math.round(cardHeight * cardConcept.valueFontSize);
+    const nameFontSize = Math.round(cardHeight * cardConcept.nameFontSize);
+    const descriptionFontSize = Math.round(cardHeight * cardConcept.descriptionFontSize);
+    
+    const myCardTypeKey = `Value${myCard.value}` as CardType;
+    const opponentCardTypeKey = `Value${opponentCard.value}` as CardType;
+    const myCardInfo = cardConcept.cards[myCardTypeKey];
+    const opponentCardInfo = cardConcept.cards[opponentCardTypeKey];
+    
+    if (!myCardInfo || !opponentCardInfo) {
+      setBerserkerAnimationComplete(true);
+      return;
+    }
+    
+    const totalPlayers = gameState.players.length;
+    const opponentCount = totalPlayers - 1;
+    
+    const myX = viewportWidth / 2;
+    const myY = viewportHeight - 100;
+    
+    let opponentX: number;
+    let opponentY: number;
+    
+    if (targetPlayerIndex > myPlayerIndex) {
+      const opponentIdx = targetPlayerIndex - myPlayerIndex - 1;
+      if (opponentCount === 1) {
+        opponentX = viewportWidth / 2;
+        opponentY = 100;
+      } else if (opponentCount === 2) {
+        opponentX = opponentIdx === 0 ? 100 : viewportWidth - 100;
+        opponentY = viewportHeight / 2;
+      } else {
+        if (opponentIdx === 0) { opponentX = 100; opponentY = viewportHeight / 2; }
+        else if (opponentIdx === 1) { opponentX = viewportWidth / 2; opponentY = 100; }
+        else { opponentX = viewportWidth - 100; opponentY = viewportHeight / 2; }
+      }
+    } else {
+      const opponentIdx = targetPlayerIndex + (totalPlayers - myPlayerIndex - 1);
+      if (opponentCount === 1) {
+        opponentX = viewportWidth / 2;
+        opponentY = 100;
+      } else if (opponentCount === 2) {
+        opponentX = opponentIdx === 0 ? 100 : viewportWidth - 100;
+        opponentY = viewportHeight / 2;
+      } else {
+        if (opponentIdx === 0) { opponentX = 100; opponentY = viewportHeight / 2; }
+        else if (opponentIdx === 1) { opponentX = viewportWidth / 2; opponentY = 100; }
+        else { opponentX = viewportWidth - 100; opponentY = viewportHeight / 2; }
+      }
+    }
+    
+    const myCardEl = document.createElement('div');
+    myCardEl.className = 'fixed z-[100] pointer-events-none';
+    myCardEl.innerHTML = `
+      <div class="relative rounded-lg overflow-hidden shadow-2xl" style="width: ${cardWidth}px; height: ${cardHeight}px; box-shadow: 0 0 30px ${result === 'win' ? 'rgba(34, 197, 94, 0.6)' : result === 'lose' ? 'rgba(239, 68, 68, 0.6)' : 'rgba(251, 191, 36, 0.6)'};">
+        <img src="${myCardInfo.image}" alt="${myCardInfo.name}" class="absolute inset-0 w-full h-full object-contain z-0" />
+        <img src="${cardConcept.frame}" alt="Frame" class="absolute inset-0 w-full h-full object-cover z-10" />
+        <span class="absolute z-20 drop-shadow-lg" style="color: #d2ac77; top: 1.8%; left: 10.5%; font-size: ${valueFontSize}px; font-family: var(--font-faith-collapsing), serif; font-weight: bold;">${myCardInfo.value}</span>
+        <span class="absolute z-20 truncate" style="color: #402716; top: 3.3%; left: 60%; transform: translateX(-50%); font-size: ${nameFontSize}px; font-family: var(--font-god-of-war), serif; max-width: 70%; font-weight: bold;">${myCardInfo.name}</span>
+        <p class="absolute z-20 text-center" style="color: rgba(0, 0, 0, 0.8); bottom: 10%; left: 50%; transform: translateX(-50%); font-size: ${descriptionFontSize}px; font-family: var(--font-helvetica), sans-serif; width: 72%; font-weight: 600; line-height: 1.2;">${myCardInfo.description}</p>
+      </div>
+    `;
+    
+    const opponentCardEl = document.createElement('div');
+    opponentCardEl.className = 'fixed z-[100] pointer-events-none';
+    opponentCardEl.innerHTML = `
+      <div class="relative rounded-lg overflow-hidden shadow-2xl" style="width: ${cardWidth}px; height: ${cardHeight}px; box-shadow: 0 0 30px ${result === 'lose' ? 'rgba(34, 197, 94, 0.6)' : result === 'win' ? 'rgba(239, 68, 68, 0.6)' : 'rgba(251, 191, 36, 0.6)'};">
+        <img src="${opponentCardInfo.image}" alt="${opponentCardInfo.name}" class="absolute inset-0 w-full h-full object-contain z-0" />
+        <img src="${cardConcept.frame}" alt="Frame" class="absolute inset-0 w-full h-full object-cover z-10" />
+        <span class="absolute z-20 drop-shadow-lg" style="color: #d2ac77; top: 1.8%; left: 10.5%; font-size: ${valueFontSize}px; font-family: var(--font-faith-collapsing), serif; font-weight: bold;">${opponentCardInfo.value}</span>
+        <span class="absolute z-20 truncate" style="color: #402716; top: 3.3%; left: 60%; transform: translateX(-50%); font-size: ${nameFontSize}px; font-family: var(--font-god-of-war), serif; max-width: 70%; font-weight: bold;">${opponentCardInfo.name}</span>
+        <p class="absolute z-20 text-center" style="color: rgba(0, 0, 0, 0.8); bottom: 10%; left: 50%; transform: translateX(-50%); font-size: ${descriptionFontSize}px; font-family: var(--font-helvetica), sans-serif; width: 72%; font-weight: 600; line-height: 1.2;">${opponentCardInfo.description}</p>
+      </div>
+    `;
+    
+    myCardEl.style.left = `${myX}px`;
+    myCardEl.style.top = `${myY}px`;
+    myCardEl.style.transform = 'translate(-50%, -50%) scale(0.5)';
+    myCardEl.style.opacity = '0';
+    
+    opponentCardEl.style.left = `${opponentX}px`;
+    opponentCardEl.style.top = `${opponentY}px`;
+    opponentCardEl.style.transform = 'translate(-50%, -50%) scale(0.5)';
+    opponentCardEl.style.opacity = '0';
+    
+    document.body.appendChild(myCardEl);
+    document.body.appendChild(opponentCardEl);
+    
+    const tl = gsap.timeline({
+      onComplete: () => {
+        gsap.to([myCardEl, opponentCardEl], {
+          opacity: 0,
+          scale: 0.8,
+          duration: 0.3,
+          delay: 1,
+          ease: "power2.in",
+          onComplete: () => {
+            myCardEl.remove();
+            opponentCardEl.remove();
+            setBerserkerAnimationComplete(true);
+          },
+        });
+      },
+    });
+    
+    tl.to([myCardEl, opponentCardEl], { opacity: 1, scale: 0.8, duration: 0.3, ease: "power2.out" }, 0);
+    tl.to(myCardEl, { left: centerX - 150, top: centerY, scale: 1, rotation: -5, duration: 0.6, ease: "power2.out" }, 0.3);
+    tl.to(opponentCardEl, { left: centerX + 150, top: centerY, scale: 1, rotation: 5, duration: 0.6, ease: "power2.out" }, 0.3);
+    tl.to([myCardEl, opponentCardEl], { scale: 1.1, duration: 0.1, ease: "power2.out" }, 0.9);
+    tl.to([myCardEl, opponentCardEl], { scale: 1, duration: 0.15, ease: "bounce.out" }, 1.0);
+    
+    if (result === 'win') {
+      tl.to(myCardEl, { scale: 1.15, boxShadow: "0 0 50px rgba(34, 197, 94, 0.8)", duration: 0.2, yoyo: true, repeat: 2, ease: "power2.inOut" }, 1.2);
+      tl.to(opponentCardEl, { scale: 0.9, opacity: 0.7, duration: 0.2, ease: "power2.out" }, 1.2);
+    } else if (result === 'lose') {
+      tl.to(opponentCardEl, { scale: 1.15, boxShadow: "0 0 50px rgba(34, 197, 94, 0.8)", duration: 0.2, yoyo: true, repeat: 2, ease: "power2.inOut" }, 1.2);
+      tl.to(myCardEl, { scale: 0.9, opacity: 0.7, duration: 0.2, ease: "power2.out" }, 1.2);
+    } else {
+      tl.to([myCardEl, opponentCardEl], { scale: 1.1, boxShadow: "0 0 40px rgba(251, 191, 36, 0.6)", duration: 0.2, yoyo: true, repeat: 2, ease: "power2.inOut" }, 1.2);
+    }
+    
+  }, [berserkerComparison, berserkerAnimationComplete, gameState]);
 
   // GSAP: Wizard effect animation
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally not including gameState to prevent re-triggering animation
@@ -1956,12 +2104,15 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               </button>
             )}
 
-            {/* Berserker Comparison Modal */}
-            {berserkerComparison && (
+            {/* Berserker Comparison Modal - Show after animation completes */}
+            {berserkerComparison && berserkerAnimationComplete && (
               <button 
                 type="button"
                 className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in cursor-pointer"
-                onClick={() => setBerserkerComparison(null)}
+                onClick={() => {
+                  setBerserkerComparison(null);
+                  setBerserkerAnimationComplete(false);
+                }}
               >
                 <div 
                   className="flex flex-col items-center gap-6 rounded-lg p-6 animate-scale-in"
