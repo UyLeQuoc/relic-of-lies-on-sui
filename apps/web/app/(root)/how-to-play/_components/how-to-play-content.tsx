@@ -3,18 +3,20 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Users, Coins, Trophy, Target, Shield } from "lucide-react";
+import { CardCharacter } from "@/components/common/game-ui/cards/card-character";
+import { CardType } from "@/components/common/game-ui/cards/types";
 
 const cardEffects = [
-	{ name: 'Spy', value: 0, count: 2, effect: 'No immediate effect. At round end, if you\'re the ONLY player who played/holds Spy, gain +1 token' },
-	{ name: 'Guard', value: 1, count: 6, effect: 'Guess a player\'s card (not Guard). If correct, they\'re eliminated' },
-	{ name: 'Priest', value: 2, count: 2, effect: 'Look at another player\'s hand' },
-	{ name: 'Baron', value: 3, count: 2, effect: 'Compare hands with a player. Lower value is eliminated' },
-	{ name: 'Handmaid', value: 4, count: 2, effect: 'Immune to targeting until your next turn' },
-	{ name: 'Prince', value: 5, count: 2, effect: 'Choose any player to discard and draw. If Princess discarded, eliminated' },
-	{ name: 'Chancellor', value: 6, count: 2, effect: 'Draw 2 cards, keep 1, return 2 to bottom of deck' },
-	{ name: 'King', value: 7, count: 1, effect: 'Trade hands with another player' },
-	{ name: 'Countess', value: 8, count: 1, effect: 'Must be discarded if you have King or Prince' },
-	{ name: 'Princess', value: 9, count: 1, effect: 'If discarded (by you or forced), you are eliminated' },
+	{ name: 'Scout', value: 0, count: 2, cardType: CardType.Value0, effect: 'At round end, if only you played or discarded a Scout, gain 1 Relic.' },
+	{ name: 'Knight', value: 1, count: 6, cardType: CardType.Value1, effect: 'Name a non-Knight card. If that target holds it, they are eliminated.' },
+	{ name: 'Healer', value: 2, count: 2, cardType: CardType.Value2, effect: 'Choose and privately look at another player\'s hand.' },
+	{ name: 'Berserker', value: 3, count: 2, cardType: CardType.Value3, effect: 'Compare hands with another player. Lower card is eliminated.' },
+	{ name: 'Cleric', value: 4, count: 2, cardType: CardType.Value4, effect: 'You are immune to all card effects until your next turn.' },
+	{ name: 'Wizard', value: 5, count: 2, cardType: CardType.Value5, effect: 'Choose any player. They discard their card and draw a new one.' },
+	{ name: 'Tactician', value: 6, count: 2, cardType: CardType.Value6, effect: 'Draw 2 cards. Keep one and place the others at bottom in any order.' },
+	{ name: 'Paladin', value: 7, count: 1, cardType: CardType.Value7, effect: 'Choose and swap your hand with another player\'s hand.' },
+	{ name: 'Cursed Idol', value: 8, count: 1, cardType: CardType.Value8, effect: 'Must be discarded if held with Wizard or Paladin. Otherwise, no effect.' },
+	{ name: 'Sacred Crystal', value: 9, count: 1, cardType: CardType.Value9, effect: 'If you play or discard this card, you are immediately eliminated.' },
 ];
 
 export function HowToPlayContent() {
@@ -60,7 +62,7 @@ export function HowToPlayContent() {
 							<div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
 								<Trophy className="w-5 h-5 text-primary" />
 								<div>
-									<p className="font-medium">3 Tokens</p>
+									<p className="font-medium">3 Relics</p>
 									<p className="text-sm text-muted-foreground">To win</p>
 								</div>
 							</div>
@@ -99,8 +101,8 @@ export function HowToPlayContent() {
 							<li className="flex gap-4">
 								<div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">4</div>
 								<div>
-									<p className="font-medium">Win Tokens</p>
-									<p className="text-sm text-muted-foreground">Survive the round to earn tokens. First to 3 tokens wins the prize pool!</p>
+									<p className="font-medium">Win Relics</p>
+									<p className="text-sm text-muted-foreground">Survive the round to earn Relics. First to 3 Relics wins the prize pool!</p>
 								</div>
 							</li>
 						</ol>
@@ -110,23 +112,28 @@ export function HowToPlayContent() {
 				{/* Card Effects */}
 				<Card className="mb-6">
 					<CardHeader>
-						<CardTitle>Card Effects ()</CardTitle>
+						<CardTitle>Card Effects</CardTitle>
 						<CardDescription>21 cards total, 10 different types</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 							{cardEffects.map((card) => (
 								<div key={card.name} className="p-4 rounded-lg border bg-card">
-									<div className="flex items-start justify-between mb-2">
-										<div>
-											<h3 className="font-semibold text-lg">{card.name}</h3>
-											<div className="flex items-center gap-2 mt-1">
+									<div className="flex items-start gap-4 mb-3">
+										{/* Card Image */}
+										<div className="flex-shrink-0">
+											<CardCharacter cardType={card.cardType} size="xs" />
+										</div>
+										{/* Card Info */}
+										<div className="flex-1">
+											<h3 className="font-semibold text-lg mb-2">{card.name}</h3>
+											<div className="flex items-center gap-2 mb-2">
 												<Badge variant="outline">Value: {card.value}</Badge>
 												<Badge variant="secondary">Count: {card.count}</Badge>
 											</div>
+											<p className="text-sm text-muted-foreground">{card.effect}</p>
 										</div>
 									</div>
-									<p className="text-sm text-muted-foreground mt-2">{card.effect}</p>
 								</div>
 							))}
 						</div>
@@ -142,16 +149,16 @@ export function HowToPlayContent() {
 						<div>
 							<h3 className="font-semibold mb-2 flex items-center gap-2">
 								<Shield className="w-4 h-4" />
-								Countess Rule
+								Cursed Idol Rule
 							</h3>
 							<p className="text-sm text-muted-foreground">
-								If you have Countess AND (King OR Prince) in hand, you MUST play Countess.
+								If you have Cursed Idol AND (Wizard OR Paladin) in hand, you MUST play Cursed Idol.
 							</p>
 						</div>
 						<div>
-							<h3 className="font-semibold mb-2">Spy Bonus</h3>
+							<h3 className="font-semibold mb-2">Scout Bonus</h3>
 							<p className="text-sm text-muted-foreground">
-								At end of round, check all players who played or hold Spy. If EXACTLY ONE player qualifies, they get +1 token. If multiple players have Spy, no bonus is awarded.
+								At end of round, check all players who played or hold Scout. If EXACTLY ONE player qualifies, they get +1 Relic. If multiple players have Scout, no bonus is awarded.
 							</p>
 						</div>
 						<div>
@@ -169,27 +176,27 @@ export function HowToPlayContent() {
 					</CardContent>
 				</Card>
 
-				{/* Token System */}
+				{/* Relic System */}
 				<Card>
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2">
 							<Trophy className="w-5 h-5" />
-							Token System
+							Relic System
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<ul className="space-y-2">
 							<li className="flex items-start gap-2">
 								<span className="text-primary">•</span>
-								<span><strong>Round Win:</strong> +1 token</span>
+								<span><strong>Round Win:</strong> +1 Relic</span>
 							</li>
 							<li className="flex items-start gap-2">
 								<span className="text-primary">•</span>
-								<span><strong>Spy Bonus:</strong> +1 token (if ONLY you played/hold Spy)</span>
+								<span><strong>Scout Bonus:</strong> +1 Relic (if ONLY you played/hold Scout)</span>
 							</li>
 							<li className="flex items-start gap-2">
 								<span className="text-primary">•</span>
-								<span><strong>Game Win:</strong> First to collect 3 tokens wins the prize pool</span>
+								<span><strong>Game Win:</strong> First to collect 3 Relics wins the prize pool</span>
 							</li>
 						</ul>
 					</CardContent>
