@@ -39,6 +39,12 @@ const UPGRADE_RATE_RARE_TO_EPIC: u64 = 60;
 const UPGRADE_RATE_EPIC_TO_LEGENDARY: u64 = 40;
 const UPGRADE_RATE_LEGENDARY_TO_MYTHIC: u64 = 20;
 
+/// Game played boost configuration
+/// Each 10 games played = +1% boost to upgrade rate
+/// Maximum boost: +15% (150 games total)
+const GAMES_PER_BOOST_PERCENT: u64 = 10;
+const MAX_BOOST_PERCENT: u64 = 15;
+
 // ============== Error Codes ==============
 
 const EInsufficientPayment: u64 = 0;
@@ -210,8 +216,8 @@ public entry fun pull_and_keep(
 
 // ============== Upgrade Functions ==============
 
-/// Get upgrade success rate based on current rarity
-fun get_upgrade_rate(rarity: u8): u64 {
+/// Get base upgrade success rate based on current rarity
+fun get_base_upgrade_rate(rarity: u8): u64 {
     if (rarity == RARITY_COMMON) {
         UPGRADE_RATE_COMMON_TO_RARE
     } else if (rarity == RARITY_RARE) {
@@ -225,8 +231,46 @@ fun get_upgrade_rate(rarity: u8): u64 {
     }
 }
 
+/// Calculate boost percentage based on total games played across all 3 cards
+/// Formula: (total_games_played / GAMES_PER_BOOST_PERCENT) capped at MAX_BOOST_PERCENT
+fun calculate_games_boost(total_games_played: u64): u64 {
+    let boost = total_games_played / GAMES_PER_BOOST_PERCENT;
+    if (boost > MAX_BOOST_PERCENT) {
+        MAX_BOOST_PERCENT
+    } else {
+        boost
+    }
+}
+
+/// Get upgraded success rate with boost from games played
+/// Reads games_played from each card and calculates boost
+fun get_upgrade_rate_with_boost(
+    card1: &Card,
+    card2: &Card,
+    card3: &Card,
+): u64 {
+    let base_rate = get_base_upgrade_rate(card1.rarity);
+    
+    // Calculate total games played across all 3 cards
+    let total_games = card1.games_played + card2.games_played + card3.games_played;
+    
+    // Calculate boost percentage
+    let boost = calculate_games_boost(total_games);
+    
+    // Apply boost (out of 100, so we can add boost directly)
+    let boosted_rate = base_rate + boost;
+    
+    // Cap at 100% (maximum success rate)
+    if (boosted_rate > 100) {
+        100
+    } else {
+        boosted_rate
+    }
+}
+
 /// Upgrade 3 cards of the same rarity to attempt getting 1 card of higher rarity
 /// Success rate depends on rarity: Common→Rare 80%, Rare→Epic 60%, Epic→Legendary 40%, Legendary→Mythic 20%
+/// Boost: Each 10 games played across all 3 cards = +1% boost (max +15%)
 /// On SUCCESS: Returns upgraded card with combined stats
 /// On FAILURE: Returns 1 card of same rarity with combined stats (2 cards are lost)
 public fun upgrade(
@@ -249,8 +293,10 @@ public fun upgrade(
     let new_value = (generator.generate_u8() % 10) as u8;
     let upgrade_roll = generator.generate_u64_in_range(0, 100);
     
-    // Check if upgrade succeeds
-    let success_rate = get_upgrade_rate(current_rarity);
+    // Calculate success rate with boost from games played
+    // Reads games_played from each card and calculates boost
+    let success_rate = get_upgrade_rate_with_boost(&card1, &card2, &card3);
+    
     let new_rarity = if (upgrade_roll < success_rate) {
         current_rarity + 1 // SUCCESS: Upgrade to higher rarity
     } else {
@@ -315,14 +361,32 @@ public fun rarity_epic(): u8 { RARITY_EPIC }
 public fun rarity_legendary(): u8 { RARITY_LEGENDARY }
 public fun rarity_mythic(): u8 { RARITY_MYTHIC }
 
-/// Get upgrade success rate for a rarity (out of 100)
-public fun upgrade_rate(rarity: u8): u64 { get_upgrade_rate(rarity) }
+/// Get base upgrade success rate for a rarity (out of 100)
+/// Note: Actual upgrade rate may be higher with games_played boost
+public fun upgrade_rate(rarity: u8): u64 { get_base_upgrade_rate(rarity) }
 
 /// Get upgrade rates for all rarities
 public fun upgrade_rate_common_to_rare(): u64 { UPGRADE_RATE_COMMON_TO_RARE }
 public fun upgrade_rate_rare_to_epic(): u64 { UPGRADE_RATE_RARE_TO_EPIC }
 public fun upgrade_rate_epic_to_legendary(): u64 { UPGRADE_RATE_EPIC_TO_LEGENDARY }
 public fun upgrade_rate_legendary_to_mythic(): u64 { UPGRADE_RATE_LEGENDARY_TO_MYTHIC }
+
+/// Calculate upgrade rate with boost from games played
+/// Takes base rate and total games played across 3 cards
+/// Returns boosted rate (capped at 100%)
+public fun calculate_upgrade_rate_with_boost(base_rate: u64, total_games_played: u64): u64 {
+    let boost = calculate_games_boost(total_games_played);
+    let boosted_rate = base_rate + boost;
+    if (boosted_rate > 100) {
+        100
+    } else {
+        boosted_rate
+    }
+}
+
+/// Get games boost configuration
+public fun games_per_boost_percent(): u64 { GAMES_PER_BOOST_PERCENT }
+public fun max_boost_percent(): u64 { MAX_BOOST_PERCENT }
 
 /// Get rarity name as string
 public fun rarity_name(rarity: u8): std::string::String {
