@@ -87,18 +87,18 @@ export const CardType = {
   PRINCESS: 9,
 } as const;
 
-// Card names for display
+// Card names for display - Relic of Lies theme
 export const CardNames: Record<number, string> = {
-  [CardType.SPY]: "Spy",
-  [CardType.GUARD]: "Guard",
-  [CardType.PRIEST]: "Priest",
-  [CardType.BARON]: "Baron",
-  [CardType.HANDMAID]: "Handmaid",
-  [CardType.PRINCE]: "Prince",
-  [CardType.CHANCELLOR]: "Chancellor",
-  [CardType.KING]: "King",
-  [CardType.COUNTESS]: "Countess",
-  [CardType.PRINCESS]: "Princess",
+  [CardType.SPY]: "Scout",
+  [CardType.GUARD]: "Knight",
+  [CardType.PRIEST]: "Healer",
+  [CardType.BARON]: "Berserker",
+  [CardType.HANDMAID]: "Cleric",
+  [CardType.PRINCE]: "Wizard",
+  [CardType.CHANCELLOR]: "Tactician",
+  [CardType.KING]: "Paladin",
+  [CardType.COUNTESS]: "Cursed Idol",
+  [CardType.PRINCESS]: "Sacred Crystal",
 };
 
 // ============== Error Code Mapping ==============
@@ -1062,32 +1062,32 @@ export function cardRequiresGuess(cardValue: number): boolean {
  */
 export function getValidGuessOptions(): Array<{ value: number; name: string }> {
   return [
-    { value: CardType.PRIEST, name: CardNames[CardType.PRIEST] ?? "Priest" },
-    { value: CardType.BARON, name: CardNames[CardType.BARON] ?? "Baron" },
-    { value: CardType.HANDMAID, name: CardNames[CardType.HANDMAID] ?? "Handmaid" },
-    { value: CardType.PRINCE, name: CardNames[CardType.PRINCE] ?? "Prince" },
-    { value: CardType.CHANCELLOR, name: CardNames[CardType.CHANCELLOR] ?? "Chancellor" },
-    { value: CardType.KING, name: CardNames[CardType.KING] ?? "King" },
-    { value: CardType.COUNTESS, name: CardNames[CardType.COUNTESS] ?? "Countess" },
-    { value: CardType.PRINCESS, name: CardNames[CardType.PRINCESS] ?? "Princess" },
+    { value: CardType.PRIEST, name: CardNames[CardType.PRIEST] ?? "Healer" },
+    { value: CardType.BARON, name: CardNames[CardType.BARON] ?? "Berserker" },
+    { value: CardType.HANDMAID, name: CardNames[CardType.HANDMAID] ?? "Cleric" },
+    { value: CardType.PRINCE, name: CardNames[CardType.PRINCE] ?? "Wizard" },
+    { value: CardType.CHANCELLOR, name: CardNames[CardType.CHANCELLOR] ?? "Tactician" },
+    { value: CardType.KING, name: CardNames[CardType.KING] ?? "Paladin" },
+    { value: CardType.COUNTESS, name: CardNames[CardType.COUNTESS] ?? "Cursed Idol" },
+    { value: CardType.PRINCESS, name: CardNames[CardType.PRINCESS] ?? "Sacred Crystal" },
   ];
 }
 
 /**
- * Get card description
+ * Get card description - Relic of Lies theme
  */
 export function getCardDescription(cardValue: number): string {
   const descriptions: Record<number, string> = {
-    [CardType.SPY]: "If you are the only player with a Spy at the end of the round, gain 1 token.",
-    [CardType.GUARD]: "Name a non-Guard card. If the target has that card, they are eliminated.",
+    [CardType.SPY]: "If you are the only player with a Scout at the end of the round, gain 1 Relic.",
+    [CardType.GUARD]: "Name a non-Knight card. If the target has that card, they are eliminated.",
     [CardType.PRIEST]: "Look at another player's hand.",
     [CardType.BARON]: "Compare hands with another player. Lower value is eliminated.",
     [CardType.HANDMAID]: "You are immune until your next turn.",
     [CardType.PRINCE]: "Choose a player (including yourself) to discard their hand and draw a new card.",
-    [CardType.CHANCELLOR]: "Draw 2 cards, keep 1, return 2 to the bottom of the deck.",
-    [CardType.KING]: "Trade hands with another player.",
-    [CardType.COUNTESS]: "Must be discarded if you have King or Prince in hand.",
-    [CardType.PRINCESS]: "If you discard this card, you are eliminated.",
+    [CardType.CHANCELLOR]: "Draw 2 cards. Keep one and place the others at bottom in any order.",
+    [CardType.KING]: "Choose and swap your hand with another player's hand.",
+    [CardType.COUNTESS]: "Must be discarded if held with Wizard or Paladin. Otherwise, no effect.",
+    [CardType.PRINCESS]: "If you play or discard this card, you are immediately eliminated.",
   };
   return descriptions[cardValue] || "Unknown card";
 }
@@ -1103,11 +1103,11 @@ export function getPendingActionDescription(
 
   switch (actionType) {
     case PendingActionType.GUARD_RESPONSE:
-      return `Guard guessed ${CardNames[pendingAction.data[0] ?? 0] ?? "Unknown"}. Reveal your card.`;
+      return `Knight guessed ${CardNames[pendingAction.data[0] ?? 0] ?? "Unknown"}. Reveal your card.`;
     case PendingActionType.BARON_RESPONSE:
-      return "Baron comparison. Reveal your card.";
+      return "Berserker comparison. Reveal your card.";
     case PendingActionType.PRINCE_RESPONSE:
-      return "Prince effect. Discard your hand and draw a new card.";
+      return "Wizard effect. Discard your hand and draw a new card.";
     default:
       return "Unknown pending action";
   }

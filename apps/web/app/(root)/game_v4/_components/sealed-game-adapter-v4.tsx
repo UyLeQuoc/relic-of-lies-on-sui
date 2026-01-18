@@ -33,18 +33,18 @@ import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { Loader2, Lock, Shield, Eye, EyeOff } from "lucide-react";
 
-// Card data mapping for game components
+// Card data mapping for game components - Relic of Lies theme
 const CARD_DATA_MAP: Record<number, Omit<GameCard, "id">> = {
-  0: { type: "spy", name: "Spy", value: 0, description: "At round end, if only you played or discarded a Spy, gain 1 token.", count: 2 },
-  1: { type: "guard", name: "Guard", value: 1, description: "Name a card (except Guard). If that target holds it, they are eliminated.", count: 6 },
-  2: { type: "priest", name: "Priest", value: 2, description: "Choose and privately look at another player's hand.", count: 2 },
-  3: { type: "baron", name: "Baron", value: 3, description: "Privately compare hands with another player. Lower card is eliminated.", count: 2 },
-  4: { type: "handmaid", name: "Handmaid", value: 4, description: "You are immune to all card effects until your next turn.", count: 2 },
-  5: { type: "prince", name: "Prince", value: 5, description: "Choose any player. They discard their card and draw a new one.", count: 2 },
-  6: { type: "chancellor", name: "Chancellor", value: 6, description: "Draw 2 cards, keep 1, return 2 to bottom of deck in any order.", count: 2 },
-  7: { type: "king", name: "King", value: 7, description: "Trade hands with another player.", count: 1 },
-  8: { type: "countess", name: "Countess", value: 8, description: "Must be discarded if you have King or Prince.", count: 1 },
-  9: { type: "princess", name: "Princess", value: 9, description: "If discarded (by you or forced), you are eliminated.", count: 1 },
+  0: { type: "spy", name: "Scout", value: 0, description: "At round end, if only you played or discarded a Scout, gain 1 Relic.", count: 2 },
+  1: { type: "guard", name: "Knight", value: 1, description: "Name a non-Knight card. If that target holds it, they are eliminated.", count: 6 },
+  2: { type: "priest", name: "Healer", value: 2, description: "Choose and privately look at another player's hand.", count: 2 },
+  3: { type: "baron", name: "Berserker", value: 3, description: "Compare hands with another player. Lower card is eliminated.", count: 2 },
+  4: { type: "handmaid", name: "Cleric", value: 4, description: "You are immune to all card effects until your next turn.", count: 2 },
+  5: { type: "prince", name: "Wizard", value: 5, description: "Choose any player. They discard their card and draw a new one.", count: 2 },
+  6: { type: "chancellor", name: "Tactician", value: 6, description: "Draw 2 cards. Keep one and place the others at bottom in any order.", count: 2 },
+  7: { type: "king", name: "Paladin", value: 7, description: "Choose and swap your hand with another player's hand.", count: 1 },
+  8: { type: "countess", name: "Cursed Idol", value: 8, description: "Must be discarded if held with Wizard or Paladin. Otherwise, no effect.", count: 1 },
+  9: { type: "princess", name: "Sacred Crystal", value: 9, description: "If you play or discard this card, you are immediately eliminated.", count: 1 },
 };
 
 function createCard(cardValue: number, id: string): GameCard {
@@ -207,29 +207,29 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
   const [showCardValues, setShowCardValues] = useState(true);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   
-  // Priest reveal state
-  const [priestRevealedCard, setPriestRevealedCard] = useState<{
+  // Healer reveal state
+  const [healerRevealedCard, setHealerRevealedCard] = useState<{
     cardIndex: number;
     cardValue: number;
     targetPlayerIndex: number;
     targetPlayerName: string;
     expiresTurn: number;
   } | null>(null);
-  const [showPriestModal, setShowPriestModal] = useState(false);
+  const [showHealerModal, setShowHealerModal] = useState(false);
 
-  // Priest reveal state
+  // Healer reveal state
   const [revealedCard, setRevealedCard] = useState<{ card: GameCard; targetName: string; targetAddress: string } | null>(null);
-  const lastPriestPlayRef = useRef<{ targetIndex: number; timestamp: number } | null>(null);
+  const lastHealerPlayRef = useRef<{ targetIndex: number; timestamp: number } | null>(null);
   
-  // Baron comparison state
-  const [baronComparison, setBaronComparison] = useState<{
+  // Berserker comparison state
+  const [berserkerComparison, setBerserkerComparison] = useState<{
     myCard: GameCard;
     myAddress: string;
     opponentCard: GameCard;
     opponentAddress: string;
     result: 'win' | 'lose' | 'tie';
   } | null>(null);
-  const lastBaronPlayRef = useRef<{ targetIndex: number; myCardValue: number; timestamp: number } | null>(null);
+  const lastBerserkerPlayRef = useRef<{ targetIndex: number; myCardValue: number; timestamp: number } | null>(null);
 
   // Animation refs
   const headerRef = useRef<HTMLDivElement>(null);
@@ -269,7 +269,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
   // State to hide newly added cards from discard pile until animation completes
   const [hiddenDiscardCards, setHiddenDiscardCards] = useState<Set<string>>(new Set());
   
-  // Wizard (Prince/card 5) special animation state
+  // Wizard (card 5) special animation state
   const [wizardEffectAnimation, setWizardEffectAnimation] = useState<{
     targetPlayerIndex: number;
     targetPlayerName: string;
@@ -384,12 +384,12 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
       // New game started, clear cache
       decryptedIndicesRef.current.clear();
       lastHandIndicesRef.current = "";
-      setPriestRevealedCard(null);
+      setHealerRevealedCard(null);
     }
   }, [room?.round_number, room?.status]);
 
-  // Track Priest temporary access - decrypt opponent's card when we have access
-  const priestAccessRef = useRef<string>("");
+  // Track Healer temporary access - decrypt opponent's card when we have access
+  const healerAccessRef = useRef<string>("");
   useEffect(() => {
     if (!room || !currentAccount?.address) return;
 
@@ -402,14 +402,14 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
 
     if (!myAccess) {
       // Clear priest reveal if access expired
-      if (priestRevealedCard && Number(room.current_turn) >= priestRevealedCard.expiresTurn) {
-        setPriestRevealedCard(null);
+      if (healerRevealedCard && Number(room.current_turn) >= healerRevealedCard.expiresTurn) {
+        setHealerRevealedCard(null);
       }
       return;
     }
 
     const accessKey = `${myAccess.card_index}-${myAccess.expires_turn}`;
-    if (accessKey === priestAccessRef.current) {
+    if (accessKey === healerAccessRef.current) {
       return; // Already processed this access
     }
 
@@ -427,7 +427,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     if (targetPlayerIndex < 0) return;
 
     // Decrypt the target's card
-    const doDecryptPriestCard = async () => {
+    const doDecryptHealerCard = async () => {
       try {
         const encryptedCards = room.encrypted_cards.map((card) => {
           if ("Encrypted" in card && card.Encrypted) {
@@ -439,29 +439,29 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         });
 
         const cardIndex = Number(myAccess.card_index);
-        console.log("Priest: Decrypting opponent's card at index:", cardIndex);
+        console.log("Healer: Decrypting opponent's card at index:", cardIndex);
         
         const decrypted = await decryptCards(roomId, [cardIndex], encryptedCards);
         
         const firstDecrypted = decrypted[0];
         if (decrypted.length > 0 && firstDecrypted && firstDecrypted.value >= 0) {
-          setPriestRevealedCard({
+          setHealerRevealedCard({
             cardIndex: cardIndex,
             cardValue: firstDecrypted.value,
             targetPlayerIndex: targetPlayerIndex,
             targetPlayerName: `Player ${targetPlayerIndex + 1}`,
             expiresTurn: Number(myAccess.expires_turn),
           });
-          setShowPriestModal(true);
-          priestAccessRef.current = accessKey;
+          setShowHealerModal(true);
+          healerAccessRef.current = accessKey;
         }
       } catch (err) {
-        console.error("Failed to decrypt Priest target card:", err);
+        console.error("Failed to decrypt Healer target card:", err);
       }
     };
 
-    doDecryptPriestCard();
-  }, [room, currentAccount?.address, roomId, decryptCards, priestRevealedCard]);
+    doDecryptHealerCard();
+  }, [room, currentAccount?.address, roomId, decryptCards, healerRevealedCard]);
 
   // Convert room to game state
   const gameState = useMemo(() => {
@@ -482,7 +482,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     return humanPlayer?.hand.find((c) => c.id === selectedCardId) || null;
   }, [selectedCardId, gameState]);
 
-  // Check Countess rule
+  // Check Cursed Idol rule
   const mustPlayCountess = useMemo(() => {
     if (!gameState) return false;
     const humanPlayer = gameState.players.find((p) => !p.isBot);
@@ -565,13 +565,13 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         targetToUse = gameState.myPlayerIndex;
       }
 
-      // Track Priest and Baron plays for reveal modals
-      const isPriest = cardValue === 2;
-      const isBaron = cardValue === 3;
+      // Track Healer and Berserker plays for reveal modals
+      const isHealer = cardValue === 2;
+      const isBerserker = cardValue === 3;
       const targetIndex = targetToUse;
       
-      // For Baron, store my card value before playing (the other card in hand, not the Baron)
-      const myCardForBaron = isBaron && humanPlayer ? 
+      // For Berserker, store my card value before playing (the other card in hand, not the Berserker)
+      const myCardForBerserker = isBerserker && humanPlayer ? 
         humanPlayer.hand.find((c: GameCard) => c.id !== selectedCardId && c.value >= 0) : null;
 
       // playTurn signature: (roomId, cardIndex, cardValue, targetIdx?, guess?)
@@ -583,19 +583,19 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         selectedGuess
       );
 
-      // If Priest was played, store target info to reveal after room update
-      if (isPriest && targetIndex !== null && targetIndex >= 0) {
-        lastPriestPlayRef.current = {
+      // If Healer was played, store target info to reveal after room update
+      if (isHealer && targetIndex !== null && targetIndex >= 0) {
+        lastHealerPlayRef.current = {
           targetIndex,
           timestamp: Date.now()
         };
       }
       
-      // If Baron was played, store info to show comparison after room update
-      if (isBaron && targetIndex !== null && targetIndex >= 0 && myCardForBaron) {
-        lastBaronPlayRef.current = {
+      // If Berserker was played, store info to show comparison after room update
+      if (isBerserker && targetIndex !== null && targetIndex >= 0 && myCardForBerserker) {
+        lastBerserkerPlayRef.current = {
           targetIndex,
-          myCardValue: myCardForBaron.value,
+          myCardValue: myCardForBerserker.value,
           timestamp: Date.now()
         };
       }
@@ -687,7 +687,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     } catch (err) {
       setResultNotification({
         type: "failure",
-        title: "Failed to Resolve Chancellor",
+        title: "Failed to Resolve Tactician",
         message: err instanceof Error ? err.message : "Unknown error",
       });
     }
@@ -707,21 +707,21 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     }
   };
 
-  // Auto-select Countess
+  // Auto-select Cursed Idol
   useEffect(() => {
     if (mustPlayCountess && countessCard && isMyTurn && !selectedCardId) {
       setSelectedCardId(countessCard.id);
     }
   }, [mustPlayCountess, countessCard, isMyTurn, selectedCardId]);
 
-  // Monitor for Priest reveal after room updates
+  // Monitor for Healer reveal after room updates
   useEffect(() => {
-    if (!room || !gameState || !lastPriestPlayRef.current) return;
+    if (!room || !gameState || !lastHealerPlayRef.current) return;
     
-    const { targetIndex, timestamp } = lastPriestPlayRef.current;
+    const { targetIndex, timestamp } = lastHealerPlayRef.current;
     
     if (Date.now() - timestamp > 10000) {
-      lastPriestPlayRef.current = null;
+      lastHealerPlayRef.current = null;
       return;
     }
     
@@ -736,7 +736,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
           targetAddress: targetPlayer.id
         });
         
-        lastPriestPlayRef.current = null;
+        lastHealerPlayRef.current = null;
         
         setTimeout(() => {
           setRevealedCard(null);
@@ -745,14 +745,14 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     }
   }, [room, gameState]);
 
-  // Monitor for Baron comparison after room updates
+  // Monitor for Berserker comparison after room updates
   useEffect(() => {
-    if (!room || !gameState || !lastBaronPlayRef.current || !humanPlayer) return;
+    if (!room || !gameState || !lastBerserkerPlayRef.current || !humanPlayer) return;
     
-    const { targetIndex, myCardValue, timestamp } = lastBaronPlayRef.current;
+    const { targetIndex, myCardValue, timestamp } = lastBerserkerPlayRef.current;
     
     if (Date.now() - timestamp > 10000) {
-      lastBaronPlayRef.current = null;
+      lastBerserkerPlayRef.current = null;
       return;
     }
     
@@ -771,7 +771,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
           opponentCardValue = myCardValue;
         }
       } else {
-        lastBaronPlayRef.current = null;
+        lastBerserkerPlayRef.current = null;
         return;
       }
       
@@ -784,7 +784,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         result = 'tie';
       }
       
-      setBaronComparison({
+      setBerserkerComparison({
         myCard: createCard(myCardValue, 'my-baron-card'),
         myAddress: myPlayer?.id || '',
         opponentCard: createCard(opponentCardValue, 'opponent-baron-card'),
@@ -792,10 +792,10 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         result,
       });
       
-      lastBaronPlayRef.current = null;
+      lastBerserkerPlayRef.current = null;
       
       setTimeout(() => {
-        setBaronComparison(null);
+        setBerserkerComparison(null);
       }, 10000);
     }
   }, [room, gameState, humanPlayer]);
@@ -918,12 +918,12 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         cardId,
       });
       
-      // Check for Prince (5) effect - look for next entry that might be the target's forced discard
+      // Check for Wizard (5) effect - look for next entry that might be the target's forced discard
       if (cardValue === 5 && logIndex + 1 < log.length) {
         const nextEntry = log[logIndex + 1];
         const nextCardId = `discard-log-${logIndex + 1}-turn-${nextEntry?.turn_number}`;
         
-        // If next entry is from a different player, it's the Prince target
+        // If next entry is from a different player, it's the Wizard target
         if (nextEntry && nextEntry.player_addr !== entry.player_addr && !processedCardIdsRef.current.has(nextCardId)) {
           // Mark next entry as processed too
           processedCardIdsRef.current.add(nextCardId);
@@ -951,7 +951,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         }
       }
       
-      // Check for pending wizard (Prince was played earlier, now target discards)
+      // Check for pending wizard (Wizard was played earlier, now target discards)
       if (pendingWizardRef.current && cardValue !== 5) {
         const pendingWizard = pendingWizardRef.current;
         if (Date.now() - pendingWizard.timestamp < 5000 && playerWhoPlayed !== pendingWizard.wizardPlayerIndex) {
@@ -1180,7 +1180,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [thrownCardAnimation]);
 
-  // GSAP: Wizard (Prince) effect animation
+  // GSAP: Wizard effect animation
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally not including gameState to prevent re-triggering animation
   useLayoutEffect(() => {
     if (!wizardEffectAnimation || !gameState) return;
@@ -1683,11 +1683,11 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               <Loader2 className="h-6 w-6 text-orange-400 mx-auto mb-2 animate-spin" />
               <p className="text-orange-300 font-semibold">
                 {pendingAction.action_type === PendingActionType.GUARD_RESPONSE &&
-                  `Guard guessed ${CardNames[pendingAction.data[0] ?? 0]}! Revealing card...`}
+                  `Knight guessed ${CardNames[pendingAction.data[0] ?? 0]}! Revealing card...`}
                 {pendingAction.action_type === PendingActionType.BARON_RESPONSE &&
-                  "Baron comparison! Revealing card..."}
+                  "Berserker comparison! Revealing card..."}
                 {pendingAction.action_type === PendingActionType.PRINCE_RESPONSE &&
-                  "Prince effect! Discarding hand..."}
+                  "Wizard effect! Discarding hand..."}
               </p>
             </div>
           </div>
@@ -1698,7 +1698,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col gap-4 z-30 pointer-events-none">
             <div className="pointer-events-auto flex flex-col gap-4 backdrop-blur-sm rounded-lg p-4 border border-amber-600/50 bg-slate-900/80">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-amber-400">Chancellor: Choose card to keep</h3>
+                <h3 className="text-xl font-bold text-amber-400">Tactician: Choose card to keep</h3>
 
                 {chancellorKeepCard && (
                   <div className="flex gap-3">
@@ -1784,11 +1784,11 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         {/* Cards - Display at bottom */}
         {humanPlayer && gameState.gamePhase === "playing" && !needToRespond && (
           <>
-            {/* Countess Rule Warning */}
+            {/* Cursed Idol Rule Warning */}
             {mustPlayCountess && isMyTurn && (
               <div className="absolute bottom-[200px] mb-10 left-1/2 -translate-x-1/2 z-20 animate-pulse">
                 <div className="bg-red-500/90 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg border-2 border-red-400">
-                  ⚠️ You have Countess with King/Prince - You MUST play Countess!
+                  ⚠️ You have Cursed Idol with Wizard/Paladin - You MUST play Cursed Idol!
                 </div>
               </div>
             )}
@@ -1885,10 +1885,10 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               </div>
             )}
 
-            {/* Guess Selection (Guard) */}
+            {/* Guess Selection (Knight) */}
             {isMyTurn && selectedCard?.value === 1 && selectedTarget !== null && (
               <div className="absolute bottom-[240px] left-1/2 -translate-x-1/2 z-10">
-                <p className="text-amber-300 text-sm mb-2 text-center">Guess a card (not Guard):</p>
+                <p className="text-amber-300 text-sm mb-2 text-center">Guess a card (not Knight):</p>
                 <div className="flex gap-2 flex-wrap justify-center">
                   {[0, 2, 3, 4, 5, 6, 7, 8, 9].map((cardValue) => {
                     const cardData = CARD_DATA_MAP[cardValue];
@@ -1912,7 +1912,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               </div>
             )}
 
-            {/* Priest Reveal Modal */}
+            {/* Healer Reveal Modal */}
             {revealedCard && (
               <button 
                 type="button"
@@ -1942,17 +1942,17 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               </button>
             )}
 
-            {/* Baron Comparison Modal */}
-            {baronComparison && (
+            {/* Berserker Comparison Modal */}
+            {berserkerComparison && (
               <button 
                 type="button"
                 className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in cursor-pointer"
-                onClick={() => setBaronComparison(null)}
+                onClick={() => setBerserkerComparison(null)}
               >
                 <div 
                   className="flex flex-col items-center gap-6 rounded-lg p-6 animate-scale-in"
                 >
-                  <h3 className="text-xl font-bold text-amber-400">Baron Comparison</h3>
+                  <h3 className="text-xl font-bold text-amber-400">Berserker Comparison</h3>
                   
                   {/* Cards comparison */}
                   <div className="flex items-center gap-8">
@@ -1961,18 +1961,18 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
                       <p className="text-sm text-amber-300 font-semibold">You</p>
                       <div className={cn(
                         "relative rounded-lg p-1",
-                        baronComparison.result === 'win' && "ring-4 ring-green-400",
-                        baronComparison.result === 'lose' && "ring-4 ring-red-400",
-                        baronComparison.result === 'tie' && "ring-4 ring-yellow-400"
+                        berserkerComparison.result === 'win' && "ring-4 ring-green-400",
+                        berserkerComparison.result === 'lose' && "ring-4 ring-red-400",
+                        berserkerComparison.result === 'tie' && "ring-4 ring-yellow-400"
                       )}>
                         <CardCharacter
-                          cardType={mapCardValueToCardType(baronComparison.myCard.value)}
+                          cardType={mapCardValueToCardType(berserkerComparison.myCard.value)}
                           size="sm"
                           flip={true}
                         />
                       </div>
-                      <p className="text-sm text-amber-300">{baronComparison.myCard.name}</p>
-                      <p className="text-lg font-bold text-amber-400">Value: {baronComparison.myCard.value}</p>
+                      <p className="text-sm text-amber-300">{berserkerComparison.myCard.name}</p>
+                      <p className="text-lg font-bold text-amber-400">Value: {berserkerComparison.myCard.value}</p>
                     </div>
 
                     {/* VS */}
@@ -1980,35 +1980,35 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
                       <span className="text-2xl font-bold text-amber-500">VS</span>
                       <div className={cn(
                         "px-4 py-2 rounded-lg font-bold text-lg",
-                        baronComparison.result === 'win' && "bg-green-500/20 text-green-400",
-                        baronComparison.result === 'lose' && "bg-red-500/20 text-red-400",
-                        baronComparison.result === 'tie' && "bg-yellow-500/20 text-yellow-400"
+                        berserkerComparison.result === 'win' && "bg-green-500/20 text-green-400",
+                        berserkerComparison.result === 'lose' && "bg-red-500/20 text-red-400",
+                        berserkerComparison.result === 'tie' && "bg-yellow-500/20 text-yellow-400"
                       )}>
-                        {baronComparison.result === 'win' && '🎉 WIN!'}
-                        {baronComparison.result === 'lose' && '💀 LOSE'}
-                        {baronComparison.result === 'tie' && '🤝 TIE'}
+                        {berserkerComparison.result === 'win' && '🎉 WIN!'}
+                        {berserkerComparison.result === 'lose' && '💀 LOSE'}
+                        {berserkerComparison.result === 'tie' && '🤝 TIE'}
                       </div>
                     </div>
 
                     {/* Opponent card */}
                     <div className="flex flex-col items-center gap-2">
                       <p className="text-sm text-amber-300 font-semibold">
-                        {baronComparison.opponentAddress.slice(0, 6)}...{baronComparison.opponentAddress.slice(-4)}
+                        {berserkerComparison.opponentAddress.slice(0, 6)}...{berserkerComparison.opponentAddress.slice(-4)}
                       </p>
                       <div className={cn(
                         "relative rounded-lg p-1",
-                        baronComparison.result === 'lose' && "ring-4 ring-green-400",
-                        baronComparison.result === 'win' && "ring-4 ring-red-400",
-                        baronComparison.result === 'tie' && "ring-4 ring-yellow-400"
+                        berserkerComparison.result === 'lose' && "ring-4 ring-green-400",
+                        berserkerComparison.result === 'win' && "ring-4 ring-red-400",
+                        berserkerComparison.result === 'tie' && "ring-4 ring-yellow-400"
                       )}>
                         <CardCharacter
-                          cardType={mapCardValueToCardType(baronComparison.opponentCard.value)}
+                          cardType={mapCardValueToCardType(berserkerComparison.opponentCard.value)}
                           size="sm"
                           flip={true}
                         />
                       </div>
-                      <p className="text-sm text-amber-300">{baronComparison.opponentCard.name}</p>
-                      <p className="text-lg font-bold text-amber-400">Value: {baronComparison.opponentCard.value}</p>
+                      <p className="text-sm text-amber-300">{berserkerComparison.opponentCard.name}</p>
+                      <p className="text-lg font-bold text-amber-400">Value: {berserkerComparison.opponentCard.value}</p>
                     </div>
                   </div>
 
@@ -2050,11 +2050,11 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         )}
 
         {/* Priest Reveal Modal */}
-        {showPriestModal && priestRevealedCard && (
+        {showHealerModal && healerRevealedCard && (
           <button
             type="button"
             className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 cursor-pointer"
-            onClick={() => setShowPriestModal(false)}
+            onClick={() => setShowHealerModal(false)}
           >
             <div
               className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-8 max-w-md border-2 border-purple-500/50 shadow-2xl shadow-purple-500/20 cursor-default text-center"
@@ -2062,18 +2062,18 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
             >
               <div className="flex items-center justify-center gap-2 mb-4">
                 <Eye className="h-6 w-6 text-purple-400" />
-                <h3 className="text-2xl font-bold text-purple-400">Priest Vision</h3>
+                <h3 className="text-2xl font-bold text-purple-400">Healer Vision</h3>
               </div>
               
               <p className="text-amber-300/80 mb-6">
-                You peek at <span className="text-white font-semibold">{priestRevealedCard.targetPlayerName}</span>&apos;s hand...
+                You peek at <span className="text-white font-semibold">{healerRevealedCard.targetPlayerName}</span>&apos;s hand...
               </p>
               
               <div className="flex justify-center mb-6">
                 <div className="relative">
                   <div className="absolute inset-0 bg-purple-500/30 blur-xl rounded-full" />
                   <CardCharacter 
-                    cardType={mapCardValueToCardType(priestRevealedCard.cardValue)} 
+                    cardType={mapCardValueToCardType(healerRevealedCard.cardValue)} 
                     size="md" 
                   />
                 </div>
@@ -2081,19 +2081,19 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               
               <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
                 <p className="text-3xl font-bold text-white mb-1">
-                  {CardNames[priestRevealedCard.cardValue] || "Unknown"}
+                  {CardNames[healerRevealedCard.cardValue] || "Unknown"}
                 </p>
                 <p className="text-amber-400 text-lg">
-                  Value: {priestRevealedCard.cardValue}
+                  Value: {healerRevealedCard.cardValue}
                 </p>
               </div>
               
               <p className="text-amber-400/60 text-sm mb-4">
-                This vision expires at turn {priestRevealedCard.expiresTurn}
+                This vision expires at turn {healerRevealedCard.expiresTurn}
               </p>
               
               <Button
-                onClick={() => setShowPriestModal(false)}
+                onClick={() => setShowHealerModal(false)}
                 className="bg-purple-600 hover:bg-purple-700 text-white"
               >
                 Got it!
@@ -2102,20 +2102,20 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
           </button>
         )}
 
-        {/* Priest Reveal Indicator (persistent) */}
-        {priestRevealedCard && !showPriestModal && room && Number(room.current_turn) < priestRevealedCard.expiresTurn && (
+        {/* Healer Reveal Indicator (persistent) */}
+        {healerRevealedCard && !showHealerModal && room && Number(room.current_turn) < healerRevealedCard.expiresTurn && (
           <button
             type="button"
-            onClick={() => setShowPriestModal(true)}
+            onClick={() => setShowHealerModal(true)}
             className="fixed bottom-4 left-4 z-40 bg-purple-600/90 hover:bg-purple-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all hover:scale-105"
           >
             <Eye className="h-5 w-5" />
             <div className="text-left">
               <p className="text-sm font-semibold">
-                {priestRevealedCard.targetPlayerName}&apos;s card:
+                {healerRevealedCard.targetPlayerName}&apos;s card:
               </p>
               <p className="text-lg font-bold">
-                {CardNames[priestRevealedCard.cardValue]} ({priestRevealedCard.cardValue})
+                {CardNames[healerRevealedCard.cardValue]} ({healerRevealedCard.cardValue})
               </p>
             </div>
           </button>
