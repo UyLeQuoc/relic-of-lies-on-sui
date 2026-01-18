@@ -4,7 +4,7 @@
 
 
 /**
- * Marketplace module for Love Letter NFT Cards Single global marketplace where
+ * Marketplace module for Relic Of Lies NFT Cards Single global marketplace where
  * users can list and buy cards
  */
 

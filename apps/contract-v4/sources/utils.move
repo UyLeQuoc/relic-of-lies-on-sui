@@ -1,10 +1,10 @@
-/// Utility functions for Love Letter 2019 Premium Edition with Seal Encryption
+/// Utility functions for Relic Of Lies  with Seal Encryption
 /// Contains helper functions for deck manipulation and vector operations
 module contract_v4::utils;
 
 use contract_v4::constants;
 
-/// Create a fresh deck of 21 cards for Love Letter 2019 Premium Edition
+/// Create a fresh deck of 21 cards for Relic Of Lies 
 /// Returns: vector of card values [0-9] with correct counts
 public fun create_deck(): vector<u8> {
     let mut deck = vector[];

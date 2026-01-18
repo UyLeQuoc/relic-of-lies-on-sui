@@ -1,4 +1,4 @@
-/// Error codes module for Love Letter 2019 Premium Edition with Seal Encryption
+/// Error codes module for Relic Of Lies  with Seal Encryption
 /// Contains all error constants for assert! statements
 module contract_v4::error;
 

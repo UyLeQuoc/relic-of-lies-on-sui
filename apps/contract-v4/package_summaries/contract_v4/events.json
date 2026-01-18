@@ -3,7 +3,7 @@
     "address": "contract_v4",
     "name": "events"
   },
-  "doc": " Events module for Love Letter 2019 Premium Edition with Seal Encryption\n Used for frontend to track match history and game state changes",
+  "doc": " Events module for Relic Of Lies  with Seal Encryption\n Used for frontend to track match history and game state changes",
   "immediate_dependencies": [
     {
       "address": "std",

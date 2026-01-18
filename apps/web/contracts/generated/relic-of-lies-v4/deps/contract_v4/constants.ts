@@ -4,7 +4,7 @@
 
 
 /**
- * Constants module for Love Letter 2019 Premium Edition with Seal Encryption
+ * Constants module for Relic Of Lies  with Seal Encryption
  * Contains all fixed values to avoid hardcoding throughout the codebase
  */
 

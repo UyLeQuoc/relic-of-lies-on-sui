@@ -1,4 +1,4 @@
-/// Error codes module for Love Letter 2019 Premium Edition
+/// Error codes module for Relic Of Lies 
 /// Contains all error constants for assert! statements
 /// Following Rule 3: Provides boolean check functions for better error handling
 module contract::error;

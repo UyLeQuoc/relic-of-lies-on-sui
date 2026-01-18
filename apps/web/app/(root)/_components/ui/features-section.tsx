@@ -27,7 +27,7 @@ const features = [
 	{
 		icon: Zap,
 		title: "10 Unique Cards",
-		description: "Love Letter 2019 Premium Edition with 21 cards total. Master Spy, Chancellor, and all card effects.",
+		description: "Relic Of Lies  with 21 cards total. Master Spy, Chancellor, and all card effects.",
 	},
 	{
 		icon: Lock,
@@ -47,7 +47,7 @@ export function FeaturesSection() {
 						</span>
 					</h2>
 					<p className="text-lg text-zinc-400 max-w-2xl mx-auto">
-						Experience the ultimate Love Letter card game on blockchain. Strategy, luck, and skill combine in every match.
+						Experience the ultimate Relic Of Lies card game on blockchain. Strategy, luck, and skill combine in every match.
 					</p>
 				</div>
 

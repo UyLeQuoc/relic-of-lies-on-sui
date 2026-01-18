@@ -3,7 +3,7 @@
     "address": "contract_v4",
     "name": "game"
   },
-  "doc": " Game module for Love Letter 2019 Premium Edition with Seal Encryption\n Contains core game logic with encrypted cards and pending action pattern",
+  "doc": " Game module for Relic Of Lies  with Seal Encryption\n Contains core game logic with encrypted cards and pending action pattern",
   "immediate_dependencies": [
     {
       "address": "contract_v4",

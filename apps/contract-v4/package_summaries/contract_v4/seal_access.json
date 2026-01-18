@@ -3,7 +3,7 @@
     "address": "contract_v4",
     "name": "seal_access"
   },
-  "doc": " Seal Access Control module for Love Letter with Seal Integration\n Handles card ownership verification for Seal key server access control",
+  "doc": " Seal Access Control module for Relic Of Lies with Seal Integration\n Handles card ownership verification for Seal key server access control",
   "immediate_dependencies": [
     {
       "address": "std",

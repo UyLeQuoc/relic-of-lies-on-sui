@@ -1,4 +1,4 @@
-/// Events module for Love Letter 2019 Premium Edition
+/// Events module for Relic Of Lies 
 /// Used for frontend to track match history and game state changes
 module contract::events;
 

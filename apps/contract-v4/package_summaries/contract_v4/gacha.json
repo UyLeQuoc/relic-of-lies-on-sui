@@ -3,7 +3,7 @@
     "address": "contract_v4",
     "name": "gacha"
   },
-  "doc": " Gacha module for Love Letter NFT Cards\n Allows players to pull random NFT cards with different rarities",
+  "doc": " Gacha module for Relic Of Lies NFT Cards\n Allows players to pull random NFT cards with different rarities",
   "immediate_dependencies": [
     {
       "address": "std",

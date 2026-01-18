@@ -1,4 +1,4 @@
-/// Game module for Love Letter 2019 Premium Edition
+/// Game module for Relic Of Lies 
 /// Contains core game logic, room management, and card effects
 /// Supports 10 card types, token system, and Spy bonus mechanic
 #[allow(lint(public_random), lint(self_transfer))]

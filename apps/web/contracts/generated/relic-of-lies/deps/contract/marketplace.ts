@@ -4,7 +4,7 @@
 
 
 /**
- * Marketplace module for Love Letter NFT Cards Uses Sui Kiosk for trading cards
+ * Marketplace module for Relic Of Lies NFT Cards Uses Sui Kiosk for trading cards
  * with no-lock policy
  */
 

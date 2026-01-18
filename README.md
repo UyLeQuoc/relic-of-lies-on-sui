@@ -1,10 +1,10 @@
-# Relic of Lies - Love Letter Card Game on Sui
+# Relic of Lies - Relic Of Lies Card Game on Sui
 
-A decentralized implementation of the classic **Love Letter** card game on the **Sui blockchain**, with **cryptographic commitment verification** for provably fair gameplay.
+A decentralized implementation of the classic **Relic Of Lies** card game on the **Sui blockchain**, with **cryptographic commitment verification** for provably fair gameplay.
 
 ## Overview
 
-Relic of Lies brings the beloved Love Letter card game to Web3 with full on-chain game logic. The smart contract uses a **commitment scheme** to ensure players cannot cheat - when you play a card, the contract cryptographically verifies you're telling the truth about its value.
+Relic of Lies brings the beloved Relic Of Lies card game to Web3 with full on-chain game logic. The smart contract uses a **commitment scheme** to ensure players cannot cheat - when you play a card, the contract cryptographically verifies you're telling the truth about its value.
 
 ### Key Features
 
@@ -988,6 +988,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- [Love Letter](https://www.zmangames.com/en/games/love-letter/) by Z-Man Games
+- [Relic Of Lies](https://www.zmangames.com/en/games/love-letter/) by Z-Man Games
 - [Sui Network](https://sui.io/)
 - [Seal Protocol](https://github.com/MystenLabs/seal)

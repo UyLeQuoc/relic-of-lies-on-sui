@@ -3,7 +3,7 @@
     "address": "contract_v4",
     "name": "leaderboard"
   },
-  "doc": " Leaderboard module for Love Letter game with Seal Encryption\n Manages global rankings as a shared object",
+  "doc": " Leaderboard module for Relic Of Lies game with Seal Encryption\n Manages global rankings as a shared object",
   "immediate_dependencies": [
     {
       "address": "contract_v4",

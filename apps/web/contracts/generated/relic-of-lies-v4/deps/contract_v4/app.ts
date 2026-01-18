@@ -4,7 +4,7 @@
 
 
 /**
- * App module for Love Letter 2019 Premium Edition with Seal Encryption Main entry
+ * App module for Relic Of Lies  with Seal Encryption Main entry
  * point providing clean interface for frontend
  */
 

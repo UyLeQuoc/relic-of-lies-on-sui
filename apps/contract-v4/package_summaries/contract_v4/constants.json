@@ -3,7 +3,7 @@
     "address": "contract_v4",
     "name": "constants"
   },
-  "doc": " Constants module for Love Letter 2019 Premium Edition with Seal Encryption\n Contains all fixed values to avoid hardcoding throughout the codebase",
+  "doc": " Constants module for Relic Of Lies  with Seal Encryption\n Contains all fixed values to avoid hardcoding throughout the codebase",
   "immediate_dependencies": [],
   "attributes": [],
   "functions": {

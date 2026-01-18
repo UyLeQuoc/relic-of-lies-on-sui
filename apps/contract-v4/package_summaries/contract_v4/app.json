@@ -3,7 +3,7 @@
     "address": "contract_v4",
     "name": "app"
   },
-  "doc": " App module for Love Letter 2019 Premium Edition with Seal Encryption\n Main entry point providing clean interface for frontend",
+  "doc": " App module for Relic Of Lies  with Seal Encryption\n Main entry point providing clean interface for frontend",
   "immediate_dependencies": [
     {
       "address": "contract_v4",

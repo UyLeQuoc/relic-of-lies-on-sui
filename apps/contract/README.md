@@ -1,14 +1,14 @@
-# 🎴 Relic of Lies - Love Letter 2019 Premium Edition
+# 🎴 Relic of Lies - Relic Of Lies 
 
-A fully on-chain implementation of the **Love Letter 2019 Premium Edition** card game built on Sui blockchain.
+A fully on-chain implementation of the **Relic Of Lies ** card game built on Sui blockchain.
 
 ## 🎮 Game Overview
 
-Love Letter is a game of risk, deduction, and luck. The goal is to be the last player standing or hold the highest-value card when the deck runs out.
+Relic Of Lies is a game of risk, deduction, and luck. The goal is to be the last player standing or hold the highest-value card when the deck runs out.
 
 ### Key Features
 - **Players**: 2-6 players per room
-- **Cards**: 21 cards total, 10 card types (2019 Premium Edition)
+- **Cards**: 21 cards total, 10 card types ()
 - **Token System**: First player to collect 3 tokens wins the game
 - **Spy Bonus**: Unique end-of-round bonus mechanic (only awarded to single qualifying player)
 
@@ -27,7 +27,7 @@ sources/
 └── leaderboard.move  # Global player rankings
 ```
 
-## 🃏 Card Effects (2019 Premium Edition)
+## 🃏 Card Effects ()
 
 | Card | Value | Count | Effect |
 |------|-------|-------|--------|
@@ -346,7 +346,7 @@ Card NFTs use Sui's Display standard for rich metadata in wallets and explorers.
 | 3 | Legendary | Gold |
 | 4 | Mythic | Red |
 
-### Card Values (Love Letter)
+### Card Values (Relic Of Lies)
 
 | Value | Card Name |
 |-------|-----------|

@@ -4,7 +4,7 @@
 
 
 /**
- * Leaderboard module for Love Letter game Manages global rankings as a shared
+ * Leaderboard module for Relic Of Lies game Manages global rankings as a shared
  * object
  */
 
