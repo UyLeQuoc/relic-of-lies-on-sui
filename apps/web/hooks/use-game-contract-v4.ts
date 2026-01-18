@@ -104,66 +104,93 @@ export const CardNames: Record<number, string> = {
 // ============== Error Code Mapping ==============
 
 const ErrorCodes: Record<number, string> = {
-  // Room Errors
+  // Room Errors (0-9)
   0: "Room is full",
   1: "Insufficient payment for entry fee",
   2: "Room not found",
   3: "Room name cannot be empty",
   4: "Invalid max players (must be 2-6)",
   5: "Already in room",
-  // Game State Errors
+  // Game State Errors (10-19)
   10: "Game has not started yet",
   11: "Game already started",
   12: "Game has finished",
   13: "Game not finished yet",
   14: "Not enough players to start",
-  15: "Round in progress",
-  16: "Deck already submitted",
-  // Turn Errors
+  15: "Round not finished",
+  16: "Round in progress",
+  17: "Deck not submitted yet",
+  18: "Deck already submitted",
+  // Turn Errors (20-29)
   20: "Not your turn",
   21: "Card not in hand",
   22: "Invalid target",
   23: "Target is immune",
-  24: "Target is eliminated",
-  25: "Must discard Countess",
-  26: "Target required",
-  27: "Guess required",
-  28: "Cannot guess Guard",
-  // Chancellor Errors
+  24: "Cannot target self with this card",
+  25: "Must target self with Prince when others immune",
+  26: "Target is eliminated",
+  // Card Specific Errors (30-39)
+  30: "Must discard Countess when holding King or Prince",
+  31: "Invalid guess",
+  32: "Guess is required for Guard card",
+  33: "Target is required for this card",
+  34: "Cannot guess Guard with Guard",
+  // Chancellor Errors (40-49)
   40: "Must select exactly one card to keep",
   41: "Invalid card selection for Chancellor",
   42: "Chancellor action not pending",
   43: "Chancellor action already pending",
   44: "Cannot return the card you are keeping",
-  // Authorization Errors
+  // Authorization Errors (50-59)
   50: "Not the room creator",
   51: "Not a player in this room",
   52: "Player is eliminated",
-  // Deck Errors
+  // Deck Errors (60-69)
   60: "Deck is empty",
   61: "Invalid deck size",
-  // Pending Action Errors
+  // Pending Action Errors (70-79)
   70: "Pending action exists - must respond first",
   71: "No pending action",
   72: "Not the pending responder",
   73: "Invalid response type",
-  // Seal/Decryptable Errors
-  80: "Hash mismatch - invalid card data",
-  81: "Invalid hash length",
-  82: "Invalid nonce length",
-  83: "Card not decrypted",
-  84: "Card already decrypted",
-  // Seal Access Errors
-  90: "No access to this card",
+  // Seal/Decryptable Errors (80-89)
+  80: "Invalid namespace for Seal",
+  81: "No access to decrypt this card",
+  82: "Card not owned",
+  83: "Hash mismatch - decryption verification failed",
+  84: "Invalid hash length",
+  85: "Invalid nonce length",
+  86: "Card already decrypted",
+  87: "Card not decrypted yet",
 };
 
 function parseContractError(error: unknown): Error {
   const errorString = String(error);
   
-  // Try to extract error code from MoveAbort
-  const abortMatch = errorString.match(/MoveAbort.*?(\d+)\)?\s*(?:in command|$)/);
-  if (abortMatch) {
-    const code = parseInt(abortMatch[1] ?? "0", 10);
+  console.log("Parsing contract error:", errorString);
+  
+  // Try multiple patterns to extract error code from MoveAbort
+  // Pattern 1: MoveAbort(..., ERROR_CODE) - standard format
+  const abortMatch = errorString.match(/MoveAbort[^)]*,\s*(\d+)\)/);
+  if (abortMatch?.[1]) {
+    const code = parseInt(abortMatch[1], 10);
+    const message = ErrorCodes[code] || `Contract error (code: ${code})`;
+    console.log(`Parsed error code: ${code}, message: ${message}`);
+    return new Error(message);
+  }
+  
+  // Pattern 2: abort_code: NUMBER
+  const altMatch = errorString.match(/abort_code:\s*(\d+)/i);
+  if (altMatch?.[1]) {
+    const code = parseInt(altMatch[1], 10);
+    const message = ErrorCodes[code] || `Contract error (code: ${code})`;
+    return new Error(message);
+  }
+  
+  // Pattern 3: error code NUMBER or code: NUMBER
+  const codeMatch = errorString.match(/(?:error\s+)?code[:\s]+(\d+)/i);
+  if (codeMatch?.[1]) {
+    const code = parseInt(codeMatch[1], 10);
     const message = ErrorCodes[code] || `Contract error (code: ${code})`;
     return new Error(message);
   }
@@ -175,7 +202,18 @@ function parseContractError(error: unknown): Error {
   if (errorString.includes("InsufficientCoinBalance")) {
     return new Error("Insufficient SUI balance");
   }
+  if (errorString.includes("Dry run failed")) {
+    // Try to extract more specific error from dry run failure
+    const dryRunMatch = errorString.match(/MoveAbort.*?(\d+)/);
+    if (dryRunMatch?.[1]) {
+      const code = parseInt(dryRunMatch[1], 10);
+      const message = ErrorCodes[code] || `Contract error (code: ${code})`;
+      return new Error(message);
+    }
+    return new Error("Transaction simulation failed. Please check game state and try again.");
+  }
   
+  // Return original error if no pattern matched
   return new Error(errorString);
 }
 
@@ -365,13 +403,21 @@ export function useSubmitDeckV4() {
       try {
         // Encrypt the deck
         toast.info("Encrypting deck...");
-        const { encryptedCards } = await encryptDeck(roomId);
+        let encryptedCards: EncryptedCard[];
+        try {
+          const encryptResult = await encryptDeck(roomId);
+          encryptedCards = encryptResult.encryptedCards;
+        } catch (encryptErr) {
+          console.error("Encryption failed:", encryptErr);
+          throw new Error(`Failed to encrypt deck: ${encryptErr instanceof Error ? encryptErr.message : String(encryptErr)}`);
+        }
         setIsEncrypting(false);
 
         // Prepare for submission
         const { ciphertexts, hashes, nonces } =
           prepareEncryptedDeckForSubmission(encryptedCards);
 
+        console.log("Submitting deck with", ciphertexts.length, "cards");
         toast.info("Submitting encrypted deck...");
         const tx = new Transaction();
 

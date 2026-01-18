@@ -31,7 +31,7 @@ import {
 import { useDecryptCards, type DecryptedCard } from "@/hooks/use-seal-client";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
-import { Loader2, Lock, Shield, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Loader2, Lock, Shield, Eye, EyeOff } from "lucide-react";
 
 // Card data mapping for game components
 const CARD_DATA_MAP: Record<number, Omit<GameCard, "id">> = {
@@ -119,6 +119,9 @@ function convertRoomToGameState(
     createCard(entry.card_value, `discard-log-${idx}-turn-${entry.turn_number}`)
   );
 
+  // Check if any player has won the game (reached tokens_to_win)
+  const gameWinner = room.players.find((p) => p.tokens >= room.tokens_to_win);
+  
   // Game phase
   let gamePhase: "setup" | "playing" | "roundEnd" | "gameEnd" | "chancellorChoice" = "setup";
   if (room.status === GameStatus.WAITING) {
@@ -130,7 +133,8 @@ function convertRoomToGameState(
       gamePhase = "playing";
     }
   } else if (room.status === GameStatus.ROUND_END) {
-    gamePhase = "roundEnd";
+    // If someone has won, treat as game end
+    gamePhase = gameWinner ? "gameEnd" : "roundEnd";
   } else if (room.status === GameStatus.FINISHED) {
     gamePhase = "gameEnd";
   }
@@ -609,66 +613,57 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     }
   };
 
-  // Handle pending action responses
-  const handleRespondGuard = async () => {
-    if (!pendingAction || myHandIndices.length === 0) return;
+  // Track if we're currently auto-responding to prevent duplicate calls
+  const isAutoRespondingRef = useRef(false);
+  const lastPendingActionRef = useRef<string>("");
+
+  // Auto-respond to pending actions when we have the decrypted card
+  useEffect(() => {
+    if (!needToRespond || !pendingAction || myHandIndices.length === 0) return;
+    if (isAutoRespondingRef.current) return;
+    
     const cardIndex = myHandIndices[0];
     if (cardIndex === undefined) return;
+    
     const decrypted = decryptedCards.find((dc) => dc.cardIndex === cardIndex);
-    if (!decrypted) return;
+    if (!decrypted || decrypted.value < 0) return;
 
-    try {
-      // respondGuard signature: (roomId, cardIndex, cardValue)
-      await respondGuard(roomId, cardIndex, decrypted.value);
-      fetchRoom();
-    } catch (err) {
-      setResultNotification({
-        type: "failure",
-        title: "Failed to Respond",
-        message: err instanceof Error ? err.message : "Unknown error",
-      });
-    }
-  };
+    // Create a unique key for this pending action to prevent duplicate responses
+    const actionKey = `${pendingAction.action_type}-${pendingAction.card_index}-${room?.current_turn}`;
+    if (actionKey === lastPendingActionRef.current) return;
 
-  const handleRespondBaron = async () => {
-    if (!pendingAction || myHandIndices.length === 0) return;
-    const cardIndex = myHandIndices[0];
-    if (cardIndex === undefined) return;
-    const decrypted = decryptedCards.find((dc) => dc.cardIndex === cardIndex);
-    if (!decrypted) return;
+    const doAutoRespond = async () => {
+      isAutoRespondingRef.current = true;
+      lastPendingActionRef.current = actionKey;
 
-    try {
-      // respondBaron signature: (roomId, cardIndex, cardValue)
-      await respondBaron(roomId, cardIndex, decrypted.value);
-      fetchRoom();
-    } catch (err) {
-      setResultNotification({
-        type: "failure",
-        title: "Failed to Respond",
-        message: err instanceof Error ? err.message : "Unknown error",
-      });
-    }
-  };
+      try {
+        console.log("Auto-responding to pending action:", pendingAction.action_type);
+        
+        if (pendingAction.action_type === PendingActionType.GUARD_RESPONSE) {
+          await respondGuard(roomId, cardIndex, decrypted.value);
+        } else if (pendingAction.action_type === PendingActionType.BARON_RESPONSE) {
+          await respondBaron(roomId, cardIndex, decrypted.value);
+        } else if (pendingAction.action_type === PendingActionType.PRINCE_RESPONSE) {
+          await respondPrince(roomId, cardIndex, decrypted.value);
+        }
+        
+        fetchRoom();
+      } catch (err) {
+        console.error("Auto-respond failed:", err);
+        setResultNotification({
+          type: "failure",
+          title: "Failed to Respond",
+          message: err instanceof Error ? err.message : "Unknown error",
+        });
+        // Reset so user can try again manually if needed
+        lastPendingActionRef.current = "";
+      } finally {
+        isAutoRespondingRef.current = false;
+      }
+    };
 
-  const handleRespondPrince = async () => {
-    if (!pendingAction || myHandIndices.length === 0) return;
-    const cardIndex = myHandIndices[0];
-    if (cardIndex === undefined) return;
-    const decrypted = decryptedCards.find((dc) => dc.cardIndex === cardIndex);
-    if (!decrypted) return;
-
-    try {
-      // respondPrince signature: (roomId, cardIndex, cardValue)
-      await respondPrince(roomId, cardIndex, decrypted.value);
-      fetchRoom();
-    } catch (err) {
-      setResultNotification({
-        type: "failure",
-        title: "Failed to Respond",
-        message: err instanceof Error ? err.message : "Unknown error",
-      });
-    }
-  };
+    doAutoRespond();
+  }, [needToRespond, pendingAction, myHandIndices, decryptedCards, roomId, respondGuard, respondBaron, respondPrince, fetchRoom, room?.current_turn]);
 
   // Handle chancellor resolution
   const handleResolveChancellor = async () => {
@@ -832,7 +827,9 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         // Hide new cards until animation completes
         setHiddenDrawnCards(prev => {
           const newSet = new Set(prev);
-          newCards.forEach((c: GameCard) => newSet.add(c.id));
+          for (const c of newCards) {
+            newSet.add(c.id);
+          }
           return newSet;
         });
         
@@ -1053,6 +1050,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
   }, [isMyTurn]);
 
   // GSAP: Card thrown to table animation - visible to all players
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally not including gameState to prevent re-triggering animation
   useLayoutEffect(() => {
     if (!thrownCardAnimation || !gameState) return;
     
@@ -1183,6 +1181,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
   }, [thrownCardAnimation]);
 
   // GSAP: Wizard (Prince) effect animation
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally not including gameState to prevent re-triggering animation
   useLayoutEffect(() => {
     if (!wizardEffectAnimation || !gameState) return;
     
@@ -1386,6 +1385,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
   }, [drawCardAnimation]);
 
   // GSAP: Round change celebration
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only trigger on round number change
   useLayoutEffect(() => {
     if (!gameState) return;
     
@@ -1414,6 +1414,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
   }, [gameState?.roundNumber]);
 
   // GSAP: Play button hover animation
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only run once on mount
   useLayoutEffect(() => {
     if (!playButtonRef.current) return;
     
@@ -1652,9 +1653,9 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
             deckCount={gameState.deckCount}
             discardCount={gameState.discardPile.filter((c: GameCard) => !hiddenDiscardCards.has(c.id)).length}
             discardPile={gameState.discardPile.filter((c: GameCard) => !hiddenDiscardCards.has(c.id))}
-            showStartRoundButton={false}
-            onStartRound={() => {}}
-            isStartingRound={false}
+            showStartRoundButton={gameState.gamePhase === "roundEnd" && !gameState.players.some((p) => p.hearts >= gameState.heartsToWin)}
+            onStartRound={handleSubmitDeck}
+            isStartingRound={isSubmittingDeck}
             isGameEnd={gameState.gamePhase === "gameEnd"}
             onStartNewGame={handleStartNewGame}
             winnerName={
@@ -1667,41 +1668,19 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
           />
         </div>
 
-        {/* Pending Action Response UI */}
+        {/* Pending Action Response UI - Auto-responding in background */}
         {needToRespond && pendingAction && (
           <div className="absolute bottom-[240px] left-1/2 -translate-x-1/2 z-30">
             <div className="bg-orange-500/20 border-2 border-orange-500 rounded-lg p-4 text-center">
-              <AlertTriangle className="h-6 w-6 text-orange-400 mx-auto mb-2" />
-              <p className="text-orange-300 font-semibold mb-3">
+              <Loader2 className="h-6 w-6 text-orange-400 mx-auto mb-2 animate-spin" />
+              <p className="text-orange-300 font-semibold">
                 {pendingAction.action_type === PendingActionType.GUARD_RESPONSE &&
-                  `Guard guessed ${CardNames[pendingAction.data[0] ?? 0]}! Reveal your card.`}
+                  `Guard guessed ${CardNames[pendingAction.data[0] ?? 0]}! Revealing card...`}
                 {pendingAction.action_type === PendingActionType.BARON_RESPONSE &&
-                  "Baron comparison! Reveal your card."}
+                  "Baron comparison! Revealing card..."}
                 {pendingAction.action_type === PendingActionType.PRINCE_RESPONSE &&
-                  "Prince effect! Discard your hand."}
+                  "Prince effect! Discarding hand..."}
               </p>
-              <Button
-                onClick={() => {
-                  if (pendingAction.action_type === PendingActionType.GUARD_RESPONSE) {
-                    handleRespondGuard();
-                  } else if (pendingAction.action_type === PendingActionType.BARON_RESPONSE) {
-                    handleRespondBaron();
-                  } else if (pendingAction.action_type === PendingActionType.PRINCE_RESPONSE) {
-                    handleRespondPrince();
-                  }
-                }}
-                disabled={isProcessingAction}
-                className="bg-orange-500 hover:bg-orange-600"
-              >
-                {isProcessingAction ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Responding...
-                  </>
-                ) : (
-                  "Reveal Card"
-                )}
-              </Button>
             </div>
           </div>
         )}
@@ -1927,13 +1906,13 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
 
             {/* Priest Reveal Modal */}
             {revealedCard && (
-              <div 
+              <button 
+                type="button"
                 className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in cursor-pointer"
                 onClick={() => setRevealedCard(null)}
               >
                 <div 
                   className="flex flex-col items-center gap-4 rounded-lg p-6 animate-scale-in"
-                  onClick={(e) => e.stopPropagation()}
                 >
                   <h3 className="text-xl font-bold text-amber-400">
                     {revealedCard.targetAddress.slice(0, 6)}...{revealedCard.targetAddress.slice(-4)}&apos;s Card
@@ -1952,18 +1931,18 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
                     Click anywhere or wait to close
                   </p>
                 </div>
-              </div>
+              </button>
             )}
 
             {/* Baron Comparison Modal */}
             {baronComparison && (
-              <div 
+              <button 
+                type="button"
                 className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in cursor-pointer"
                 onClick={() => setBaronComparison(null)}
               >
                 <div 
                   className="flex flex-col items-center gap-6 rounded-lg p-6 animate-scale-in"
-                  onClick={(e) => e.stopPropagation()}
                 >
                   <h3 className="text-xl font-bold text-amber-400">Baron Comparison</h3>
                   
@@ -2029,7 +2008,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
                     Click anywhere or wait to close
                   </p>
                 </div>
-              </div>
+              </button>
             )}
 
             {/* Waiting for turn */}
@@ -2146,13 +2125,13 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
             .filter(entry => !hiddenDiscardCards.has(entry.cardId));
           
           return (
-          <div 
+          <button 
+            type="button"
             className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in cursor-pointer"
             onClick={() => setShowDiscardModal(false)}
           >
             <div 
-              className="rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto animate-scale-in bg-slate-900/95 border border-amber-600/30"
-              onClick={(e) => e.stopPropagation()}
+              className="rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto animate-scale-in bg-slate-900/95 border border-amber-600/30 text-left"
             >
               <div className="flex justify-center items-center mb-4 min-w-56">
                 <h3 className="text-xl font-bold text-amber-400">Discarded Cards ({visibleLogEntries.length})</h3>
@@ -2183,7 +2162,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               {/* Click anywhere hint */}
               <p className="text-center text-amber-400/50 text-xs mt-6">Click anywhere to close</p>
             </div>
-          </div>
+          </button>
           );
         })()}
 
