@@ -235,7 +235,7 @@ export function MarketplaceContent() {
   );
 
   const handleSortChange = useCallback(
-    (value: string) => {
+    (value: string | null) => {
       updateSearchParams("sort", value);
     },
     [updateSearchParams]
@@ -335,7 +335,7 @@ export function MarketplaceContent() {
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="space-y-2">
+              <div key={`skeleton-${i}`} className="space-y-2">
                 <Skeleton className="w-32 h-44 rounded-lg" />
                 <Skeleton className="h-3 w-20 mx-auto" />
               </div>

@@ -1,31 +1,33 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { useCurrentAccount } from "@mysten/dapp-kit";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  useGetRoomV4,
-  useSubmitEncryptedDeck,
-  usePlayTurnV4,
-  useRespondGuardV4,
-  useRespondBaronV4,
-  useRespondPrinceV4,
-  useResolveChancellorV4,
-  usePlayerIndexV4,
-  useIsMyTurnV4,
-  useMyHandIndicesV4,
-  usePendingActionV4,
-  useNeedToRespondV4,
-  GameStatus,
-  PendingActionType,
   CardNames,
   CardType,
+  GameStatus,
+  PendingActionType,
+  useGetRoomV4,
+  useIsMyTurnV4,
+  useMyHandIndicesV4,
+  useNeedToRespondV4,
+  usePendingActionV4,
+  usePlayTurnV4,
+  usePlayerIndexV4,
+  useResolveChancellorV4,
+  useRespondBaronV4,
+  useRespondGuardV4,
+  useRespondPrinceV4,
+  useSubmitEncryptedDeck,
+  useStartNewGameV4,
   type DecryptedCard,
+  type GameRoomV4Type
 } from "@/hooks/use-game-contract-v4";
 import { useDecryptCards } from "@/hooks/use-seal-client";
-import { Lock, Shield, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { useCurrentAccount } from "@mysten/dapp-kit";
+import { AlertTriangle, Eye, EyeOff, Lock, Shield } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 // Game status mapping
 const STATUS_TEXT: Record<number, string> = {
@@ -37,6 +39,51 @@ const STATUS_TEXT: Record<number, string> = {
 
 interface SealedGameV4Props {
   roomId: string;
+}
+
+// Game Finished Section Component
+function GameFinishedSection({ 
+  roomId, 
+  room, 
+  fetchRoom 
+}: { 
+  roomId: string; 
+  room: GameRoomV4Type; 
+  fetchRoom: () => void;
+}) {
+  const { startNewGame, isPending } = useStartNewGameV4();
+  const currentAccount = useCurrentAccount();
+
+  // Find winner (player with most tokens)
+  const winner = room.players.reduce((prev, current) => 
+    (current.tokens > prev.tokens) ? current : prev
+  );
+  const isWinner = winner.addr === currentAccount?.address;
+
+  const handleStartNewGame = async () => {
+    try {
+      await startNewGame(roomId);
+      fetchRoom();
+    } catch (err) {
+      console.error("Failed to start new game:", err);
+    }
+  };
+
+  return (
+    <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg p-6 mb-6 text-center">
+      <h2 className="text-2xl font-bold mb-2">
+        {isWinner ? "🎉 You Won! 🎉" : "Game Over"}
+      </h2>
+      <p className="text-slate-300 mb-4">
+        Winner: {winner.addr.slice(0, 8)}... with {winner.tokens} tokens
+      </p>
+      <div className="flex justify-center gap-4">
+        <Button onClick={handleStartNewGame} disabled={isPending}>
+          {isPending ? "Starting..." : "Play Again"}
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 export function SealedGameV4({ roomId }: SealedGameV4Props) {
@@ -87,7 +134,7 @@ export function SealedGameV4({ roomId }: SealedGameV4Props) {
       try {
         // Convert encrypted cards to the format expected by decryptCards
         const encryptedCards: Array<{ ciphertext: Uint8Array }> =
-          room.encrypted_cards.map((card, idx) => {
+          room.encrypted_cards.map((card: { Encrypted?: { ciphertext: number[]; hash: number[]; nonce: number[] }; Decrypted?: { data: number[] } }, idx: number) => {
             // Handle the Decryptable enum structure
             if ("Encrypted" in card && card.Encrypted) {
               if (idx === 16) {
@@ -108,7 +155,7 @@ export function SealedGameV4({ roomId }: SealedGameV4Props) {
           });
 
         // Convert string indices to numbers
-        const numericIndices = myHandIndices.map((idx) => Number(idx));
+        const numericIndices = myHandIndices.map((idx: number) => Number(idx));
         const decrypted = await decryptCards(roomId, numericIndices, encryptedCards);
         setDecryptedCards(decrypted);
       } catch (err) {
@@ -282,16 +329,16 @@ export function SealedGameV4({ roomId }: SealedGameV4Props) {
   const handleResolveChancellor = async () => {
     if (chancellorKeepIndex === null || !room) return;
 
-    const returnIndices = room.chancellor_card_indices.filter(
-      (idx) => Number(idx) !== chancellorKeepIndex
-    );
+    const returnIndices = room.chancellor_card_indices
+      .map((idx) => Number(idx))
+      .filter((idx) => idx !== chancellorKeepIndex);
 
     setActionError(null);
     try {
       await resolveChancellor(
         roomId,
         chancellorKeepIndex,
-        returnIndices.map(BigInt)
+        returnIndices
       );
       setChancellorKeepIndex(null);
       fetchRoom();
@@ -309,9 +356,10 @@ export function SealedGameV4({ roomId }: SealedGameV4Props) {
     const cardValue = getCardValue(selectedCardIndex);
     if (cardValue === null) return [];
 
+    type PlayerType = GameRoomV4Type["players"][number];
     return room.players
-      .map((p, idx) => ({ player: p, index: idx }))
-      .filter(({ player, index }) => {
+      .map((p: PlayerType, idx: number) => ({ player: p, index: idx }))
+      .filter(({ player, index }: { player: PlayerType; index: number }) => {
         // Prince can target self
         if (cardValue !== CardType.PRINCE && index === myPlayerIndex)
           return false;
@@ -324,8 +372,9 @@ export function SealedGameV4({ roomId }: SealedGameV4Props) {
   // Check if all others are immune
   const allOthersImmune = useCallback(() => {
     if (!room || myPlayerIndex < 0) return true;
+    type PlayerType = GameRoomV4Type["players"][number];
     return room.players.every(
-      (p, idx) => idx === myPlayerIndex || !p.is_alive || p.is_immune
+      (p: PlayerType, idx: number) => idx === myPlayerIndex || !p.is_alive || p.is_immune
     );
   }, [room, myPlayerIndex]);
 
@@ -479,7 +528,7 @@ export function SealedGameV4({ roomId }: SealedGameV4Props) {
 
         {/* Players */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-          {room.players.map((player, idx) => {
+          {room.players.map((player: GameRoomV4Type["players"][number], idx: number) => {
             const isCurrentTurn =
               idx === currentPlayerIndex && room.status === GameStatus.PLAYING;
             const isMe = player.addr === currentAccount.address;
@@ -600,7 +649,7 @@ export function SealedGameV4({ roomId }: SealedGameV4Props) {
               <>
                 {/* Normal Hand Display */}
                 <div className="flex gap-4 flex-wrap mb-4">
-                  {myHandIndices.map((cardIdx) => {
+                  {myHandIndices.map((cardIdx: number) => {
                     const idx = Number(cardIdx);
                     const value = getCardValue(idx);
                     const isSelected = selectedCardIndex === idx;
@@ -660,7 +709,7 @@ export function SealedGameV4({ roomId }: SealedGameV4Props) {
                           Select Target:
                         </p>
                         <div className="flex gap-2 flex-wrap">
-                          {getValidTargets().map(({ player, index }) => (
+                          {getValidTargets().map(({ player, index }: { player: GameRoomV4Type["players"][number]; index: number }) => (
                             <button
                               type="button"
                               key={index}
@@ -768,19 +817,42 @@ export function SealedGameV4({ roomId }: SealedGameV4Props) {
           </div>
         )}
 
+        {/* Game Log - Discarded Cards in Order */}
+        {room.status === GameStatus.PLAYING && room.discarded_cards_log.length > 0 && (
+          <div className="bg-slate-800 rounded-lg p-4 mb-6">
+            <h3 className="text-sm font-semibold mb-2 text-slate-400">
+              Game Log
+            </h3>
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {room.discarded_cards_log.map((entry, idx) => (
+                <div key={`log-${idx}-${entry.card_index}`} className="text-xs flex items-center gap-2">
+                  <span className="text-slate-500">Turn {Number(entry.turn_number) + 1}:</span>
+                  <span className="text-slate-400">{entry.player_addr.slice(0, 6)}...</span>
+                  <span className="text-white font-medium">{CardNames[entry.card_value]}</span>
+                  <span className="text-slate-500">({entry.reason})</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Discarded Cards (Public Info) */}
         {room.status === GameStatus.PLAYING && (
           <div className="bg-slate-800 rounded-lg p-4 mb-6">
             <h3 className="text-sm font-semibold mb-2 text-slate-400">
-              Discarded Cards (Public)
+              Player Discards
             </h3>
-            <div className="flex flex-wrap gap-2">
-              {room.players.map((player) => (
-                <div key={player.addr} className="text-xs">
-                  <span className="text-slate-500">{player.addr.slice(0, 6)}:</span>{" "}
-                  {player.discarded.length > 0
-                    ? player.discarded.map((c) => CardNames[c]).join(", ")
-                    : "-"}
+            <div className="grid grid-cols-2 gap-2">
+              {room.players.map((player: GameRoomV4Type["players"][number], idx: number) => (
+                <div key={player.addr} className="text-xs bg-slate-700/50 rounded p-2">
+                  <span className="text-slate-400 block mb-1">
+                    {player.addr === currentAccount.address ? "You" : `Player ${idx + 1}`}
+                  </span>
+                  <span className="text-white">
+                    {player.discarded.length > 0
+                      ? player.discarded.map((c: number) => CardNames[c]).join(", ")
+                      : "None"}
+                  </span>
                 </div>
               ))}
             </div>
@@ -788,16 +860,24 @@ export function SealedGameV4({ roomId }: SealedGameV4Props) {
         )}
 
         {/* Game Info */}
-        <div className="bg-slate-800 rounded-lg p-4">
+        <div className="bg-slate-800 rounded-lg p-4 mb-6">
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">
               Deck: {room.deck_indices.length} cards
+            </span>
+            <span className="text-slate-400">
+              Round: {room.round_number + 1}
             </span>
             <span className="text-slate-400">
               Tokens to Win: {room.tokens_to_win}
             </span>
           </div>
         </div>
+
+        {/* Game Finished - Start New Game */}
+        {room.status === GameStatus.FINISHED && (
+          <GameFinishedSection roomId={roomId} room={room} fetchRoom={fetchRoom} />
+        )}
 
         {/* Back to Lobby */}
         <div className="mt-6 text-center">

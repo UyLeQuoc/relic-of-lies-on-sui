@@ -1066,3 +1066,137 @@ export function getPendingActionDescription(
       return "Unknown pending action";
   }
 }
+
+// ============== Derived State Hooks ==============
+
+/**
+ * Hook to get player index in room
+ */
+export function usePlayerIndexV4(room: GameRoomV4Type | null) {
+  const currentAccount = useCurrentAccount();
+  
+  if (!room || !currentAccount) return -1;
+  
+  const index = room.players.findIndex(
+    (p) => p.addr === currentAccount.address
+  );
+  return index;
+}
+
+/**
+ * Hook to check if it's current user's turn
+ */
+export function useIsMyTurnV4(room: GameRoomV4Type | null) {
+  const currentAccount = useCurrentAccount();
+  
+  if (!room || !currentAccount) return false;
+  if (room.status !== GameStatus.PLAYING) return false;
+  
+  const currentPlayerIdx = Number(room.current_turn) % room.players.length;
+  const currentPlayer = room.players[currentPlayerIdx];
+  
+  return currentPlayer?.addr === currentAccount.address;
+}
+
+/**
+ * Hook to get current user's hand indices
+ */
+export function useMyHandIndicesV4(room: GameRoomV4Type | null) {
+  const currentAccount = useCurrentAccount();
+  
+  if (!room || !currentAccount) return [];
+  
+  const player = room.players.find((p) => p.addr === currentAccount.address);
+  return player?.hand.map(Number) ?? [];
+}
+
+/**
+ * Hook to get pending action info
+ */
+export function usePendingActionV4(room: GameRoomV4Type | null) {
+  if (!room || !room.pending_action) return null;
+  return room.pending_action;
+}
+
+/**
+ * Hook to check if current user needs to respond to pending action
+ */
+export function useNeedToRespondV4(room: GameRoomV4Type | null) {
+  const currentAccount = useCurrentAccount();
+  
+  if (!room || !currentAccount || !room.pending_action) return false;
+  
+  return room.pending_action.responder === currentAccount.address;
+}
+
+/**
+ * Hook to check if current user is in room
+ */
+export function useIsPlayerInRoomV4(room: GameRoomV4Type | null) {
+  const currentAccount = useCurrentAccount();
+  
+  if (!room || !currentAccount) return false;
+  
+  return room.players.some((p) => p.addr === currentAccount.address);
+}
+
+/**
+ * Hook to check if current user is alive
+ */
+export function useIsAliveV4(room: GameRoomV4Type | null) {
+  const currentAccount = useCurrentAccount();
+  
+  if (!room || !currentAccount) return false;
+  
+  const player = room.players.find((p) => p.addr === currentAccount.address);
+  return player?.is_alive ?? false;
+}
+
+/**
+ * Hook to check if chancellor action is pending for current user
+ */
+export function useChancellorPendingV4(room: GameRoomV4Type | null) {
+  const currentAccount = useCurrentAccount();
+  
+  if (!room || !currentAccount || !room.chancellor_pending) return false;
+  
+  const chancellorPlayer = room.players[Number(room.chancellor_player_idx)];
+  return chancellorPlayer?.addr === currentAccount.address;
+}
+
+/**
+ * Hook to get chancellor card indices
+ */
+export function useChancellorCardIndicesV4(room: GameRoomV4Type | null) {
+  if (!room || !room.chancellor_pending) return [];
+  return room.chancellor_card_indices.map(Number);
+}
+
+// ============== Alias Hooks for Backward Compatibility ==============
+
+// Alias for useGameRoomV4
+export function useGetRoomV4(roomId: string | null) {
+  const result = useGameRoomV4(roomId);
+  return {
+    room: result.room,
+    fetchRoom: result.refetch,
+    isLoading: result.isLoading,
+    error: result.error,
+  };
+}
+
+// Alias for useActiveRoomsV4
+export function useGetActiveRoomsV4() {
+  const result = useActiveRoomsV4();
+  return {
+    rooms: result.rooms,
+    fetchRooms: result.refetch,
+    isLoading: result.isLoading,
+    error: result.error,
+  };
+}
+
+// Alias for useSubmitDeckV4
+export function useSubmitEncryptedDeck() {
+  return useSubmitDeckV4();
+}
