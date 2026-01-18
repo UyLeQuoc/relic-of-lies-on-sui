@@ -8,7 +8,7 @@ import {
   useGetMyCards,
   GACHA_COST,
   type CardNFT,
-} from "@/hooks/use-game-contract";
+} from "@/hooks/use-game-contract-v4";
 import { mistToSui } from "@/lib/gacha";
 import gsap from "gsap";
 

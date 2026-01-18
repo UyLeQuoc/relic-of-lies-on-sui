@@ -3,13 +3,13 @@
 import { useCallback, useState } from "react";
 import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
 import { useNetworkConfig } from "@/app/(root)/_components/sui-provider";
-import type { CardNFT } from "@/hooks/use-game-contract";
+import type { CardNFT } from "@/hooks/use-game-contract-v4";
 
 export function useCollection() {
   const client = useSuiClient();
   const currentAccount = useCurrentAccount();
   const {
-    variables: { movePackageId },
+    variables: { movePackageIdV4 },
   } = useNetworkConfig();
 
   const [cards, setCards] = useState<CardNFT[]>([]);
@@ -57,7 +57,7 @@ export function useCollection() {
         const response = await client.getOwnedObjects({
           owner: currentAccount.address,
           filter: {
-            StructType: `${movePackageId}::gacha::Card`,
+            StructType: `${movePackageIdV4}::gacha::Card`,
           },
           options: {
             showContent: true,
@@ -88,7 +88,7 @@ export function useCollection() {
     } finally {
       setIsLoading(false);
     }
-  }, [client, currentAccount, movePackageId]);
+  }, [client, currentAccount, movePackageIdV4]);
 
   const refresh = useCallback(async () => {
     setCards([]);

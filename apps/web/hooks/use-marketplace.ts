@@ -3,7 +3,7 @@
 import { useCallback, useState, useEffect } from "react";
 import { useSuiClient } from "@mysten/dapp-kit";
 import { useNetworkConfig } from "@/app/(root)/_components/sui-provider";
-import type { CardNFT } from "@/hooks/use-game-contract";
+import type { CardNFT } from "@/hooks/use-game-contract-v4";
 
 export interface MarketplaceListing {
   card: CardNFT;
@@ -15,7 +15,7 @@ export interface MarketplaceListing {
 export function useMarketplace() {
   const client = useSuiClient();
   const {
-    variables: { movePackageId, marketplaceRegistryId },
+    variables: { movePackageIdV4, marketplaceIdV4 },
   } = useNetworkConfig();
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +49,7 @@ export function useMarketplace() {
 
   const fetchTransferPolicy = useCallback(async () => {
     try {
-      const cardType = `${movePackageId}::gacha::Card`;
+      const cardType = `${movePackageIdV4}::gacha::Card`;
       const policyType = `0x2::transfer_policy::TransferPolicy<${cardType}>`;
 
       const sharedResponse = await client.getObject({
@@ -70,7 +70,7 @@ export function useMarketplace() {
       console.error("Failed to fetch transfer policy:", err);
       return null;
     }
-  }, [client, movePackageId]);
+  }, [client, movePackageIdV4]);
 
   const fetchListings = useCallback(async () => {
     setIsLoading(true);
@@ -84,7 +84,7 @@ export function useMarketplace() {
 
       const allListings: MarketplaceListing[] = [];
 
-      const cardType = `${movePackageId}::gacha::Card`;
+      const cardType = `${movePackageIdV4}::gacha::Card`;
       const listingKeyType = `0x2::kiosk::Listing<${cardType}>`;
 
       let cursor: string | null | undefined = undefined;
@@ -201,7 +201,7 @@ export function useMarketplace() {
     } finally {
       setIsLoading(false);
     }
-  }, [client, movePackageId, fetchTransferPolicy]);
+  }, [client, movePackageIdV4, fetchTransferPolicy]);
 
   useEffect(() => {
     fetchListings();

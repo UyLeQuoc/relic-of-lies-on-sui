@@ -1,4 +1,4 @@
-import { Rarity } from "@/hooks/use-game-contract";
+import { Rarity } from "@/hooks/use-game-contract-v4";
 
 export const RarityColors: Record<number, string> = {
   [Rarity.COMMON]: "#ffffff",

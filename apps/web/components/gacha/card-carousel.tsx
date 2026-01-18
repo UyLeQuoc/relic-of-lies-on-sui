@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { CardNames, Rarity } from "@/hooks/use-game-contract";
+import { CardNames, Rarity } from "@/hooks/use-game-contract-v4";
 import { RarityColors, RarityGlow, RarityNames } from "@/lib/gacha";
 import gsap from "gsap";
 

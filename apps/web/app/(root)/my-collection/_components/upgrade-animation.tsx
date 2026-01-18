@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import confetti from "canvas-confetti";
-import { CardNames, type CardNFT } from "@/hooks/use-game-contract";
+import { CardNames, type CardNFT } from "@/hooks/use-game-contract-v4";
 import { RarityColors, RarityNames, RarityGlow } from "@/lib/gacha";
 import { cn } from "@/lib/utils";
 

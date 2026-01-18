@@ -1,7 +1,7 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { CardNames, type CardNFT } from "@/hooks/use-game-contract";
+import { CardNames, type CardNFT } from "@/hooks/use-game-contract-v4";
 import { RarityColors, RarityNames, RarityGlow } from "@/lib/gacha";
 
 interface PulledCard extends CardNFT {

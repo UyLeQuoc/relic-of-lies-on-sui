@@ -15,7 +15,7 @@ import {
   CardNames,
   CardType,
   Rarity,
-} from "@/hooks/use-game-contract";
+} from "@/hooks/use-game-contract-v4";
 import type { MarketplaceListing } from "@/hooks/use-marketplace";
 import { useMarketplace } from "@/hooks/use-marketplace";
 import { RarityColors } from "@/lib/gacha";

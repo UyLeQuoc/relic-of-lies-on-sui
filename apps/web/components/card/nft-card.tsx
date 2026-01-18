@@ -2,8 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import { RarityColors, RarityNames, RarityGlow } from "@/lib/gacha";
-import type { CardNFT } from "@/hooks/use-game-contract";
-import { CardNames } from "@/hooks/use-game-contract";
+import type { CardNFT } from "@/hooks/use-game-contract-v4";
+import { CardNames } from "@/hooks/use-game-contract-v4";
 import { mistToSui } from "@/lib/gacha";
 import { Check } from "lucide-react";
 
