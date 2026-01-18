@@ -16,7 +16,7 @@ function GamePageContent() {
           <p className="text-muted-foreground mt-2">
             Please select a room from the lobby to play.
           </p>
-          <a href="/rooms" className="mt-4 inline-block text-primary underline">
+          <a href="/rooms_v4" className="mt-4 inline-block text-primary underline">
             Go to Lobby
           </a>
         </div>

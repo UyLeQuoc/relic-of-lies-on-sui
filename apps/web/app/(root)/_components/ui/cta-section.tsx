@@ -20,7 +20,7 @@ export function CtaSection() {
 						
 						<div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
 							<Button asChild size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white min-w-[200px] border-0">
-								<Link href="/rooms" className="flex items-center gap-2">
+								<Link href="/rooms_v4" className="flex items-center gap-2">
 									<Gamepad2 className="w-5 h-5" />
 									Start Playing
 								</Link>
