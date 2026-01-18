@@ -10,6 +10,7 @@ import {
   CardCarousel,
 } from "@/components/gacha";
 import { useGacha, useGachaAnimations } from "@/hooks/use-gacha";
+import { Ripple } from "@/components/ui/ripple";
 
 export function GachaContent() {
   const {
@@ -33,10 +34,7 @@ export function GachaContent() {
   const {
     containerRef,
     cardsContainerRef,
-    pullButtonRef,
-    pull10ButtonRef,
     animateCardFlip,
-    animateButtonPress,
     animateCardsExit,
     triggerCardsEntrance,
     animateRevealAll,
@@ -44,25 +42,13 @@ export function GachaContent() {
 
   const onPull = useCallback(
     async (count: 1 | 10) => {
-      if (count === 1) {
-        animateButtonPress(pullButtonRef);
-      } else {
-        animateButtonPress(pull10ButtonRef);
-      }
-
       await handlePull(count);
 
       setTimeout(() => {
         triggerCardsEntrance();
       }, 100);
     },
-    [
-      handlePull,
-      animateButtonPress,
-      pullButtonRef,
-      pull10ButtonRef,
-      triggerCardsEntrance,
-    ]
+    [handlePull, triggerCardsEntrance]
   );
 
   const onCardClick = useCallback(
@@ -86,8 +72,9 @@ export function GachaContent() {
   return (
     <div
       ref={containerRef}
-      className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background via-background to-muted/20"
+      className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background via-background to-muted/20 "
     >
+      <Ripple className="animate-pulse"/>
       <div className="w-full max-w-4xl mx-auto space-y-8">
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold font-god-of-war tracking-wider">
@@ -146,7 +133,6 @@ export function GachaContent() {
             <CardCarousel />
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <PullButton
-                ref={pullButtonRef}
                 count={1}
                 cost={gachaCostSui}
                 disabled={!currentAccount || !canPull1 || isLoading}
@@ -154,7 +140,6 @@ export function GachaContent() {
                 onClick={() => onPull(1)}
               />
               <PullButton
-                ref={pull10ButtonRef}
                 count={10}
                 cost={gachaCost10Sui}
                 disabled={!currentAccount || !canPull10 || isLoading}
