@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import * as React from "react";
 import { CardCharacter } from "@/components/common/game-ui/cards/card-character";
 import { CardType } from "@/components/common/game-ui/cards/types";
@@ -70,16 +69,16 @@ export function GameCardComponent({
 	}, [faceUp]);
 
 	return (
-		<motion.div
-			whileHover={!disabled ? { scale: 1.05, y: -5 } : undefined}
-			whileTap={!disabled ? { scale: 0.98 } : undefined}
+		<div
 			onClick={disabled ? undefined : onClick}
 			className={cn(
-				"relative rounded-lg shadow-xl transition-all duration-200",
-				onClick && !disabled && "cursor-pointer",
+				"relative rounded-lg shadow-xl will-change-transform",
+				// Smooth hover animation using CSS
+				"transition-transform duration-200 ease-out",
+				onClick && !disabled && "cursor-pointer hover:scale-105 hover:-translate-y-1 active:scale-[0.98]",
 				selected &&
-					"ring-4 ring-gold dark:ring-silver ring-offset-2 ring-offset-cream dark:ring-offset-midnight",
-				disabled && "opacity-50 cursor-not-allowed",
+					"ring-4 ring-amber-400 ring-offset-2 ring-offset-slate-900 scale-105 -translate-y-2",
+				disabled && "opacity-50 cursor-not-allowed hover:scale-100 hover:translate-y-0",
 			)}
 		>
 			<div
@@ -87,10 +86,10 @@ export function GameCardComponent({
 					transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
 					transformStyle: "preserve-3d",
 				}}
-				className="transition-transform duration-500"
+				className="transition-transform duration-500 ease-out"
 			>
 				<CardCharacter cardType={newCardType} size={cardSize} flip={false} />
 			</div>
-		</motion.div>
+		</div>
 	);
 }

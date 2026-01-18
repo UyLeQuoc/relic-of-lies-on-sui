@@ -6,20 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CardCharacter } from "@/components/common/game-ui/cards/card-character";
 import { CardType, CardConceptType, cardsMap } from "@/components/common/game-ui/cards/types";
-
-// Card data mapping for display
-const CARD_DATA_MAP: Record<number, { name: string; description: string }> = {
-  0: { name: "Spy", description: "At round end, if only you played or discarded a Spy, gain 1 token." },
-  1: { name: "Guard", description: "Name a card (except Guard). If that target holds it, they are eliminated." },
-  2: { name: "Priest", description: "Choose and privately look at another player's hand." },
-  3: { name: "Baron", description: "Privately compare hands with another player. Lower card is eliminated." },
-  4: { name: "Handmaid", description: "You are immune to all card effects until your next turn." },
-  5: { name: "Prince", description: "Choose any player. They discard their card and draw a new one." },
-  6: { name: "Chancellor", description: "Draw 2 cards, keep 1, return 2 to bottom of deck." },
-  7: { name: "King", description: "Trade hands with another player." },
-  8: { name: "Countess", description: "Must be discarded if you have King or Prince." },
-  9: { name: "Princess", description: "If discarded (by you or forced), you are eliminated." },
-};
+import gsap from "gsap";
 
 // Map card value to CardType enum for design system
 const mapCardValueToCardType = (cardValue: number): CardType => {
@@ -63,6 +50,7 @@ interface GameTableProps {
   isGameEnd?: boolean;
   onStartNewGame?: () => void;
   winnerName?: string | null;
+  onViewDiscard?: () => void; // Callback to show discard pile modal in parent
 }
 
 export function GameTable({
@@ -83,14 +71,61 @@ export function GameTable({
   isGameEnd = false,
   onStartNewGame,
   winnerName = null,
+  onViewDiscard,
 }: GameTableProps) {
-  const [showDiscardModal, setShowDiscardModal] = React.useState(false);
   // Separate players: opponents (around table) - human player is shown in Card Hand at bottom and South position
   const opponents = players.filter((_, idx) => idx !== myPlayerIndex);
   const humanPlayer = players[myPlayerIndex];
   
   // Prince (card value 5) can target self
   const canTargetSelf = selectedCardValue === 5;
+  
+  // GSAP Animation refs
+  const deckRef = React.useRef<HTMLDivElement>(null);
+  const discardRef = React.useRef<HTMLButtonElement>(null);
+  const prevDeckCount = React.useRef<number>(deckCount);
+  const prevDiscardCount = React.useRef<number>(discardCount);
+  const tableRef = React.useRef<HTMLDivElement>(null);
+  
+  // GSAP: Deck count change animation - AFTER state updates
+  React.useLayoutEffect(() => {
+    if (!deckRef.current) return;
+    
+    // Deck decreased (card drawn)
+    if (deckCount < prevDeckCount.current && prevDeckCount.current > 0) {
+      gsap.fromTo(deckRef.current,
+        { scale: 1.1, rotateZ: -5 },
+        { scale: 1, rotateZ: 0, duration: 0.4, ease: "back.out(1.7)" }
+      );
+    }
+    
+    prevDeckCount.current = deckCount;
+  }, [deckCount]);
+  
+  // GSAP: Discard pile change animation - AFTER state updates
+  React.useLayoutEffect(() => {
+    if (!discardRef.current) return;
+    
+    // Discard increased (card added)
+    if (discardCount > prevDiscardCount.current) {
+      gsap.fromTo(discardRef.current,
+        { scale: 0.8, y: -20, opacity: 0.5 },
+        { scale: 1, y: 0, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
+      );
+    }
+    
+    prevDiscardCount.current = discardCount;
+  }, [discardCount]);
+  
+  // GSAP: Table entrance animation
+  React.useLayoutEffect(() => {
+    if (!tableRef.current) return;
+    
+    gsap.fromTo(tableRef.current,
+      { opacity: 0, scale: 0.95 },
+      { opacity: 1, scale: 1, duration: 0.5, ease: "power3.out" }
+    );
+  }, []);
 
   // Calculate positions based on player count
   // Human player is always at South (bottom)
@@ -135,7 +170,7 @@ export function GameTable({
   };
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
+    <div ref={tableRef} className="relative w-full h-full flex items-center justify-center">
       {/* Table background - Game floor */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -144,7 +179,7 @@ export function GameTable({
         }}
       />
       {/* Dark overlay for better card visibility */}
-      <div className="absolute inset-0 bg-black/30" />
+      <div className="absolute inset-0 bg-black/40" />
 
       {/* Opponents around the table */}
       {opponents.map((player, idx) => {
@@ -297,7 +332,7 @@ export function GameTable({
           /* Deck and Discard Pile */
           <div className="flex items-end gap-4 md:gap-6">
           {/* Deck - Using card back from design system with stacked effect */}
-          <div className="relative flex flex-col items-center">
+          <div ref={deckRef} className="relative flex flex-col items-center">
             <div className="relative">
               {/* Stacked card layers for depth effect */}
               {deckCount > 0 && (
@@ -366,7 +401,7 @@ export function GameTable({
                 </div>
               )}
             </div>
-            <p className="text-center mt-1 text-xs text-amber-400 font-medium">
+            <p className="text-center mt-3 text-xs text-amber-400 font-medium">
               Deck
             </p>
           </div>
@@ -374,8 +409,9 @@ export function GameTable({
           {/* Discard Pile with stacked effect */}
           <div className="relative flex flex-col items-center">
             <button
+              ref={discardRef}
               type="button"
-              onClick={() => discardCount > 0 && setShowDiscardModal(true)}
+              onClick={() => discardCount > 0 && onViewDiscard?.()}
               disabled={discardCount === 0}
               className={cn(
                 "relative transition-all",
@@ -471,7 +507,7 @@ export function GameTable({
                 </div>
               )}
             </button>
-            <p className="text-center mt-1 text-xs text-amber-400 font-medium">
+            <p className="text-center mt-3 text-xs text-amber-400 font-medium">
               Discard
             </p>
           </div>
@@ -574,49 +610,6 @@ export function GameTable({
         </div>
       )}
 
-      {/* Discard Pile Modal */}
-      {showDiscardModal && (
-        <div 
-          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
-          onClick={() => setShowDiscardModal(false)}
-        >
-          <div 
-            className="bg-slate-900 border-2 border-amber-600 rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4 min-w-56">
-              <h3 className="text-xl font-bold text-amber-400">Discarded Cards ({discardPile.length})</h3>
-              <button
-                type="button"
-                onClick={() => setShowDiscardModal(false)}
-                className="text-amber-400 hover:text-amber-300 text-2xl font-bold"
-              >
-                ×
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-4 justify-center">
-              {discardPile.map((card) => {
-                const cardData = CARD_DATA_MAP[card.value];
-                return (
-                  <div
-                    key={card.id}
-                    className="flex flex-col items-center gap-1"
-                  >
-                    <CardCharacter
-                      cardType={mapCardValueToCardType(card.value)}
-                      size="xs"
-                    />
-                    <span className="text-xs text-amber-400 font-medium">{cardData?.name || 'Unknown'}</span>
-                  </div>
-                );
-              })}
-            </div>
-            {discardPile.length === 0 && (
-              <p className="text-center text-amber-400/70 mt-4">No cards discarded yet</p>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

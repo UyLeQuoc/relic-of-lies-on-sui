@@ -84,7 +84,7 @@ export const cardsMap: Record<CardConceptType, CardConceptValue> = {
 				value: 1,
 				name: "Knight",
 				description:
-					"Name a card (except Knight). If that target holds it, they are eliminated.",
+					"Name a card non-Knight. If that target holds it, they are eliminated.",
 				image: `${imagePrefixPath}/characters/1.png`,
 				valueStyle: "left-[11.5%]",
 			},
@@ -100,7 +100,7 @@ export const cardsMap: Record<CardConceptType, CardConceptValue> = {
 				value: 3,
 				name: "Berserker",
 				description:
-					"Privately compare hands with another player. Lower card is eliminated.",
+					"Compare hands with another player. Lower card is eliminated.",
 				image: `${imagePrefixPath}/characters/3.png`,
 				valueStyle: "top-[2.2%]",
 			},
@@ -124,7 +124,7 @@ export const cardsMap: Record<CardConceptType, CardConceptValue> = {
 				value: 6,
 				name: "Tactician",
 				description:
-					"Draw 2 cards. Keep one and place the others at the bottom in any order.",
+					"Draw 2 cards. Keep one and place the others at the bottom.",
 				image: `${imagePrefixPath}/characters/6.png`,
 				valueStyle: "left-[10%]",
 			},

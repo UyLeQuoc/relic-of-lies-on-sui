@@ -381,13 +381,22 @@ export function validateResolveChancellor(
     return "Must return exactly 2 cards to deck";
   }
 
+  // Create a count map for available cards (after removing the keep card)
+  const availableCardCounts = new Map<number, number>();
+  for (const card of chancellorCards) {
+    availableCardCounts.set(card, (availableCardCounts.get(card) || 0) + 1);
+  }
+  // Remove one instance of the keep card
+  availableCardCounts.set(keepCard, (availableCardCounts.get(keepCard) || 1) - 1);
+
+  // Validate each return card against available counts
   for (const card of returnOrder) {
-    if (!chancellorCards.includes(card)) {
-      return "Invalid return card - not in available options";
+    const available = availableCardCounts.get(card) || 0;
+    if (available <= 0) {
+      return "Invalid return card - not enough cards available";
     }
-    if (card === keepCard) {
-      return "Cannot return the card you are keeping";
-    }
+    // Decrease available count for this card
+    availableCardCounts.set(card, available - 1);
   }
 
   return null;
