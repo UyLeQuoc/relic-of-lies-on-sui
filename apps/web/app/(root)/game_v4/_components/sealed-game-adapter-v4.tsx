@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { GameTable } from "@/components/game-table";
 import { GameCardComponent } from "@/components/game/game-card";
 import { CardCharacter } from "@/components/common/game-ui/cards/card-character";
-import { CardType as CardConceptCardType } from "@/components/common/game-ui/cards/types";
+import { CardType as CardConceptCardType, CardConceptType, cardsMap, CardType } from "@/components/common/game-ui/cards/types";
 import { cn } from "@/lib/utils";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useCallback, useEffect, useMemo, useState, useRef, useLayoutEffect } from "react";
@@ -99,7 +99,7 @@ function convertRoomToGameState(
 
     return {
       id: p.addr,
-      name: idx === myPlayerIndex ? "You" : `Player ${idx + 1}`,
+      name: idx === myPlayerIndex ? "You" : `${p.addr.slice(0, 6)}...${p.addr.slice(-4)}`,
       avatar: "/placeholder.svg",
       hand,
       discardedCards,
@@ -114,13 +114,10 @@ function convertRoomToGameState(
   // Deck count
   const deckCount = room.deck_indices.length;
 
-  // Discard pile from all players
-  const discardPile: GameCard[] = [];
-  room.players.forEach((p, playerIdx) => {
-    p.discarded.forEach((cardValue, cardIdx) => {
-      discardPile.push(createCard(cardValue, `discard-${playerIdx}-${cardIdx}`));
-    });
-  });
+  // Discard pile from discarded_cards_log (more reliable source)
+  const discardPile: GameCard[] = room.discarded_cards_log.map((entry, idx) => 
+    createCard(entry.card_value, `discard-log-${idx}-turn-${entry.turn_number}`)
+  );
 
   // Game phase
   let gamePhase: "setup" | "playing" | "roundEnd" | "gameEnd" | "chancellorChoice" = "setup";
@@ -216,11 +213,71 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
   } | null>(null);
   const [showPriestModal, setShowPriestModal] = useState(false);
 
+  // Priest reveal state
+  const [revealedCard, setRevealedCard] = useState<{ card: GameCard; targetName: string; targetAddress: string } | null>(null);
+  const lastPriestPlayRef = useRef<{ targetIndex: number; timestamp: number } | null>(null);
+  
+  // Baron comparison state
+  const [baronComparison, setBaronComparison] = useState<{
+    myCard: GameCard;
+    myAddress: string;
+    opponentCard: GameCard;
+    opponentAddress: string;
+    result: 'win' | 'lose' | 'tie';
+  } | null>(null);
+  const lastBaronPlayRef = useRef<{ targetIndex: number; myCardValue: number; timestamp: number } | null>(null);
+
   // Animation refs
   const headerRef = useRef<HTMLDivElement>(null);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
   const playButtonRef = useRef<HTMLButtonElement>(null);
   const turnIndicatorRef = useRef<HTMLDivElement>(null);
+  const prevHandLength = useRef<number>(0);
+  const prevHandCardsRef = useRef<GameCard[]>([]);
+  const prevRoundRef = useRef<number>(0);
+  
+  // Flag to skip animation on initial page load
+  const isInitialLoadRef = useRef<boolean>(true);
+  
+  // Draw card animation state
+  const [drawCardAnimation, setDrawCardAnimation] = useState<{
+    drawnCards: GameCard[];
+    isRoundStart: boolean;
+  } | null>(null);
+  
+  // State to hide newly drawn cards until animation completes
+  const [hiddenDrawnCards, setHiddenDrawnCards] = useState<Set<string>>(new Set());
+  
+  // Track processed card IDs to prevent duplicate animations
+  const processedCardIdsRef = useRef<Set<string>>(new Set());
+  const prevRoundForDiscardRef = useRef<number>(0);
+  const isFirstLoadForDiscardRef = useRef<boolean>(true);
+  const isAnimatingThrownCardRef = useRef<boolean>(false);
+  
+  // Animation state - track card being thrown to table (visible to all players)
+  const [thrownCardAnimation, setThrownCardAnimation] = useState<{
+    cardValue: number;
+    playerIndex: number;
+    playerName: string;
+    cardId: string;
+  } | null>(null);
+  
+  // State to hide newly added cards from discard pile until animation completes
+  const [hiddenDiscardCards, setHiddenDiscardCards] = useState<Set<string>>(new Set());
+  
+  // Wizard (Prince/card 5) special animation state
+  const [wizardEffectAnimation, setWizardEffectAnimation] = useState<{
+    targetPlayerIndex: number;
+    targetPlayerName: string;
+    discardedCardValue: number;
+    discardedCardId: string;
+  } | null>(null);
+  
+  // Track pending wizard effect
+  const pendingWizardRef = useRef<{
+    wizardPlayerIndex: number;
+    timestamp: number;
+  } | null>(null);
 
   // Round winner state
   const [roundWinner, setRoundWinner] = useState<{
@@ -408,6 +465,12 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     return convertRoomToGameState(room, currentAccount.address, decryptedCards);
   }, [room, currentAccount, decryptedCards]);
 
+  // Get human player (always available after gameState is computed)
+  const humanPlayer = useMemo(() => {
+    if (!gameState) return null;
+    return gameState.players.find((p) => !p.isBot) || null;
+  }, [gameState]);
+
   // Get selected card object
   const selectedCard = useMemo(() => {
     if (!selectedCardId || !gameState) return null;
@@ -498,6 +561,15 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         targetToUse = gameState.myPlayerIndex;
       }
 
+      // Track Priest and Baron plays for reveal modals
+      const isPriest = cardValue === 2;
+      const isBaron = cardValue === 3;
+      const targetIndex = targetToUse;
+      
+      // For Baron, store my card value before playing (the other card in hand, not the Baron)
+      const myCardForBaron = isBaron && humanPlayer ? 
+        humanPlayer.hand.find((c: GameCard) => c.id !== selectedCardId && c.value >= 0) : null;
+
       // playTurn signature: (roomId, cardIndex, cardValue, targetIdx?, guess?)
       await playTurn(
         roomId,
@@ -506,6 +578,23 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         targetToUse,
         selectedGuess
       );
+
+      // If Priest was played, store target info to reveal after room update
+      if (isPriest && targetIndex !== null && targetIndex >= 0) {
+        lastPriestPlayRef.current = {
+          targetIndex,
+          timestamp: Date.now()
+        };
+      }
+      
+      // If Baron was played, store info to show comparison after room update
+      if (isBaron && targetIndex !== null && targetIndex >= 0 && myCardForBaron) {
+        lastBaronPlayRef.current = {
+          targetIndex,
+          myCardValue: myCardForBaron.value,
+          timestamp: Date.now()
+        };
+      }
 
       setSelectedCardId(null);
       setSelectedTarget(null);
@@ -630,6 +719,263 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     }
   }, [mustPlayCountess, countessCard, isMyTurn, selectedCardId]);
 
+  // Monitor for Priest reveal after room updates
+  useEffect(() => {
+    if (!room || !gameState || !lastPriestPlayRef.current) return;
+    
+    const { targetIndex, timestamp } = lastPriestPlayRef.current;
+    
+    if (Date.now() - timestamp > 10000) {
+      lastPriestPlayRef.current = null;
+      return;
+    }
+    
+    const targetPlayer = gameState.players[targetIndex];
+    if (targetPlayer && targetPlayer.hand.length > 0) {
+      const targetCard = targetPlayer.hand[0];
+      // In V4, we need to check if we can see the card (decrypted via response)
+      if (targetCard && targetCard.value >= 0) {
+        setRevealedCard({
+          card: targetCard,
+          targetName: targetPlayer.name,
+          targetAddress: targetPlayer.id
+        });
+        
+        lastPriestPlayRef.current = null;
+        
+        setTimeout(() => {
+          setRevealedCard(null);
+        }, 10000);
+      }
+    }
+  }, [room, gameState]);
+
+  // Monitor for Baron comparison after room updates
+  useEffect(() => {
+    if (!room || !gameState || !lastBaronPlayRef.current || !humanPlayer) return;
+    
+    const { targetIndex, myCardValue, timestamp } = lastBaronPlayRef.current;
+    
+    if (Date.now() - timestamp > 10000) {
+      lastBaronPlayRef.current = null;
+      return;
+    }
+    
+    const targetPlayer = gameState.players[targetIndex];
+    const myPlayer = gameState.players[gameState.myPlayerIndex];
+    
+    if (targetPlayer) {
+      let opponentCardValue: number;
+      
+      if (targetPlayer.hand.length > 0 && targetPlayer.hand[0]?.value !== undefined && targetPlayer.hand[0].value >= 0) {
+        opponentCardValue = targetPlayer.hand[0].value;
+      } else if (targetPlayer.isEliminated) {
+        if (!myPlayer?.isEliminated) {
+          opponentCardValue = myCardValue - 1;
+        } else {
+          opponentCardValue = myCardValue;
+        }
+      } else {
+        lastBaronPlayRef.current = null;
+        return;
+      }
+      
+      let result: 'win' | 'lose' | 'tie';
+      if (myCardValue > opponentCardValue) {
+        result = 'win';
+      } else if (myCardValue < opponentCardValue) {
+        result = 'lose';
+      } else {
+        result = 'tie';
+      }
+      
+      setBaronComparison({
+        myCard: createCard(myCardValue, 'my-baron-card'),
+        myAddress: myPlayer?.id || '',
+        opponentCard: createCard(opponentCardValue, 'opponent-baron-card'),
+        opponentAddress: targetPlayer.id,
+        result,
+      });
+      
+      lastBaronPlayRef.current = null;
+      
+      setTimeout(() => {
+        setBaronComparison(null);
+      }, 10000);
+    }
+  }, [room, gameState, humanPlayer]);
+
+  // Detect when new cards are drawn and trigger animation
+  useEffect(() => {
+    if (!humanPlayer) return;
+    
+    const currentHand = humanPlayer.hand.filter((c: GameCard) => c.value >= 0); // Only consider decrypted cards
+    const prevHand = prevHandCardsRef.current;
+    const currentHandLength = currentHand.length;
+    
+    // Skip animation on initial page load
+    if (isInitialLoadRef.current) {
+      prevHandLength.current = currentHandLength;
+      prevHandCardsRef.current = [...currentHand];
+      isInitialLoadRef.current = false;
+      return;
+    }
+    
+    // Check if cards were drawn (hand grew)
+    if (currentHandLength > prevHandLength.current) {
+      const prevIds = new Set(prevHand.map((c: GameCard) => c.id));
+      const newCards = currentHand.filter((c: GameCard) => !prevIds.has(c.id));
+      
+      if (newCards.length > 0) {
+        const isRoundStart = prevHandLength.current === 0;
+        
+        // Hide new cards until animation completes
+        setHiddenDrawnCards(prev => {
+          const newSet = new Set(prev);
+          newCards.forEach((c: GameCard) => newSet.add(c.id));
+          return newSet;
+        });
+        
+        setDrawCardAnimation({
+          drawnCards: newCards,
+          isRoundStart,
+        });
+      }
+    }
+    
+    prevHandLength.current = currentHandLength;
+    prevHandCardsRef.current = [...currentHand];
+  }, [humanPlayer?.hand, humanPlayer]);
+
+  // Detect when any player plays a card (using discarded_cards_log for reliable tracking)
+  useEffect(() => {
+    if (!gameState || !room) return;
+    
+    const log = room.discarded_cards_log;
+    
+    // On first load, mark all existing entries as processed (no animation)
+    if (isFirstLoadForDiscardRef.current) {
+      isFirstLoadForDiscardRef.current = false;
+      prevRoundForDiscardRef.current = gameState.roundNumber;
+      // Mark all existing entries as processed
+      for (let i = 0; i < log.length; i++) {
+        const entry = log[i];
+        if (entry) {
+          processedCardIdsRef.current.add(`discard-log-${i}-turn-${entry.turn_number}`);
+        }
+      }
+      return;
+    }
+    
+    // Reset tracking on round change
+    if (gameState.roundNumber !== prevRoundForDiscardRef.current) {
+      processedCardIdsRef.current = new Set();
+      prevRoundForDiscardRef.current = gameState.roundNumber;
+      setHiddenDiscardCards(new Set());
+      pendingWizardRef.current = null;
+      // Mark all existing entries as processed for new round
+      for (let i = 0; i < log.length; i++) {
+        const entry = log[i];
+        if (entry) {
+          processedCardIdsRef.current.add(`discard-log-${i}-turn-${entry.turn_number}`);
+        }
+      }
+      return;
+    }
+    
+    // Process each log entry that hasn't been processed yet
+    for (let logIndex = 0; logIndex < log.length; logIndex++) {
+      const entry = log[logIndex];
+      if (!entry) continue;
+      
+      const cardId = `discard-log-${logIndex}-turn-${entry.turn_number}`;
+      
+      // Skip if already processed
+      if (processedCardIdsRef.current.has(cardId)) continue;
+      
+      // Mark as processed immediately to prevent duplicates
+      processedCardIdsRef.current.add(cardId);
+      
+      const cardValue = entry.card_value;
+      
+      // Find player index by address
+      let playerWhoPlayed = room.players.findIndex(p => p.addr === entry.player_addr);
+      let playerName = '';
+      
+      if (playerWhoPlayed >= 0) {
+        const player = gameState.players[playerWhoPlayed];
+        playerName = player?.name || `${entry.player_addr.slice(0, 6)}...${entry.player_addr.slice(-4)}`;
+      } else {
+        playerName = `${entry.player_addr.slice(0, 6)}...${entry.player_addr.slice(-4)}`;
+        playerWhoPlayed = 0;
+      }
+      
+      // Hide this card until animation completes
+      setHiddenDiscardCards(prev => new Set(prev).add(cardId));
+      
+      // Trigger card animation
+      setThrownCardAnimation({
+        cardValue,
+        playerIndex: playerWhoPlayed,
+        playerName,
+        cardId,
+      });
+      
+      // Check for Prince (5) effect - look for next entry that might be the target's forced discard
+      if (cardValue === 5 && logIndex + 1 < log.length) {
+        const nextEntry = log[logIndex + 1];
+        const nextCardId = `discard-log-${logIndex + 1}-turn-${nextEntry?.turn_number}`;
+        
+        // If next entry is from a different player, it's the Prince target
+        if (nextEntry && nextEntry.player_addr !== entry.player_addr && !processedCardIdsRef.current.has(nextCardId)) {
+          // Mark next entry as processed too
+          processedCardIdsRef.current.add(nextCardId);
+          
+          const targetPlayerIndex = room.players.findIndex(p => p.addr === nextEntry.player_addr);
+          const targetPlayer = gameState.players[targetPlayerIndex];
+          const targetPlayerName = targetPlayer?.name === 'You' ? 'You' : (targetPlayer?.name || `${nextEntry.player_addr.slice(0, 6)}...${nextEntry.player_addr.slice(-4)}`);
+          
+          setHiddenDiscardCards(prev => new Set(prev).add(nextCardId));
+          
+          setTimeout(() => {
+            setWizardEffectAnimation({
+              targetPlayerIndex: targetPlayerIndex >= 0 ? targetPlayerIndex : 0,
+              targetPlayerName,
+              discardedCardValue: nextEntry.card_value,
+              discardedCardId: nextCardId,
+            });
+          }, 1200);
+        } else {
+          // Set pending wizard to catch target's discard later
+          pendingWizardRef.current = {
+            wizardPlayerIndex: playerWhoPlayed,
+            timestamp: Date.now(),
+          };
+        }
+      }
+      
+      // Check for pending wizard (Prince was played earlier, now target discards)
+      if (pendingWizardRef.current && cardValue !== 5) {
+        const pendingWizard = pendingWizardRef.current;
+        if (Date.now() - pendingWizard.timestamp < 5000 && playerWhoPlayed !== pendingWizard.wizardPlayerIndex) {
+          const targetPlayer = gameState.players[playerWhoPlayed];
+          const targetPlayerName = targetPlayer?.name === 'You' ? 'You' : (targetPlayer?.name || playerName);
+          
+          setTimeout(() => {
+            setWizardEffectAnimation({
+              targetPlayerIndex: playerWhoPlayed,
+              targetPlayerName,
+              discardedCardValue: cardValue,
+              discardedCardId: cardId,
+            });
+          }, 200);
+          
+          pendingWizardRef.current = null;
+        }
+      }
+    }
+  }, [gameState, room]);
+
   // Detect round end and show winner
   useEffect(() => {
     if (!gameState) return;
@@ -706,6 +1052,390 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     };
   }, [isMyTurn]);
 
+  // GSAP: Card thrown to table animation - visible to all players
+  useLayoutEffect(() => {
+    if (!thrownCardAnimation || !gameState) return;
+    
+    // Prevent duplicate animations
+    if (isAnimatingThrownCardRef.current) return;
+    isAnimatingThrownCardRef.current = true;
+    
+    const { cardValue, playerIndex, playerName, cardId } = thrownCardAnimation;
+    const isMyCard = playerIndex === gameState.myPlayerIndex;
+    
+    // Get card data from cardsMap
+    const cardConcept = cardsMap[CardConceptType.RelicOfLies];
+    const cardTypeKey = `Value${cardValue}` as CardType;
+    const cardInfo = cardConcept.cards[cardTypeKey];
+    
+    if (!cardInfo) {
+      console.warn(`Card type ${cardTypeKey} not found`);
+      setThrownCardAnimation(null);
+      return;
+    }
+    
+    const cardHeight = 200;
+    const cardWidth = Math.round((cardHeight * 2) / 3);
+    const valueFontSize = Math.round(cardHeight * cardConcept.valueFontSize);
+    const nameFontSize = Math.round(cardHeight * cardConcept.nameFontSize);
+    const descriptionFontSize = Math.round(cardHeight * cardConcept.descriptionFontSize);
+    
+    // Create animated card element
+    const animatedCard = document.createElement('div');
+    animatedCard.className = 'fixed z-[100] pointer-events-none';
+    animatedCard.id = 'thrown-card-animation';
+    
+    animatedCard.innerHTML = `
+      <div class="flex flex-col items-center gap-2">
+        <div class="relative rounded-lg overflow-hidden shadow-2xl" style="width: ${cardWidth}px; height: ${cardHeight}px; box-shadow: 0 0 30px rgba(251, 191, 36, 0.5);">
+          <img src="${cardInfo.image}" alt="${cardInfo.name}" class="absolute inset-0 w-full h-full object-contain z-0" />
+          <img src="${cardConcept.frame}" alt="Frame" class="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none" />
+          <span class="absolute z-20 drop-shadow-lg" style="color: #d2ac77; top: 1.8%; left: 10.5%; font-size: ${valueFontSize}px; font-family: var(--font-faith-collapsing), serif; font-weight: bold;">${cardInfo.value}</span>
+          <span class="absolute z-20 truncate" style="color: #402716; top: 3.3%; left: 60%; transform: translateX(-50%); font-size: ${nameFontSize}px; font-family: var(--font-god-of-war), serif; max-width: 70%; font-weight: bold;">${cardInfo.name}</span>
+          <p class="absolute z-20 text-center" style="color: rgba(0, 0, 0, 0.8); bottom: 10%; left: 50%; transform: translateX(-50%); font-size: ${descriptionFontSize}px; font-family: var(--font-helvetica), sans-serif; width: 72%; font-weight: 600; line-height: 1.2;">${cardInfo.description}</p>
+        </div>
+        <div class="bg-slate-900/90 px-3 py-1.5 rounded-full border border-amber-500/50 shadow-lg">
+          <span class="text-sm font-medium text-amber-400">${isMyCard ? 'You' : playerName}</span>
+        </div>
+      </div>
+    `;
+    
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    let startX: number;
+    let startY: number;
+    
+    const totalPlayers = gameState.players.length;
+    const opponentCount = totalPlayers - 1;
+    
+    if (isMyCard) {
+      startX = viewportWidth / 2;
+      startY = viewportHeight - 100;
+    } else {
+      const opponentIdx = playerIndex > gameState.myPlayerIndex 
+        ? playerIndex - gameState.myPlayerIndex - 1 
+        : playerIndex + (totalPlayers - gameState.myPlayerIndex - 1);
+      
+      if (opponentCount === 1) {
+        startX = viewportWidth / 2;
+        startY = 100;
+      } else if (opponentCount === 2) {
+        if (opponentIdx === 0) {
+          startX = 100;
+          startY = viewportHeight / 2;
+        } else {
+          startX = viewportWidth - 100;
+          startY = viewportHeight / 2;
+        }
+      } else {
+        if (opponentIdx === 0) {
+          startX = 100;
+          startY = viewportHeight / 2;
+        } else if (opponentIdx === 1) {
+          startX = viewportWidth / 2;
+          startY = 100;
+        } else {
+          startX = viewportWidth - 100;
+          startY = viewportHeight / 2;
+        }
+      }
+    }
+    
+    const targetX = viewportWidth / 2;
+    const targetY = viewportHeight * 0.4;
+    
+    animatedCard.style.left = `${startX}px`;
+    animatedCard.style.top = `${startY}px`;
+    animatedCard.style.transform = 'translate(-50%, -50%) scale(0.3) rotate(-15deg)';
+    animatedCard.style.opacity = '0';
+    
+    document.body.appendChild(animatedCard);
+    
+    const tl = gsap.timeline({
+      onComplete: () => {
+        gsap.to(animatedCard, {
+          opacity: 0,
+          scale: 0.8,
+          duration: 0.3,
+          delay: 0.6,
+          ease: "power2.in",
+          onComplete: () => {
+            animatedCard.remove();
+            setHiddenDiscardCards(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(cardId);
+              return newSet;
+            });
+            isAnimatingThrownCardRef.current = false;
+            setThrownCardAnimation(null);
+          },
+        });
+      },
+    });
+    
+    tl.to(animatedCard, { opacity: 1, scale: 0.8, rotation: -5, duration: 0.2, ease: "power2.out" });
+    tl.to(animatedCard, { left: targetX, top: targetY, scale: 1, rotation: gsap.utils.random(-10, 10), duration: 0.5, ease: "power2.out" });
+    tl.to(animatedCard, { scale: 1.1, duration: 0.1, ease: "power2.out" });
+    tl.to(animatedCard, { scale: 1, duration: 0.15, ease: "bounce.out" });
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [thrownCardAnimation]);
+
+  // GSAP: Wizard (Prince) effect animation
+  useLayoutEffect(() => {
+    if (!wizardEffectAnimation || !gameState) return;
+    
+    const { targetPlayerIndex, targetPlayerName, discardedCardValue, discardedCardId } = wizardEffectAnimation;
+    const isTargetMe = targetPlayerIndex === gameState.myPlayerIndex;
+    
+    const cardConcept = cardsMap[CardConceptType.RelicOfLies];
+    const cardTypeKey = `Value${discardedCardValue}` as CardType;
+    const cardInfo = cardConcept.cards[cardTypeKey];
+    
+    if (!cardInfo) {
+      setWizardEffectAnimation(null);
+      return;
+    }
+    
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    const cardHeight = 160;
+    const cardWidth = Math.round((cardHeight * 2) / 3);
+    const valueFontSize = Math.round(cardHeight * cardConcept.valueFontSize);
+    const nameFontSize = Math.round(cardHeight * cardConcept.nameFontSize);
+    
+    const totalPlayers = gameState.players.length;
+    const opponentCount = totalPlayers - 1;
+    let playerX: number;
+    let playerY: number;
+    
+    if (isTargetMe) {
+      playerX = viewportWidth / 2;
+      playerY = viewportHeight - 100;
+    } else {
+      const opponentIdx = targetPlayerIndex > gameState.myPlayerIndex 
+        ? targetPlayerIndex - gameState.myPlayerIndex - 1 
+        : targetPlayerIndex + (totalPlayers - gameState.myPlayerIndex - 1);
+      
+      if (opponentCount === 1) {
+        playerX = viewportWidth / 2;
+        playerY = 100;
+      } else if (opponentCount === 2) {
+        playerX = opponentIdx === 0 ? 100 : viewportWidth - 100;
+        playerY = viewportHeight / 2;
+      } else {
+        if (opponentIdx === 0) { playerX = 100; playerY = viewportHeight / 2; }
+        else if (opponentIdx === 1) { playerX = viewportWidth / 2; playerY = 100; }
+        else { playerX = viewportWidth - 100; playerY = viewportHeight / 2; }
+      }
+    }
+    
+    const discardX = viewportWidth / 2 + 80;
+    const discardY = viewportHeight * 0.4;
+    const deckX = viewportWidth / 2 - 80;
+    const deckY = viewportHeight * 0.4;
+    
+    // Discarded card animation element
+    const discardedCard = document.createElement('div');
+    discardedCard.className = 'fixed z-[100] pointer-events-none';
+    discardedCard.innerHTML = `
+      <div class="flex flex-col items-center gap-1">
+        <div class="relative rounded-lg overflow-hidden shadow-2xl" style="width: ${cardWidth}px; height: ${cardHeight}px; box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);">
+          <img src="${cardInfo.image}" alt="${cardInfo.name}" class="absolute inset-0 w-full h-full object-contain z-0" />
+          <img src="${cardConcept.frame}" alt="Frame" class="absolute inset-0 w-full h-full object-cover z-10" />
+          <span class="absolute z-20 drop-shadow-lg" style="color: #d2ac77; top: 1.8%; left: 10.5%; font-size: ${valueFontSize}px; font-family: var(--font-faith-collapsing), serif; font-weight: bold;">${cardInfo.value}</span>
+          <span class="absolute z-20 truncate" style="color: #402716; top: 3.3%; left: 60%; transform: translateX(-50%); font-size: ${nameFontSize}px; font-family: var(--font-god-of-war), serif; max-width: 70%; font-weight: bold;">${cardInfo.name}</span>
+        </div>
+        <span class="text-xs text-red-400 font-medium bg-slate-900/90 px-2 py-0.5 rounded-full">${isTargetMe ? 'Your card' : targetPlayerName} discarded!</span>
+      </div>
+    `;
+    
+    discardedCard.style.left = `${playerX}px`;
+    discardedCard.style.top = `${playerY}px`;
+    discardedCard.style.transform = 'translate(-50%, -50%) scale(0.5)';
+    discardedCard.style.opacity = '0';
+    document.body.appendChild(discardedCard);
+    
+    // New card from deck element
+    const newCardElement = document.createElement('div');
+    newCardElement.className = 'fixed z-[99] pointer-events-none';
+    newCardElement.innerHTML = `
+      <div class="flex flex-col items-center gap-1">
+        <div class="relative rounded-lg overflow-hidden shadow-2xl" style="width: ${cardWidth}px; height: ${cardHeight}px; box-shadow: 0 0 20px rgba(34, 197, 94, 0.6);">
+          <img src="${cardConcept.cardBack}" alt="Card Back" class="w-full h-full object-cover" />
+        </div>
+        <span class="text-xs text-green-400 font-medium bg-slate-900/90 px-2 py-0.5 rounded-full">${isTargetMe ? 'You draw' : targetPlayerName + ' draws'} new card!</span>
+      </div>
+    `;
+    
+    newCardElement.style.left = `${deckX}px`;
+    newCardElement.style.top = `${deckY}px`;
+    newCardElement.style.transform = 'translate(-50%, -50%) scale(0.5)';
+    newCardElement.style.opacity = '0';
+    document.body.appendChild(newCardElement);
+    
+    const masterTl = gsap.timeline({
+      onComplete: () => {
+        discardedCard.remove();
+        newCardElement.remove();
+        setHiddenDiscardCards(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(discardedCardId);
+          return newSet;
+        });
+        setWizardEffectAnimation(null);
+      },
+    });
+    
+    masterTl.to(discardedCard, { opacity: 1, scale: 1, duration: 0.3, ease: "power2.out" });
+    masterTl.to(discardedCard, { left: discardX, top: discardY, rotation: gsap.utils.random(-15, 15), duration: 0.5, ease: "power2.inOut" });
+    masterTl.to(discardedCard, { opacity: 0, scale: 0.8, duration: 0.2, ease: "power2.in" });
+    masterTl.to(newCardElement, { opacity: 1, scale: 1, duration: 0.3, ease: "power2.out" }, "-=0.1");
+    masterTl.to(newCardElement, { left: playerX, top: playerY, rotation: 0, duration: 0.5, ease: "power2.out" });
+    masterTl.to(newCardElement, { scale: 1.1, duration: 0.1, ease: "power2.out" });
+    masterTl.to(newCardElement, { scale: 1, duration: 0.15, ease: "bounce.out" });
+    masterTl.to(newCardElement, { opacity: 0, scale: 0.8, duration: 0.3, delay: 0.3, ease: "power2.in" });
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wizardEffectAnimation]);
+
+  // GSAP: Draw card animation - card slides from deck to hand, then flips to reveal
+  useLayoutEffect(() => {
+    if (!drawCardAnimation) return;
+    
+    const { drawnCards, isRoundStart } = drawCardAnimation;
+    
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const deckX = viewportWidth / 2 - 80;
+    const deckY = viewportHeight * 0.4;
+    const handY = viewportHeight - 120;
+    const handXOffset = 80;
+    
+    const cardConcept = cardsMap[CardConceptType.RelicOfLies];
+    const cardHeight = 200;
+    const cardWidth = Math.round((cardHeight * 2) / 3);
+    const valueFontSize = Math.round(cardHeight * cardConcept.valueFontSize);
+    const nameFontSize = Math.round(cardHeight * cardConcept.nameFontSize);
+    const descriptionFontSize = Math.round(cardHeight * cardConcept.descriptionFontSize);
+    
+    drawnCards.forEach((card: GameCard, index: number) => {
+      const cardTypeKey = `Value${card.value}` as CardType;
+      const cardInfo = cardConcept.cards[cardTypeKey];
+      
+      if (!cardInfo) return;
+      
+      const totalCards = drawnCards.length;
+      const spacing = 150;
+      const baseX = viewportWidth / 2 + handXOffset;
+      const startXPos = baseX - ((totalCards - 1) * spacing) / 2;
+      const targetX = startXPos + index * spacing;
+      
+      const animatedCard = document.createElement('div');
+      animatedCard.className = 'fixed z-[100] pointer-events-none';
+      animatedCard.style.willChange = 'transform, left, top';
+      animatedCard.style.perspective = '1000px';
+      animatedCard.innerHTML = `
+        <div class="card-flip-inner" style="width: ${cardWidth}px; height: ${cardHeight}px; transform-style: preserve-3d; position: relative;">
+          <div class="absolute inset-0 rounded-lg overflow-hidden" style="backface-visibility: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            <img src="${cardConcept.cardBack}" alt="Card Back" class="w-full h-full object-cover" />
+          </div>
+          <div class="absolute inset-0 rounded-lg overflow-hidden" style="backface-visibility: hidden; transform: rotateY(180deg); box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            <img src="${cardInfo.image}" alt="${cardInfo.name}" class="absolute inset-0 w-full h-full object-contain z-0" />
+            <img src="${cardConcept.frame}" alt="Frame" class="absolute inset-0 w-full h-full object-cover z-10" />
+            <span class="absolute z-20 drop-shadow-lg" style="color: #d2ac77; top: 1.8%; left: 10.5%; font-size: ${valueFontSize}px; font-family: var(--font-faith-collapsing), serif; font-weight: bold;">${cardInfo.value}</span>
+            <span class="absolute z-20 truncate" style="color: #402716; top: 3.3%; left: 60%; transform: translateX(-50%); font-size: ${nameFontSize}px; font-family: var(--font-god-of-war), serif; max-width: 70%; font-weight: bold;">${cardInfo.name}</span>
+            <span class="absolute z-20 text-center left-1/2 -translate-x-1/2" style="color: rgba(0,0,0,0.8); bottom: 10%; font-size: ${descriptionFontSize}px; font-family: var(--font-helvetica), sans-serif; width: 72%; font-weight: 600; line-height: 1.2;">${cardInfo.description}</span>
+          </div>
+        </div>
+      `;
+      
+      animatedCard.style.left = `${deckX}px`;
+      animatedCard.style.top = `${deckY}px`;
+      animatedCard.style.transform = 'translate(-50%, -50%)';
+      document.body.appendChild(animatedCard);
+      
+      const flipInner = animatedCard.querySelector('.card-flip-inner') as HTMLElement;
+      const staggerDelay = isRoundStart ? index * 0.2 : 0;
+      
+      const tl = gsap.timeline({ delay: staggerDelay });
+      
+      tl.to(animatedCard, { left: targetX, top: handY, duration: 0.5, ease: "power3.out" });
+      tl.to(flipInner, { rotateY: 180, duration: 0.4, ease: "power2.inOut" });
+      tl.to(animatedCard, {
+        opacity: 0,
+        duration: 0.15,
+        delay: 0.2,
+        ease: "power2.in",
+        onComplete: () => {
+          animatedCard.remove();
+          setHiddenDrawnCards(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(card.id);
+            return newSet;
+          });
+          if (index === drawnCards.length - 1) {
+            setDrawCardAnimation(null);
+          }
+        },
+      });
+    });
+    
+  }, [drawCardAnimation]);
+
+  // GSAP: Round change celebration
+  useLayoutEffect(() => {
+    if (!gameState) return;
+    
+    if (prevRoundRef.current !== 0 && gameState.roundNumber !== prevRoundRef.current) {
+      setTimeout(() => {
+        const flash = document.createElement('div');
+        flash.className = 'fixed inset-0 bg-amber-400/30 z-50 pointer-events-none';
+        document.body.appendChild(flash);
+        
+        gsap.to(flash, {
+          opacity: 0,
+          duration: 0.6,
+          ease: "power2.out",
+          onComplete: () => flash.remove(),
+        });
+        
+        if (headerRef.current) {
+          gsap.fromTo(headerRef.current, 
+            { scale: 1 },
+            { scale: 1.1, duration: 0.3, yoyo: true, repeat: 1, ease: "power2.inOut" }
+          );
+        }
+      }, 200);
+    }
+    prevRoundRef.current = gameState.roundNumber;
+  }, [gameState?.roundNumber]);
+
+  // GSAP: Play button hover animation
+  useLayoutEffect(() => {
+    if (!playButtonRef.current) return;
+    
+    const button = playButtonRef.current;
+    
+    const handleMouseEnter = () => {
+      gsap.to(button, { scale: 1.05, duration: 0.2, ease: "power2.out" });
+    };
+    
+    const handleMouseLeave = () => {
+      gsap.to(button, { scale: 1, duration: 0.2, ease: "power2.out" });
+    };
+    
+    button.addEventListener('mouseenter', handleMouseEnter);
+    button.addEventListener('mouseleave', handleMouseLeave);
+    
+    return () => {
+      button.removeEventListener('mouseenter', handleMouseEnter);
+      button.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [selectedCard]);
+
   // Map card value to CardType enum
   const mapCardValueToCardType = (cardValue: number): CardConceptCardType => {
     const cardTypeMap: Record<number, CardConceptCardType> = {
@@ -770,7 +1500,6 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     );
   }
 
-  const humanPlayer = gameState.players.find((p) => !p.isBot);
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isProcessingAction = isPlayingTurn || isResolvingChancellor || isRespondingGuard || isRespondingBaron || isRespondingPrince || isSubmittingDeck || isStartingNewGame;
 
@@ -791,10 +1520,10 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               Players: {room.players.length}/{room.max_players}
             </p>
             <div className="space-y-2">
-              {room.players.map((p, idx) => (
+              {room.players.map((p) => (
                 <div key={p.addr} className="flex items-center justify-between text-sm">
                   <span className="text-amber-300">
-                    {p.addr === currentAccount.address ? "You" : `Player ${idx + 1}`}
+                    {p.addr === currentAccount.address ? "You" : `${p.addr.slice(0, 6)}...${p.addr.slice(-4)}`}
                   </span>
                   <span className="text-green-400">✓ Joined</span>
                 </div>
@@ -921,8 +1650,8 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
                 .filter(([idx]) => Number(idx) !== gameState.myPlayerIndex)
             )}
             deckCount={gameState.deckCount}
-            discardCount={gameState.discardPile.length}
-            discardPile={gameState.discardPile}
+            discardCount={gameState.discardPile.filter((c: GameCard) => !hiddenDiscardCards.has(c.id)).length}
+            discardPile={gameState.discardPile.filter((c: GameCard) => !hiddenDiscardCards.has(c.id))}
             showStartRoundButton={false}
             onStartRound={() => {}}
             isStartingRound={false}
@@ -1070,7 +1799,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
           <>
             {/* Countess Rule Warning */}
             {mustPlayCountess && isMyTurn && (
-              <div className="absolute bottom-[200px] left-1/2 -translate-x-1/2 z-20 animate-pulse">
+              <div className="absolute bottom-[200px] mb-10 left-1/2 -translate-x-1/2 z-20 animate-pulse">
                 <div className="bg-red-500/90 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg border-2 border-red-400">
                   ⚠️ You have Countess with King/Prince - You MUST play Countess!
                 </div>
@@ -1082,7 +1811,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               ref={cardsContainerRef}
               className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 justify-center flex-wrap z-10"
             >
-              {humanPlayer.hand.map((card) => {
+              {humanPlayer.hand.filter((c: GameCard) => !hiddenDrawnCards.has(c.id)).map((card) => {
                 const isSelected = selectedCardId === card.id;
                 const isCountess = card.value === 8;
                 const canSelect = isMyTurn && !isProcessingAction && (!mustPlayCountess || isCountess) && card.value >= 0;
@@ -1196,10 +1925,117 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               </div>
             )}
 
+            {/* Priest Reveal Modal */}
+            {revealedCard && (
+              <div 
+                className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in cursor-pointer"
+                onClick={() => setRevealedCard(null)}
+              >
+                <div 
+                  className="flex flex-col items-center gap-4 rounded-lg p-6 animate-scale-in"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h3 className="text-xl font-bold text-amber-400">
+                    {revealedCard.targetAddress.slice(0, 6)}...{revealedCard.targetAddress.slice(-4)}&apos;s Card
+                  </h3>
+                  <div className="relative">
+                    <CardCharacter
+                      cardType={mapCardValueToCardType(revealedCard.card.value)}
+                      size="md"
+                      flip={true}
+                    />
+                  </div>
+                  <p className="text-sm text-amber-300">
+                    {revealedCard.card.name}
+                  </p>
+                  <p className="text-xs text-amber-400/50">
+                    Click anywhere or wait to close
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Baron Comparison Modal */}
+            {baronComparison && (
+              <div 
+                className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in cursor-pointer"
+                onClick={() => setBaronComparison(null)}
+              >
+                <div 
+                  className="flex flex-col items-center gap-6 rounded-lg p-6 animate-scale-in"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h3 className="text-xl font-bold text-amber-400">Baron Comparison</h3>
+                  
+                  {/* Cards comparison */}
+                  <div className="flex items-center gap-8">
+                    {/* My card */}
+                    <div className="flex flex-col items-center gap-2">
+                      <p className="text-sm text-amber-300 font-semibold">You</p>
+                      <div className={cn(
+                        "relative rounded-lg p-1",
+                        baronComparison.result === 'win' && "ring-4 ring-green-400",
+                        baronComparison.result === 'lose' && "ring-4 ring-red-400",
+                        baronComparison.result === 'tie' && "ring-4 ring-yellow-400"
+                      )}>
+                        <CardCharacter
+                          cardType={mapCardValueToCardType(baronComparison.myCard.value)}
+                          size="sm"
+                          flip={true}
+                        />
+                      </div>
+                      <p className="text-sm text-amber-300">{baronComparison.myCard.name}</p>
+                      <p className="text-lg font-bold text-amber-400">Value: {baronComparison.myCard.value}</p>
+                    </div>
+
+                    {/* VS */}
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-2xl font-bold text-amber-500">VS</span>
+                      <div className={cn(
+                        "px-4 py-2 rounded-lg font-bold text-lg",
+                        baronComparison.result === 'win' && "bg-green-500/20 text-green-400",
+                        baronComparison.result === 'lose' && "bg-red-500/20 text-red-400",
+                        baronComparison.result === 'tie' && "bg-yellow-500/20 text-yellow-400"
+                      )}>
+                        {baronComparison.result === 'win' && '🎉 WIN!'}
+                        {baronComparison.result === 'lose' && '💀 LOSE'}
+                        {baronComparison.result === 'tie' && '🤝 TIE'}
+                      </div>
+                    </div>
+
+                    {/* Opponent card */}
+                    <div className="flex flex-col items-center gap-2">
+                      <p className="text-sm text-amber-300 font-semibold">
+                        {baronComparison.opponentAddress.slice(0, 6)}...{baronComparison.opponentAddress.slice(-4)}
+                      </p>
+                      <div className={cn(
+                        "relative rounded-lg p-1",
+                        baronComparison.result === 'lose' && "ring-4 ring-green-400",
+                        baronComparison.result === 'win' && "ring-4 ring-red-400",
+                        baronComparison.result === 'tie' && "ring-4 ring-yellow-400"
+                      )}>
+                        <CardCharacter
+                          cardType={mapCardValueToCardType(baronComparison.opponentCard.value)}
+                          size="sm"
+                          flip={true}
+                        />
+                      </div>
+                      <p className="text-sm text-amber-300">{baronComparison.opponentCard.name}</p>
+                      <p className="text-lg font-bold text-amber-400">Value: {baronComparison.opponentCard.value}</p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-amber-400/50">
+                    Click anywhere or wait to close
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Waiting for turn */}
             {!isMyTurn && humanPlayer && !humanPlayer.isEliminated && (
               <div className="absolute bottom-[200px] left-1/2 -translate-x-1/2 z-10">
-                <div className="bg-slate-800/90 px-4 py-2 rounded-lg border border-amber-600/30">
+                <div className=" px-4 py-2 rounded-lg mb-4">
                   <p className="text-amber-300">
                     Waiting for {currentPlayer?.name || "opponent"} to play...
                   </p>
@@ -1299,35 +2135,57 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         )}
 
         {/* Discard Pile Modal */}
-        {showDiscardModal && (
-          <button
-            type="button"
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 cursor-pointer"
+        {showDiscardModal && (() => {
+          // Build visible log entries that aren't hidden
+          const visibleLogEntries = room.discarded_cards_log
+            .map((entry, idx) => ({
+              ...entry,
+              cardId: `discard-log-${idx}-turn-${entry.turn_number}`,
+              logIdx: idx,
+            }))
+            .filter(entry => !hiddenDiscardCards.has(entry.cardId));
+          
+          return (
+          <div 
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in cursor-pointer"
             onClick={() => setShowDiscardModal(false)}
           >
-            <button
-              type="button"
-              className="bg-slate-900 rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto border border-amber-600/50 cursor-default text-left"
+            <div 
+              className="rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto animate-scale-in bg-slate-900/95 border border-amber-600/30"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-xl font-bold text-amber-400 mb-4 text-center">
-                Discarded Cards ({gameState.discardPile.length})
-              </h3>
-              <div className="flex flex-wrap gap-4 justify-center">
-                {gameState.discardPile.map((card) => (
-                  <div key={card.id} className="flex flex-col items-center gap-1">
-                    <CardCharacter cardType={mapCardValueToCardType(card.value)} size="xs" />
-                    <span className="text-xs text-amber-400">{card.name}</span>
-                  </div>
-                ))}
+              <div className="flex justify-center items-center mb-4 min-w-56">
+                <h3 className="text-xl font-bold text-amber-400">Discarded Cards ({visibleLogEntries.length})</h3>
               </div>
-              {gameState.discardPile.length === 0 && (
-                <p className="text-center text-amber-400/70">No cards discarded yet</p>
+              <div className="flex flex-wrap gap-4 justify-center">
+                {visibleLogEntries.map((entry) => {
+                  const cardData = CARD_DATA_MAP[entry.card_value];
+                  const isMyCard = entry.player_addr === currentAccount?.address;
+                  const playerLabel = isMyCard ? 'You' : `${entry.player_addr.slice(0, 6)}...${entry.player_addr.slice(-4)}`;
+                  return (
+                    <div
+                      key={entry.cardId}
+                      className="flex flex-col items-center gap-1"
+                    >
+                      <CardCharacter
+                        cardType={mapCardValueToCardType(entry.card_value)}
+                        size="xs"
+                      />
+                      <span className="text-xs text-amber-400 font-medium">{cardData?.name || 'Unknown'}</span>
+                      <span className="text-[10px] text-amber-300/60">{playerLabel}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {visibleLogEntries.length === 0 && (
+                <p className="text-center text-amber-400/70 mt-4">No cards discarded yet</p>
               )}
-              <p className="text-center text-amber-400/50 text-xs mt-4">Click anywhere to close</p>
-            </button>
-          </button>
-        )}
+              {/* Click anywhere hint */}
+              <p className="text-center text-amber-400/50 text-xs mt-6">Click anywhere to close</p>
+            </div>
+          </div>
+          );
+        })()}
 
         {/* Result Notification */}
         {resultNotification && (
