@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import {
   CardNames,
@@ -8,7 +8,7 @@ import {
   type CardNFT,
 } from "@/hooks/use-game-contract-v4";
 import { useCollection } from "@/hooks/use-collection";
-import { RarityColors, RarityNames, RarityGlow } from "@/lib/gacha";
+import { RarityColors, RarityNames } from "@/lib/gacha";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NFTCard } from "@/components/card/nft-card";
@@ -121,19 +121,12 @@ export function MyDeckContent() {
   } | null>(null);
   
   const roleRefs = useMemo(() => {
-    const refs: Record<number, React.RefObject<HTMLDivElement>> = {};
+    const refs: Record<number, React.RefObject<HTMLDivElement | null>> = {};
     ROLE_OPTIONS.forEach((role) => {
       refs[role.value] = React.createRef<HTMLDivElement>();
     });
     return refs;
   }, []);
-
-  useEffect(() => {
-    if (currentAccount) {
-      fetchCards();
-      loadDeck();
-    }
-  }, [currentAccount, fetchCards]);
 
   const loadDeck = useCallback(() => {
     if (!currentAccount) return;
@@ -147,6 +140,13 @@ export function MyDeckContent() {
       console.error("Failed to load deck:", error);
     }
   }, [currentAccount]);
+
+  useEffect(() => {
+    if (currentAccount) {
+      fetchCards();
+      loadDeck();
+    }
+  }, [currentAccount, fetchCards, loadDeck]);
 
   const saveDeck = useCallback(() => {
     if (!currentAccount) return;
@@ -164,11 +164,11 @@ export function MyDeckContent() {
   }, [currentAccount, deckSelection]);
 
   const scrollToRole = useCallback((role: number) => {
-    const ref = roleRefs.current[role];
+    const ref = roleRefs[role];
     if (ref?.current) {
       ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  }, []);
+  }, [roleRefs]);
 
   const handleCardSelect = useCallback(
     (role: number, card: CardNFT) => {
@@ -178,7 +178,7 @@ export function MyDeckContent() {
         setReplaceDialog({
           open: true,
           role,
-          roleLabel: CardNames[role],
+          roleLabel: CardNames[role] || `Role ${role}`,
           oldCard,
           newCard: card,
         });
@@ -369,7 +369,7 @@ export function MyDeckContent() {
                 key={role.value}
                 ref={roleRefs[role.value]}
                 role={role.value}
-                roleLabel={role.label}
+                roleLabel={role.label || CardNames[role.value] || `Role ${role.value}`}
                 cards={cardsByRole[role.value] || []}
                 selectedCardId={deckSelection[role.value] || null}
                 onCardSelect={handleCardSelect}
