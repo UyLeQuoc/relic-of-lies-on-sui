@@ -648,9 +648,57 @@
       ],
       "return_": []
     },
-    "room_info": {
+    "start_new_game": {
       "source_index": 8,
       "index": 8,
+      "doc": " Start a new game (reset everything after game finished)",
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "contract_v4",
+                    "name": "game"
+                  },
+                  "name": "GameRoom",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "ctx",
+          "type_": {
+            "Reference": [
+              true,
+              {
+                "Datatype": {
+                  "module": {
+                    "address": "sui",
+                    "name": "tx_context"
+                  },
+                  "name": "TxContext",
+                  "type_arguments": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "return_": []
+    },
+    "room_info": {
+      "source_index": 9,
+      "index": 9,
       "doc": " Get room basic info",
       "attributes": [],
       "visibility": "Public",
@@ -702,8 +750,8 @@
       ]
     },
     "game_state": {
-      "source_index": 9,
-      "index": 9,
+      "source_index": 10,
+      "index": 10,
       "doc": " Get game state info",
       "attributes": [],
       "visibility": "Public",
@@ -738,8 +786,8 @@
       ]
     },
     "players": {
-      "source_index": 10,
-      "index": 10,
+      "source_index": 11,
+      "index": 11,
       "doc": " Get all players in room",
       "attributes": [],
       "visibility": "Public",
@@ -772,8 +820,8 @@
       ]
     },
     "my_hand_indices": {
-      "source_index": 11,
-      "index": 11,
+      "source_index": 12,
+      "index": 12,
       "doc": " Get player's hand indices",
       "attributes": [],
       "visibility": "Public",
@@ -824,8 +872,8 @@
       ]
     },
     "discarded": {
-      "source_index": 12,
-      "index": 12,
+      "source_index": 13,
+      "index": 13,
       "doc": " Get player's discarded cards (public info)",
       "attributes": [],
       "visibility": "Public",
@@ -862,8 +910,8 @@
       ]
     },
     "player_tokens": {
-      "source_index": 13,
-      "index": 13,
+      "source_index": 14,
+      "index": 14,
       "doc": " Get player's token count",
       "attributes": [],
       "visibility": "Public",
@@ -898,8 +946,8 @@
       ]
     },
     "seal_namespace": {
-      "source_index": 14,
-      "index": 14,
+      "source_index": 15,
+      "index": 15,
       "doc": " Get Seal namespace for the room",
       "attributes": [],
       "visibility": "Public",
@@ -932,8 +980,8 @@
       ]
     },
     "active_rooms": {
-      "source_index": 15,
-      "index": 15,
+      "source_index": 16,
+      "index": 16,
       "doc": " Get all active room IDs from registry",
       "attributes": [],
       "visibility": "Public",
@@ -975,8 +1023,8 @@
       ]
     },
     "cleanup_room": {
-      "source_index": 16,
-      "index": 16,
+      "source_index": 17,
+      "index": 17,
       "doc": " Clean up a finished room from registry",
       "attributes": [],
       "visibility": "Public",
@@ -1023,8 +1071,8 @@
       "return_": []
     },
     "top_players": {
-      "source_index": 17,
-      "index": 17,
+      "source_index": 18,
+      "index": 18,
       "doc": " Get top N players",
       "attributes": [],
       "visibility": "Public",
@@ -1070,8 +1118,8 @@
       ]
     },
     "player_stats": {
-      "source_index": 18,
-      "index": 18,
+      "source_index": 19,
+      "index": 19,
       "doc": " Get a specific player's record",
       "attributes": [],
       "visibility": "Public",
@@ -1109,8 +1157,8 @@
       ]
     },
     "my_stats": {
-      "source_index": 19,
-      "index": 19,
+      "source_index": 20,
+      "index": 20,
       "doc": " Get my stats",
       "attributes": [],
       "visibility": "Public",
@@ -1162,8 +1210,8 @@
       ]
     },
     "total_players": {
-      "source_index": 20,
-      "index": 20,
+      "source_index": 21,
+      "index": 21,
       "doc": " Get total players in leaderboard",
       "attributes": [],
       "visibility": "Public",
@@ -1194,8 +1242,8 @@
       ]
     },
     "entry_fee": {
-      "source_index": 21,
-      "index": 21,
+      "source_index": 22,
+      "index": 22,
       "doc": " Get entry fee in MIST",
       "attributes": [],
       "visibility": "Public",
@@ -1207,8 +1255,8 @@
       ]
     },
     "max_players": {
-      "source_index": 22,
-      "index": 22,
+      "source_index": 23,
+      "index": 23,
       "doc": " Get max players allowed",
       "attributes": [],
       "visibility": "Public",
@@ -1220,8 +1268,8 @@
       ]
     },
     "min_players": {
-      "source_index": 23,
-      "index": 23,
+      "source_index": 24,
+      "index": 24,
       "doc": " Get min players required",
       "attributes": [],
       "visibility": "Public",
@@ -1233,8 +1281,8 @@
       ]
     },
     "tokens_to_win": {
-      "source_index": 24,
-      "index": 24,
+      "source_index": 25,
+      "index": 25,
       "doc": " Get tokens needed to win",
       "attributes": [],
       "visibility": "Public",
@@ -1246,8 +1294,8 @@
       ]
     },
     "status_waiting": {
-      "source_index": 25,
-      "index": 25,
+      "source_index": 26,
+      "index": 26,
       "doc": " Get game status constants",
       "attributes": [],
       "visibility": "Public",
@@ -1259,19 +1307,6 @@
       ]
     },
     "status_playing": {
-      "source_index": 26,
-      "index": 26,
-      "doc": null,
-      "attributes": [],
-      "visibility": "Public",
-      "entry": false,
-      "type_parameters": [],
-      "parameters": [],
-      "return_": [
-        "u8"
-      ]
-    },
-    "status_round_end": {
       "source_index": 27,
       "index": 27,
       "doc": null,
@@ -1284,7 +1319,7 @@
         "u8"
       ]
     },
-    "status_finished": {
+    "status_round_end": {
       "source_index": 28,
       "index": 28,
       "doc": null,
@@ -1297,7 +1332,7 @@
         "u8"
       ]
     },
-    "card_spy": {
+    "status_finished": {
       "source_index": 29,
       "index": 29,
       "doc": null,
@@ -1310,7 +1345,7 @@
         "u8"
       ]
     },
-    "card_guard": {
+    "card_spy": {
       "source_index": 30,
       "index": 30,
       "doc": null,
@@ -1323,7 +1358,7 @@
         "u8"
       ]
     },
-    "card_priest": {
+    "card_guard": {
       "source_index": 31,
       "index": 31,
       "doc": null,
@@ -1336,7 +1371,7 @@
         "u8"
       ]
     },
-    "card_baron": {
+    "card_priest": {
       "source_index": 32,
       "index": 32,
       "doc": null,
@@ -1349,7 +1384,7 @@
         "u8"
       ]
     },
-    "card_handmaid": {
+    "card_baron": {
       "source_index": 33,
       "index": 33,
       "doc": null,
@@ -1362,7 +1397,7 @@
         "u8"
       ]
     },
-    "card_prince": {
+    "card_handmaid": {
       "source_index": 34,
       "index": 34,
       "doc": null,
@@ -1375,7 +1410,7 @@
         "u8"
       ]
     },
-    "card_chancellor": {
+    "card_prince": {
       "source_index": 35,
       "index": 35,
       "doc": null,
@@ -1388,7 +1423,7 @@
         "u8"
       ]
     },
-    "card_king": {
+    "card_chancellor": {
       "source_index": 36,
       "index": 36,
       "doc": null,
@@ -1401,7 +1436,7 @@
         "u8"
       ]
     },
-    "card_countess": {
+    "card_king": {
       "source_index": 37,
       "index": 37,
       "doc": null,
@@ -1414,9 +1449,22 @@
         "u8"
       ]
     },
-    "card_princess": {
+    "card_countess": {
       "source_index": 38,
       "index": 38,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [],
+      "return_": [
+        "u8"
+      ]
+    },
+    "card_princess": {
+      "source_index": 39,
+      "index": 39,
       "doc": null,
       "attributes": [],
       "visibility": "Public",

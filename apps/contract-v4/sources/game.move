@@ -44,6 +44,21 @@ public struct PendingAction has store, copy, drop {
     card_index: u64,
 }
 
+/// Discarded card entry for game log
+public struct DiscardedCardEntry has store, copy, drop {
+    /// Player who discarded the card
+    player_addr: address,
+    player_idx: u64,
+    /// Card value
+    card_value: u8,
+    /// Card index in encrypted_cards
+    card_index: u64,
+    /// Turn number when discarded
+    turn_number: u64,
+    /// Reason for discard (played, prince_effect, baron_loss, etc.)
+    reason: std::string::String,
+}
+
 /// Game room with Seal integration - shared object
 public struct GameRoom has key {
     id: UID,
@@ -70,6 +85,10 @@ public struct GameRoom has key {
     max_players: u8,
     round_number: u8,
     tokens_to_win: u8,
+    
+    // ============== Game Log ==============
+    /// Ordered list of discarded cards for game log
+    discarded_cards_log: vector<DiscardedCardEntry>,
     
     // ============== Pending Actions ==============
     pending_action: std::option::Option<PendingAction>,
@@ -139,6 +158,9 @@ public fun create_room(
         round_number: 0,
         tokens_to_win: constants::tokens_to_win(),
         
+        // Game log
+        discarded_cards_log: vector[],
+        
         // Pending actions
         pending_action: std::option::none(),
         
@@ -194,6 +216,58 @@ public fun join_room(
         room.players.length() as u8,
         room.max_players,
     );
+}
+
+/// Start a completely new game (reset everything including tokens)
+/// Can only be called when game is finished
+public fun start_new_game(
+    room: &mut GameRoom,
+    ctx: &mut TxContext,
+) {
+    let sender = ctx.sender();
+    let room_id = room.id.to_inner();
+    
+    // Only allow when game is finished
+    assert!(room.status == constants::status_finished(), error::game_not_finished());
+    
+    // Only creator or a player can start new game
+    let is_creator = sender == room.creator;
+    let is_player = is_player_in_room(room, sender);
+    assert!(is_creator || is_player, error::not_room_creator());
+    
+    // Reset all players
+    let num_players = room.players.length();
+    let mut i = 0u64;
+    while (i < num_players) {
+        room.players[i].hand = vector[];
+        room.players[i].discarded = vector[];
+        room.players[i].is_alive = true;
+        room.players[i].is_immune = false;
+        room.players[i].tokens = 0;
+        room.players[i].has_played_spy = false;
+        i = i + 1;
+    };
+    
+    // Reset game state
+    room.encrypted_cards = vector[];
+    room.deck_indices = vector[];
+    room.burn_card_index = std::option::none();
+    room.public_card_indices = vector[];
+    room.revealed_values = vector[];
+    room.status = constants::status_waiting();
+    room.current_turn = 0;
+    room.round_number = 0;
+    room.discarded_cards_log = vector[];
+    room.pending_action = std::option::none();
+    room.chancellor_pending = false;
+    room.chancellor_player_idx = 0;
+    room.chancellor_card_indices = vector[];
+    
+    // Reset Seal access with same namespace
+    let namespace = room_id.to_bytes();
+    room.seal_access = seal_access::new(namespace);
+    
+    events::emit_new_game_started(room_id, sender);
 }
 
 /// Submit encrypted deck (called by frontend after local shuffle and encryption)
@@ -363,6 +437,9 @@ public fun play_turn(
     // Remove card from hand and add revealed value to discarded
     utils::remove_first(&mut room.players[current_player_idx].hand, &card_index);
     room.players[current_player_idx].discarded.push_back(card_value);
+    
+    // Log the discard
+    log_discard(room, sender, current_player_idx, card_value, card_index, b"played".to_string());
     
     // Remove from Seal access
     seal_access::remove_card(&mut room.seal_access, card_index);
@@ -534,6 +611,9 @@ public fun respond_prince(
     utils::remove_first(&mut room.players[responder_idx].hand, &card_index);
     room.players[responder_idx].discarded.push_back(revealed_value);
     
+    // Log the discard
+    log_discard(room, sender, responder_idx, revealed_value, card_index, b"prince_effect".to_string());
+    
     // Remove from Seal access
     seal_access::remove_card(&mut room.seal_access, card_index);
     
@@ -579,10 +659,16 @@ public fun resolve_chancellor(
     
     // Verify return_indices are valid
     assert!(return_indices.length() == room.chancellor_card_indices.length() - 1, error::chancellor_must_keep_one());
-    return_indices.do_ref!(|idx| {
-        assert!(utils::contains(&room.chancellor_card_indices, idx), error::chancellor_invalid_selection());
-        assert!(*idx != keep_card_index, error::chancellor_invalid_selection());
-    });
+    
+    // Check each return index is valid and not the kept card
+    let mut i = 0u64;
+    while (i < return_indices.length()) {
+        let return_idx = return_indices[i];
+        assert!(utils::contains(&room.chancellor_card_indices, &return_idx), error::chancellor_invalid_selection());
+        // Cannot return the card you're keeping (compare by index, not value)
+        assert!(return_idx != keep_card_index, error::chancellor_cannot_return_kept_card());
+        i = i + 1;
+    };
     
     // Update player's hand to only keep selected card
     room.players[room.chancellor_player_idx].hand = vector[keep_card_index];
@@ -941,6 +1027,26 @@ fun set_revealed_value(revealed_values: &mut vector<std::option::Option<u8>>, in
     revealed_values.insert(std::option::some(value), index);
 }
 
+/// Helper to log a discarded card
+fun log_discard(
+    room: &mut GameRoom,
+    player_addr: address,
+    player_idx: u64,
+    card_value: u8,
+    card_index: u64,
+    reason: std::string::String,
+) {
+    let entry = DiscardedCardEntry {
+        player_addr,
+        player_idx,
+        card_value,
+        card_index,
+        turn_number: room.current_turn,
+        reason,
+    };
+    room.discarded_cards_log.push_back(entry);
+}
+
 fun is_player_in_room(room: &GameRoom, addr: address): bool {
     let mut found = false;
     room.players.do_ref!(|p| {
@@ -976,21 +1082,24 @@ fun hand_contains_value(room: &GameRoom, player_idx: u64, value: u8): bool {
 }
 
 fun eliminate_player(room: &mut GameRoom, player_idx: u64, eliminator_idx: u64, card_used: u8) {
+    let player_addr = room.players[player_idx].addr;
     room.players[player_idx].is_alive = false;
     
     // Discard all cards in hand (values will be revealed when responded)
     while (!room.players[player_idx].hand.is_empty()) {
         let card_idx = room.players[player_idx].hand.pop_back();
-        // If card is already revealed, add to discarded
+        // If card is already revealed, add to discarded and log
         if (room.revealed_values[card_idx].is_some()) {
-            room.players[player_idx].discarded.push_back(*room.revealed_values[card_idx].borrow());
+            let card_value = *room.revealed_values[card_idx].borrow();
+            room.players[player_idx].discarded.push_back(card_value);
+            log_discard(room, player_addr, player_idx, card_value, card_idx, b"eliminated".to_string());
         };
         seal_access::remove_card(&mut room.seal_access, card_idx);
     };
     
     events::emit_player_eliminated(
         room.id.to_inner(),
-        room.players[player_idx].addr,
+        player_addr,
         room.players[eliminator_idx].addr,
         card_used,
     );
@@ -1158,6 +1267,7 @@ fun resolve_round(
         room.revealed_values = vector[];
         room.burn_card_index = std::option::none();
         room.public_card_indices = vector[];
+        room.discarded_cards_log = vector[]; // Clear log for new round
     };
 }
 
@@ -1167,12 +1277,26 @@ fun check_spy_bonus(room: &GameRoom): std::option::Option<u64> {
     
     let num_players = room.players.length();
     num_players.do!(|i| {
-        let played_spy = room.players[i].has_played_spy;
-        let holding_spy = room.players[i].is_alive && 
-            !room.players[i].hand.is_empty() &&
-            room.players[i].discarded.contains(&constants::card_spy());
+        // Player must be alive to get Spy bonus
+        if (!room.players[i].is_alive) {
+            return // continue to next iteration
+        };
         
-        if (played_spy || holding_spy) {
+        // Check if player has Spy in their discard pile (they played it this round)
+        let has_spy_in_discard = room.players[i].discarded.contains(&constants::card_spy());
+        
+        // Check if player is holding Spy in hand (using revealed_values)
+        let mut holding_spy_in_hand = false;
+        room.players[i].hand.do_ref!(|card_idx| {
+            if (room.revealed_values[*card_idx].is_some()) {
+                if (*room.revealed_values[*card_idx].borrow() == constants::card_spy()) {
+                    holding_spy_in_hand = true;
+                };
+            };
+        });
+        
+        // Spy bonus: player has Spy in discard OR holding Spy in hand
+        if (has_spy_in_discard || holding_spy_in_hand) {
             players_with_spy.push_back(room.players[i].addr);
             spy_player_idx = i;
         };
@@ -1349,6 +1473,22 @@ public fun is_chancellor_pending(room: &GameRoom): bool {
 
 public fun all_players(room: &GameRoom): vector<address> {
     vector::tabulate!(room.players.length(), |i| room.players[i].addr)
+}
+
+/// Get the game log (discarded cards in order)
+public fun discarded_cards_log(room: &GameRoom): &vector<DiscardedCardEntry> {
+    &room.discarded_cards_log
+}
+
+/// Get number of entries in the game log
+public fun discarded_cards_log_length(room: &GameRoom): u64 {
+    room.discarded_cards_log.length()
+}
+
+/// Get a specific entry from the game log
+public fun discarded_card_entry(room: &GameRoom, index: u64): (address, u64, u8, u64, u64, std::string::String) {
+    let entry = &room.discarded_cards_log[index];
+    (entry.player_addr, entry.player_idx, entry.card_value, entry.card_index, entry.turn_number, entry.reason)
 }
 
 // ============== Registry Functions ==============

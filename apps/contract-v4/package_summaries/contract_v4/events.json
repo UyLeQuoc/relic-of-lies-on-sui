@@ -491,9 +491,38 @@
       ],
       "return_": []
     },
-    "emit_temporary_access_granted": {
+    "emit_new_game_started": {
       "source_index": 10,
       "index": 10,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Package",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [
+        {
+          "name": "room_id",
+          "type_": {
+            "Datatype": {
+              "module": {
+                "address": "sui",
+                "name": "object"
+              },
+              "name": "ID",
+              "type_arguments": []
+            }
+          }
+        },
+        {
+          "name": "initiator",
+          "type_": "address"
+        }
+      ],
+      "return_": []
+    },
+    "emit_temporary_access_granted": {
+      "source_index": 11,
+      "index": 11,
       "doc": null,
       "attributes": [],
       "visibility": "Package",
@@ -529,8 +558,8 @@
       "return_": []
     },
     "emit_baron_comparison": {
-      "source_index": 11,
-      "index": 11,
+      "source_index": 12,
+      "index": 12,
       "doc": null,
       "attributes": [],
       "visibility": "Package",
@@ -588,8 +617,8 @@
       "return_": []
     },
     "emit_chancellor_draw": {
-      "source_index": 12,
-      "index": 12,
+      "source_index": 13,
+      "index": 13,
       "doc": null,
       "attributes": [],
       "visibility": "Package",
@@ -623,8 +652,8 @@
       "return_": []
     },
     "emit_chancellor_return": {
-      "source_index": 13,
-      "index": 13,
+      "source_index": 14,
+      "index": 14,
       "doc": null,
       "attributes": [],
       "visibility": "Package",
@@ -652,8 +681,8 @@
       "return_": []
     },
     "emit_hands_swapped": {
-      "source_index": 14,
-      "index": 14,
+      "source_index": 15,
+      "index": 15,
       "doc": null,
       "attributes": [],
       "visibility": "Package",
@@ -693,8 +722,8 @@
       "return_": []
     },
     "emit_spy_bonus_check": {
-      "source_index": 15,
-      "index": 15,
+      "source_index": 16,
+      "index": 16,
       "doc": null,
       "attributes": [],
       "visibility": "Package",
@@ -746,8 +775,8 @@
       "return_": []
     },
     "emit_pending_guard_response": {
-      "source_index": 16,
-      "index": 16,
+      "source_index": 17,
+      "index": 17,
       "doc": null,
       "attributes": [],
       "visibility": "Package",
@@ -783,8 +812,8 @@
       "return_": []
     },
     "emit_pending_baron_response": {
-      "source_index": 17,
-      "index": 17,
+      "source_index": 18,
+      "index": 18,
       "doc": null,
       "attributes": [],
       "visibility": "Package",
@@ -820,8 +849,8 @@
       "return_": []
     },
     "emit_pending_prince_response": {
-      "source_index": 18,
-      "index": 18,
+      "source_index": 19,
+      "index": 19,
       "doc": null,
       "attributes": [],
       "visibility": "Package",
@@ -853,8 +882,8 @@
       "return_": []
     },
     "emit_guard_response": {
-      "source_index": 19,
-      "index": 19,
+      "source_index": 20,
+      "index": 20,
       "doc": null,
       "attributes": [],
       "visibility": "Package",
@@ -890,8 +919,8 @@
       "return_": []
     },
     "emit_baron_response": {
-      "source_index": 20,
-      "index": 20,
+      "source_index": 21,
+      "index": 21,
       "doc": null,
       "attributes": [],
       "visibility": "Package",
@@ -923,8 +952,8 @@
       "return_": []
     },
     "emit_prince_response": {
-      "source_index": 21,
-      "index": 21,
+      "source_index": 22,
+      "index": 22,
       "doc": null,
       "attributes": [],
       "visibility": "Package",
@@ -956,8 +985,8 @@
       "return_": []
     },
     "emit_leaderboard_updated": {
-      "source_index": 22,
-      "index": 22,
+      "source_index": 23,
+      "index": 23,
       "doc": null,
       "attributes": [],
       "visibility": "Package",
@@ -1524,8 +1553,42 @@
         }
       }
     },
-    "TemporaryAccessGranted": {
+    "NewGameStarted": {
       "index": 10,
+      "doc": " Emitted when a new game is started (reset after finished)",
+      "attributes": [],
+      "abilities": [
+        "Copy",
+        "Drop"
+      ],
+      "type_parameters": [],
+      "fields": {
+        "positional_fields": false,
+        "fields": {
+          "room_id": {
+            "index": 0,
+            "doc": null,
+            "type_": {
+              "Datatype": {
+                "module": {
+                  "address": "sui",
+                  "name": "object"
+                },
+                "name": "ID",
+                "type_arguments": []
+              }
+            }
+          },
+          "initiator": {
+            "index": 1,
+            "doc": null,
+            "type_": "address"
+          }
+        }
+      }
+    },
+    "TemporaryAccessGranted": {
+      "index": 11,
       "doc": " Emitted when Priest grants temporary Seal access",
       "attributes": [],
       "abilities": [
@@ -1569,7 +1632,7 @@
       }
     },
     "BaronCompared": {
-      "index": 11,
+      "index": 12,
       "doc": " Emitted when Baron comparison happens",
       "attributes": [],
       "abilities": [
@@ -1637,7 +1700,7 @@
       }
     },
     "ChancellorDrawn": {
-      "index": 12,
+      "index": 13,
       "doc": " Emitted when Chancellor draws cards",
       "attributes": [],
       "abilities": [
@@ -1678,7 +1741,7 @@
       }
     },
     "ChancellorReturned": {
-      "index": 13,
+      "index": 14,
       "doc": " Emitted when Chancellor returns cards to deck",
       "attributes": [],
       "abilities": [
@@ -1712,7 +1775,7 @@
       }
     },
     "HandsSwapped": {
-      "index": 14,
+      "index": 15,
       "doc": " Emitted when King swaps hands",
       "attributes": [],
       "abilities": [
@@ -1761,7 +1824,7 @@
       }
     },
     "SpyBonusChecked": {
-      "index": 15,
+      "index": 16,
       "doc": " Emitted when Spy bonus is checked at end of round",
       "attributes": [],
       "abilities": [
@@ -1821,7 +1884,7 @@
       }
     },
     "PendingGuardResponse": {
-      "index": 16,
+      "index": 17,
       "doc": " Emitted when Guard creates pending response",
       "attributes": [],
       "abilities": [
@@ -1865,7 +1928,7 @@
       }
     },
     "PendingBaronResponse": {
-      "index": 17,
+      "index": 18,
       "doc": " Emitted when Baron creates pending response",
       "attributes": [],
       "abilities": [
@@ -1909,7 +1972,7 @@
       }
     },
     "PendingPrinceResponse": {
-      "index": 18,
+      "index": 19,
       "doc": " Emitted when Prince creates pending response",
       "attributes": [],
       "abilities": [
@@ -1948,7 +2011,7 @@
       }
     },
     "GuardResponse": {
-      "index": 19,
+      "index": 20,
       "doc": " Emitted when Guard response is received",
       "attributes": [],
       "abilities": [
@@ -1992,7 +2055,7 @@
       }
     },
     "BaronResponse": {
-      "index": 20,
+      "index": 21,
       "doc": " Emitted when Baron response is received",
       "attributes": [],
       "abilities": [
@@ -2031,7 +2094,7 @@
       }
     },
     "PrinceResponse": {
-      "index": 21,
+      "index": 22,
       "doc": " Emitted when Prince response is received",
       "attributes": [],
       "abilities": [
@@ -2070,7 +2133,7 @@
       }
     },
     "LeaderboardUpdated": {
-      "index": 22,
+      "index": 23,
       "doc": " Emitted when leaderboard is updated",
       "attributes": [],
       "abilities": [

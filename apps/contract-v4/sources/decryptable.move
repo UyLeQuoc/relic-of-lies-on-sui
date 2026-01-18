@@ -39,6 +39,7 @@ public fun new(ciphertext: vector<u8>, hash: vector<u8>, nonce: vector<u8>): Dec
 /// - data: The plaintext data (decrypted off-chain via Seal)
 /// Verifies: blake2b256(data || nonce) == hash
 /// Transitions from Encrypted to Decrypted state
+/// If already decrypted, this is a no-op (idempotent)
 public fun decrypt(self: &mut Decryptable, mut data: vector<u8>) {
     match (self) {
         Decryptable::Encrypted { hash, nonce, .. } => {
@@ -55,7 +56,10 @@ public fun decrypt(self: &mut Decryptable, mut data: vector<u8>) {
             
             *self = Decryptable::Decrypted { data: original_data };
         },
-        Decryptable::Decrypted { .. } => abort ENotEncrypted,
+        Decryptable::Decrypted { .. } => {
+            // Already decrypted - no-op (idempotent behavior)
+            // This allows re-playing cards that were already revealed
+        },
     };
 }
 

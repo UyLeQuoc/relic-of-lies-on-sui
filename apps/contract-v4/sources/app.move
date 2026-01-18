@@ -94,6 +94,14 @@ public fun resolve_chancellor(
     game::resolve_chancellor(room, leaderboard, keep_card_index, return_indices, ctx);
 }
 
+/// Start a new game (reset everything after game finished)
+public fun start_new_game(
+    room: &mut GameRoom,
+    ctx: &mut TxContext,
+) {
+    game::start_new_game(room, ctx);
+}
+
 // ============== Room Queries ==============
 
 /// Get room basic info

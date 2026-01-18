@@ -6,7 +6,6 @@ import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@mysten/dapp-kit/dist/index.css';
 
-
 // Config options for the networks you want to connect to
 export const { networkConfig, useNetworkConfig } = createNetworkConfig({
 	testnet: { url: getFullnodeUrl('testnet'),
@@ -18,9 +17,11 @@ export const { networkConfig, useNetworkConfig } = createNetworkConfig({
 			gachaTreasuryId: '0xe766f9bb6e635d10cf96fdabdc820ca8ff4d05bb7e90aaa6f58ef327a9df37aa',
 			marketplaceRegistryId: '0xeff646d75222ee3d4f9ba7a097529174d92706a4bbb7198d3cb2d24e5dc01b94',
 			// V4 
-			movePackageIdV4: '0x81c19bd1c422b0f87d43fd479004a96deca87aae52cbe701af28e0c7e5305514',
-			roomRegistryIdV4: '0x845a71763f70cc49bae6076cf44dab94d71bb22f988ce8ab1b3784b2910929d6',
-			leaderboardIdV4: '0xd082439e7881fb786d69527dd96b9471113e8c257ec1f31bfdad2e2d64ead572',
+			movePackageIdV4: '0x647a2cc1f5233c60e9bc98e322e2b7b5fc482637c978b376245439a425142d39',
+			roomRegistryIdV4: '0x8a222769b43f1a6785e8d004f07a6f4d824b284cfb7adc27b2bc582e359511b4',
+			leaderboardIdV4: '0x05aeed33cff6242ae53c86c4d48841df7ab8c9f8ab332c7ba35346f278b929ea',
+			marketplaceIdV4: '0x3662f691bcff3ba231ef074f6be6098e2d8989d0ca6b29a47ef3992778188648',
+			gachaTreasuryIdV4: '0x5a080c407adacf7f350f56e53c62dab91f9752f86378d867b9b6444804324a99'
 		},
      },
 	mainnet: { url: getFullnodeUrl('mainnet'),
@@ -35,6 +36,8 @@ export const { networkConfig, useNetworkConfig } = createNetworkConfig({
 			movePackageIdV4: '0x0000000000000000000000000000000000000000000000000000000000000000',
 			roomRegistryIdV4: '0x0000000000000000000000000000000000000000000000000000000000000000',
 			leaderboardIdV4: '0x0000000000000000000000000000000000000000000000000000000000000000',
+			marketplaceIdV4: '0x0000000000000000000000000000000000000000000000000000000000000000',
+			gachaTreasuryIdV4: '0x0000000000000000000000000000000000000000000000000000000000000000'
 		},
      },
 });

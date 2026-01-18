@@ -125,6 +125,10 @@ public fun chancellor_must_keep_one(): u64 { EChancellorMustKeepOne }
 const EChancellorInvalidSelection: u64 = 41;
 public fun chancellor_invalid_selection(): u64 { EChancellorInvalidSelection }
 
+/// Cannot return the card you are keeping
+const EChancellorCannotReturnKeptCard: u64 = 44;
+public fun chancellor_cannot_return_kept_card(): u64 { EChancellorCannotReturnKeptCard }
+
 /// Chancellor action not pending
 const EChancellorNotPending: u64 = 42;
 public fun chancellor_not_pending(): u64 { EChancellorNotPending }

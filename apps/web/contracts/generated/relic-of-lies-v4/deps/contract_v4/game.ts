@@ -40,6 +40,19 @@ export const PendingAction = new MoveStruct({ name: `${$moduleName}::PendingActi
         /** Card index involved (target's card) */
         card_index: bcs.u64()
     } });
+export const DiscardedCardEntry = new MoveStruct({ name: `${$moduleName}::DiscardedCardEntry`, fields: {
+        /** Player who discarded the card */
+        player_addr: bcs.Address,
+        player_idx: bcs.u64(),
+        /** Card value */
+        card_value: bcs.u8(),
+        /** Card index in encrypted_cards */
+        card_index: bcs.u64(),
+        /** Turn number when discarded */
+        turn_number: bcs.u64(),
+        /** Reason for discard (played, prince_effect, baron_loss, etc.) */
+        reason: bcs.string()
+    } });
 export const GameRoom = new MoveStruct({ name: `${$moduleName}::GameRoom`, fields: {
         id: object.UID,
         name: bcs.string(),
@@ -61,6 +74,8 @@ export const GameRoom = new MoveStruct({ name: `${$moduleName}::GameRoom`, field
         max_players: bcs.u8(),
         round_number: bcs.u8(),
         tokens_to_win: bcs.u8(),
+        /** Ordered list of discarded cards for game log */
+        discarded_cards_log: bcs.vector(DiscardedCardEntry),
         pending_action: bcs.option(PendingAction),
         chancellor_pending: bcs.bool(),
         chancellor_player_idx: bcs.u64(),
@@ -120,6 +135,32 @@ export function joinRoom(options: JoinRoomOptions) {
         package: packageAddress,
         module: 'game',
         function: 'join_room',
+        arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
+    });
+}
+export interface StartNewGameArguments {
+    room: RawTransactionArgument<string>;
+}
+export interface StartNewGameOptions {
+    package: string;
+    arguments: StartNewGameArguments | [
+        room: RawTransactionArgument<string>
+    ];
+}
+/**
+ * Start a completely new game (reset everything including tokens) Can only be
+ * called when game is finished
+ */
+export function startNewGame(options: StartNewGameOptions) {
+    const packageAddress = options.package;
+    const argumentsTypes = [
+        `${packageAddress}::game::GameRoom`
+    ] satisfies string[];
+    const parameterNames = ["room"];
+    return (tx: Transaction) => tx.moveCall({
+        package: packageAddress,
+        module: 'game',
+        function: 'start_new_game',
         arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
     });
 }
@@ -686,6 +727,78 @@ export function allPlayers(options: AllPlayersOptions) {
         package: packageAddress,
         module: 'game',
         function: 'all_players',
+        arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
+    });
+}
+export interface DiscardedCardsLogArguments {
+    room: RawTransactionArgument<string>;
+}
+export interface DiscardedCardsLogOptions {
+    package: string;
+    arguments: DiscardedCardsLogArguments | [
+        room: RawTransactionArgument<string>
+    ];
+}
+/** Get the game log (discarded cards in order) */
+export function discardedCardsLog(options: DiscardedCardsLogOptions) {
+    const packageAddress = options.package;
+    const argumentsTypes = [
+        `${packageAddress}::game::GameRoom`
+    ] satisfies string[];
+    const parameterNames = ["room"];
+    return (tx: Transaction) => tx.moveCall({
+        package: packageAddress,
+        module: 'game',
+        function: 'discarded_cards_log',
+        arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
+    });
+}
+export interface DiscardedCardsLogLengthArguments {
+    room: RawTransactionArgument<string>;
+}
+export interface DiscardedCardsLogLengthOptions {
+    package: string;
+    arguments: DiscardedCardsLogLengthArguments | [
+        room: RawTransactionArgument<string>
+    ];
+}
+/** Get number of entries in the game log */
+export function discardedCardsLogLength(options: DiscardedCardsLogLengthOptions) {
+    const packageAddress = options.package;
+    const argumentsTypes = [
+        `${packageAddress}::game::GameRoom`
+    ] satisfies string[];
+    const parameterNames = ["room"];
+    return (tx: Transaction) => tx.moveCall({
+        package: packageAddress,
+        module: 'game',
+        function: 'discarded_cards_log_length',
+        arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
+    });
+}
+export interface DiscardedCardEntryArguments {
+    room: RawTransactionArgument<string>;
+    index: RawTransactionArgument<number | bigint>;
+}
+export interface DiscardedCardEntryOptions {
+    package: string;
+    arguments: DiscardedCardEntryArguments | [
+        room: RawTransactionArgument<string>,
+        index: RawTransactionArgument<number | bigint>
+    ];
+}
+/** Get a specific entry from the game log */
+export function discardedCardEntry(options: DiscardedCardEntryOptions) {
+    const packageAddress = options.package;
+    const argumentsTypes = [
+        `${packageAddress}::game::GameRoom`,
+        'u64'
+    ] satisfies string[];
+    const parameterNames = ["room", "index"];
+    return (tx: Transaction) => tx.moveCall({
+        package: packageAddress,
+        module: 'game',
+        function: 'discarded_card_entry',
         arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
     });
 }

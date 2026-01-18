@@ -76,7 +76,7 @@ export interface DecryptOptions {
  *
  * - data: The plaintext data (decrypted off-chain via Seal) Verifies:
  *   blake2b256(data || nonce) == hash Transitions from Encrypted to Decrypted
- *   state
+ *   state If already decrypted, this is a no-op (idempotent)
  */
 export function decrypt(options: DecryptOptions) {
     const packageAddress = options.package;

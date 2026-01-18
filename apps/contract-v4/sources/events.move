@@ -96,6 +96,12 @@ public struct GameEnded has copy, drop {
     total_rounds: u8,
 }
 
+/// Emitted when a new game is started (reset after finished)
+public struct NewGameStarted has copy, drop {
+    room_id: ID,
+    initiator: address,
+}
+
 // ============== Card-Specific Events ==============
 
 /// Emitted when Priest grants temporary Seal access
@@ -353,6 +359,16 @@ public(package) fun emit_game_ended(
         final_tokens,
         prize_pool,
         total_rounds,
+    });
+}
+
+public(package) fun emit_new_game_started(
+    room_id: ID,
+    initiator: address,
+) {
+    event::emit(NewGameStarted {
+        room_id,
+        initiator,
     });
 }
 

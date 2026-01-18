@@ -128,6 +128,15 @@ export function SealedGameV4({ roomId }: SealedGameV4Props) {
     [decryptedCards]
   );
 
+  // Debug: log decrypted cards when they change
+  useEffect(() => {
+    if (decryptedCards.length > 0) {
+      console.log("=== Decrypted Cards State ===");
+      console.log("myHandIndices:", myHandIndices);
+      console.log("decryptedCards:", decryptedCards.map(c => ({ cardIndex: c.cardIndex, value: c.value })));
+    }
+  }, [decryptedCards, myHandIndices]);
+
   // Get current player info
   const myPlayer =
     myPlayerIndex >= 0 && room ? room.players[myPlayerIndex] : null;

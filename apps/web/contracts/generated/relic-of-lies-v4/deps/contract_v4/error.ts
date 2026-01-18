@@ -387,6 +387,19 @@ export function chancellorInvalidSelection(options: ChancellorInvalidSelectionOp
         function: 'chancellor_invalid_selection',
     });
 }
+export interface ChancellorCannotReturnKeptCardOptions {
+    package: string;
+    arguments?: [
+    ];
+}
+export function chancellorCannotReturnKeptCard(options: ChancellorCannotReturnKeptCardOptions) {
+    const packageAddress = options.package;
+    return (tx: Transaction) => tx.moveCall({
+        package: packageAddress,
+        module: 'error',
+        function: 'chancellor_cannot_return_kept_card',
+    });
+}
 export interface ChancellorNotPendingOptions {
     package: string;
     arguments?: [

@@ -260,6 +260,29 @@ export function resolveChancellor(options: ResolveChancellorOptions) {
         arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
     });
 }
+export interface StartNewGameArguments {
+    room: RawTransactionArgument<string>;
+}
+export interface StartNewGameOptions {
+    package: string;
+    arguments: StartNewGameArguments | [
+        room: RawTransactionArgument<string>
+    ];
+}
+/** Start a new game (reset everything after game finished) */
+export function startNewGame(options: StartNewGameOptions) {
+    const packageAddress = options.package;
+    const argumentsTypes = [
+        `${packageAddress}::game::GameRoom`
+    ] satisfies string[];
+    const parameterNames = ["room"];
+    return (tx: Transaction) => tx.moveCall({
+        package: packageAddress,
+        module: 'app',
+        function: 'start_new_game',
+        arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
+    });
+}
 export interface RoomInfoArguments {
     room: RawTransactionArgument<string>;
 }

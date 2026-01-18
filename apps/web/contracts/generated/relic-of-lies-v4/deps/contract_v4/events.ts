@@ -77,6 +77,10 @@ export const GameEnded = new MoveStruct({ name: `${$moduleName}::GameEnded`, fie
         prize_pool: bcs.u64(),
         total_rounds: bcs.u8()
     } });
+export const NewGameStarted = new MoveStruct({ name: `${$moduleName}::NewGameStarted`, fields: {
+        room_id: bcs.Address,
+        initiator: bcs.Address
+    } });
 export const TemporaryAccessGranted = new MoveStruct({ name: `${$moduleName}::TemporaryAccessGranted`, fields: {
         room_id: bcs.Address,
         viewer: bcs.Address,

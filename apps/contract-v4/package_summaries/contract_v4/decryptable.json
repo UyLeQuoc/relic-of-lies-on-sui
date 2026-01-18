@@ -60,7 +60,7 @@
     "decrypt": {
       "source_index": 1,
       "index": 1,
-      "doc": " Decrypt and verify the data\n - data: The plaintext data (decrypted off-chain via Seal)\n Verifies: blake2b256(data || nonce) == hash\n Transitions from Encrypted to Decrypted state",
+      "doc": " Decrypt and verify the data\n - data: The plaintext data (decrypted off-chain via Seal)\n Verifies: blake2b256(data || nonce) == hash\n Transitions from Encrypted to Decrypted state\n If already decrypted, this is a no-op (idempotent)",
       "attributes": [],
       "visibility": "Public",
       "entry": false,

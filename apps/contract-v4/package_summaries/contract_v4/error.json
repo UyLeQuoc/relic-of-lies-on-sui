@@ -393,7 +393,7 @@
         "u64"
       ]
     },
-    "chancellor_not_pending": {
+    "chancellor_cannot_return_kept_card": {
       "source_index": 29,
       "index": 29,
       "doc": null,
@@ -406,7 +406,7 @@
         "u64"
       ]
     },
-    "chancellor_pending": {
+    "chancellor_not_pending": {
       "source_index": 30,
       "index": 30,
       "doc": null,
@@ -419,7 +419,7 @@
         "u64"
       ]
     },
-    "not_room_creator": {
+    "chancellor_pending": {
       "source_index": 31,
       "index": 31,
       "doc": null,
@@ -432,7 +432,7 @@
         "u64"
       ]
     },
-    "not_a_player": {
+    "not_room_creator": {
       "source_index": 32,
       "index": 32,
       "doc": null,
@@ -445,7 +445,7 @@
         "u64"
       ]
     },
-    "player_eliminated": {
+    "not_a_player": {
       "source_index": 33,
       "index": 33,
       "doc": null,
@@ -458,7 +458,7 @@
         "u64"
       ]
     },
-    "deck_empty": {
+    "player_eliminated": {
       "source_index": 34,
       "index": 34,
       "doc": null,
@@ -471,7 +471,7 @@
         "u64"
       ]
     },
-    "invalid_deck_size": {
+    "deck_empty": {
       "source_index": 35,
       "index": 35,
       "doc": null,
@@ -484,7 +484,7 @@
         "u64"
       ]
     },
-    "pending_action": {
+    "invalid_deck_size": {
       "source_index": 36,
       "index": 36,
       "doc": null,
@@ -497,7 +497,7 @@
         "u64"
       ]
     },
-    "no_pending_action": {
+    "pending_action": {
       "source_index": 37,
       "index": 37,
       "doc": null,
@@ -510,7 +510,7 @@
         "u64"
       ]
     },
-    "not_pending_responder": {
+    "no_pending_action": {
       "source_index": 38,
       "index": 38,
       "doc": null,
@@ -523,7 +523,7 @@
         "u64"
       ]
     },
-    "invalid_response": {
+    "not_pending_responder": {
       "source_index": 39,
       "index": 39,
       "doc": null,
@@ -536,7 +536,7 @@
         "u64"
       ]
     },
-    "invalid_namespace": {
+    "invalid_response": {
       "source_index": 40,
       "index": 40,
       "doc": null,
@@ -549,7 +549,7 @@
         "u64"
       ]
     },
-    "no_access": {
+    "invalid_namespace": {
       "source_index": 41,
       "index": 41,
       "doc": null,
@@ -562,7 +562,7 @@
         "u64"
       ]
     },
-    "card_not_owned": {
+    "no_access": {
       "source_index": 42,
       "index": 42,
       "doc": null,
@@ -575,7 +575,7 @@
         "u64"
       ]
     },
-    "hash_mismatch": {
+    "card_not_owned": {
       "source_index": 43,
       "index": 43,
       "doc": null,
@@ -588,7 +588,7 @@
         "u64"
       ]
     },
-    "invalid_hash_length": {
+    "hash_mismatch": {
       "source_index": 44,
       "index": 44,
       "doc": null,
@@ -601,7 +601,7 @@
         "u64"
       ]
     },
-    "invalid_nonce_length": {
+    "invalid_hash_length": {
       "source_index": 45,
       "index": 45,
       "doc": null,
@@ -614,7 +614,7 @@
         "u64"
       ]
     },
-    "already_decrypted": {
+    "invalid_nonce_length": {
       "source_index": 46,
       "index": 46,
       "doc": null,
@@ -627,7 +627,7 @@
         "u64"
       ]
     },
-    "not_decrypted": {
+    "already_decrypted": {
       "source_index": 47,
       "index": 47,
       "doc": null,
@@ -640,9 +640,22 @@
         "u64"
       ]
     },
-    "is_valid_room_name": {
+    "not_decrypted": {
       "source_index": 48,
       "index": 48,
+      "doc": null,
+      "attributes": [],
+      "visibility": "Public",
+      "entry": false,
+      "type_parameters": [],
+      "parameters": [],
+      "return_": [
+        "u64"
+      ]
+    },
+    "is_valid_room_name": {
+      "source_index": 49,
+      "index": 49,
       "doc": " Check if room name is valid (not empty)",
       "attributes": [],
       "visibility": "Public",
@@ -673,8 +686,8 @@
       ]
     },
     "is_valid_max_players": {
-      "source_index": 49,
-      "index": 49,
+      "source_index": 50,
+      "index": 50,
       "doc": " Check if max_players is within valid range (2-6)",
       "attributes": [],
       "visibility": "Public",
@@ -691,8 +704,8 @@
       ]
     },
     "is_sufficient_payment": {
-      "source_index": 50,
-      "index": 50,
+      "source_index": 51,
+      "index": 51,
       "doc": " Check if payment is sufficient for entry fee",
       "attributes": [],
       "visibility": "Public",
@@ -709,8 +722,8 @@
       ]
     },
     "has_room_space": {
-      "source_index": 51,
-      "index": 51,
+      "source_index": 52,
+      "index": 52,
       "doc": " Check if room has space for more players",
       "attributes": [],
       "visibility": "Public",
@@ -731,8 +744,8 @@
       ]
     },
     "can_join_room": {
-      "source_index": 52,
-      "index": 52,
+      "source_index": 53,
+      "index": 53,
       "doc": " Check if game status allows joining (waiting)",
       "attributes": [],
       "visibility": "Public",
@@ -749,8 +762,8 @@
       ]
     },
     "can_start_round": {
-      "source_index": 53,
-      "index": 53,
+      "source_index": 54,
+      "index": 54,
       "doc": " Check if game status allows starting a round",
       "attributes": [],
       "visibility": "Public",
@@ -767,8 +780,8 @@
       ]
     },
     "is_game_playing": {
-      "source_index": 54,
-      "index": 54,
+      "source_index": 55,
+      "index": 55,
       "doc": " Check if game is currently playing",
       "attributes": [],
       "visibility": "Public",
@@ -785,8 +798,8 @@
       ]
     },
     "is_game_finished": {
-      "source_index": 55,
-      "index": 55,
+      "source_index": 56,
+      "index": 56,
       "doc": " Check if game has finished",
       "attributes": [],
       "visibility": "Public",
@@ -803,8 +816,8 @@
       ]
     },
     "has_enough_players": {
-      "source_index": 56,
-      "index": 56,
+      "source_index": 57,
+      "index": 57,
       "doc": " Check if there are enough players to start",
       "attributes": [],
       "visibility": "Public",
@@ -821,8 +834,8 @@
       ]
     },
     "is_valid_guess": {
-      "source_index": 57,
-      "index": 57,
+      "source_index": 58,
+      "index": 58,
       "doc": " Check if a card guess is valid (not Guard, within valid range)",
       "attributes": [],
       "visibility": "Public",
@@ -839,8 +852,8 @@
       ]
     },
     "is_valid_card": {
-      "source_index": 58,
-      "index": 58,
+      "source_index": 59,
+      "index": 59,
       "doc": " Check if a card value is valid (0-9)",
       "attributes": [],
       "visibility": "Public",
@@ -857,8 +870,8 @@
       ]
     },
     "is_valid_target_index": {
-      "source_index": 59,
-      "index": 59,
+      "source_index": 60,
+      "index": 60,
       "doc": " Check if target index is valid",
       "attributes": [],
       "visibility": "Public",
