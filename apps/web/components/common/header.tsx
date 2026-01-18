@@ -16,10 +16,7 @@ import {
   Wallet,
   X,
   ShoppingCart,
-<<<<<<<<< Temporary merge branch 1
   Grid3x3
-=========
->>>>>>>>> Temporary merge branch 2
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
