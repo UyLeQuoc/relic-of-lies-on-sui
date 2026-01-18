@@ -228,8 +228,11 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     opponentCard: GameCard;
     opponentAddress: string;
     result: 'win' | 'lose' | 'tie';
+    myPlayerIndex: number;
+    targetPlayerIndex: number;
   } | null>(null);
   const lastBerserkerPlayRef = useRef<{ targetIndex: number; myCardValue: number; timestamp: number } | null>(null);
+  const [berserkerAnimationComplete, setBerserkerAnimationComplete] = useState(false);
 
   // Animation refs
   const headerRef = useRef<HTMLDivElement>(null);
@@ -784,19 +787,26 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         result = 'tie';
       }
       
+      // Reset animation state before showing comparison
+      setBerserkerAnimationComplete(false);
+      
       setBerserkerComparison({
         myCard: createCard(myCardValue, 'my-baron-card'),
         myAddress: myPlayer?.id || '',
         opponentCard: createCard(opponentCardValue, 'opponent-baron-card'),
         opponentAddress: targetPlayer.id,
         result,
+        myPlayerIndex: gameState.myPlayerIndex,
+        targetPlayerIndex: targetIndex,
       });
       
       lastBerserkerPlayRef.current = null;
       
+      // Auto-hide modal after 10 seconds (after animation completes)
       setTimeout(() => {
         setBerserkerComparison(null);
-      }, 10000);
+        setBerserkerAnimationComplete(false);
+      }, 12000); // 10 seconds after animation + 2 seconds for animation itself
     }
   }, [room, gameState, humanPlayer]);
 
@@ -1180,6 +1190,144 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [thrownCardAnimation]);
 
+  // GSAP: Berserker (Baron) comparison animation - 2 cards fly in and compare
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally not including gameState to prevent re-triggering animation
+  useLayoutEffect(() => {
+    if (!berserkerComparison || !gameState || berserkerAnimationComplete) return;
+    
+    const { myCard, opponentCard, myPlayerIndex, targetPlayerIndex, result } = berserkerComparison;
+    
+    const cardConcept = cardsMap[CardConceptType.RelicOfLies];
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const centerX = viewportWidth / 2;
+    const centerY = viewportHeight * 0.4;
+    
+    const cardHeight = 200;
+    const cardWidth = Math.round((cardHeight * 2) / 3);
+    const valueFontSize = Math.round(cardHeight * cardConcept.valueFontSize);
+    const nameFontSize = Math.round(cardHeight * cardConcept.nameFontSize);
+    const descriptionFontSize = Math.round(cardHeight * cardConcept.descriptionFontSize);
+    
+    const myCardTypeKey = `Value${myCard.value}` as CardType;
+    const opponentCardTypeKey = `Value${opponentCard.value}` as CardType;
+    const myCardInfo = cardConcept.cards[myCardTypeKey];
+    const opponentCardInfo = cardConcept.cards[opponentCardTypeKey];
+    
+    if (!myCardInfo || !opponentCardInfo) {
+      setBerserkerAnimationComplete(true);
+      return;
+    }
+    
+    const totalPlayers = gameState.players.length;
+    const opponentCount = totalPlayers - 1;
+    
+    const myX = viewportWidth / 2;
+    const myY = viewportHeight - 100;
+    
+    let opponentX: number;
+    let opponentY: number;
+    
+    if (targetPlayerIndex > myPlayerIndex) {
+      const opponentIdx = targetPlayerIndex - myPlayerIndex - 1;
+      if (opponentCount === 1) {
+        opponentX = viewportWidth / 2;
+        opponentY = 100;
+      } else if (opponentCount === 2) {
+        opponentX = opponentIdx === 0 ? 100 : viewportWidth - 100;
+        opponentY = viewportHeight / 2;
+      } else {
+        if (opponentIdx === 0) { opponentX = 100; opponentY = viewportHeight / 2; }
+        else if (opponentIdx === 1) { opponentX = viewportWidth / 2; opponentY = 100; }
+        else { opponentX = viewportWidth - 100; opponentY = viewportHeight / 2; }
+      }
+    } else {
+      const opponentIdx = targetPlayerIndex + (totalPlayers - myPlayerIndex - 1);
+      if (opponentCount === 1) {
+        opponentX = viewportWidth / 2;
+        opponentY = 100;
+      } else if (opponentCount === 2) {
+        opponentX = opponentIdx === 0 ? 100 : viewportWidth - 100;
+        opponentY = viewportHeight / 2;
+      } else {
+        if (opponentIdx === 0) { opponentX = 100; opponentY = viewportHeight / 2; }
+        else if (opponentIdx === 1) { opponentX = viewportWidth / 2; opponentY = 100; }
+        else { opponentX = viewportWidth - 100; opponentY = viewportHeight / 2; }
+      }
+    }
+    
+    const myCardEl = document.createElement('div');
+    myCardEl.className = 'fixed z-[100] pointer-events-none';
+    myCardEl.innerHTML = `
+      <div class="relative rounded-lg overflow-hidden shadow-2xl" style="width: ${cardWidth}px; height: ${cardHeight}px; box-shadow: 0 0 30px ${result === 'win' ? 'rgba(34, 197, 94, 0.6)' : result === 'lose' ? 'rgba(239, 68, 68, 0.6)' : 'rgba(251, 191, 36, 0.6)'};">
+        <img src="${myCardInfo.image}" alt="${myCardInfo.name}" class="absolute inset-0 w-full h-full object-contain z-0" />
+        <img src="${cardConcept.frame}" alt="Frame" class="absolute inset-0 w-full h-full object-cover z-10" />
+        <span class="absolute z-20 drop-shadow-lg" style="color: #d2ac77; top: 1.8%; left: 10.5%; font-size: ${valueFontSize}px; font-family: var(--font-faith-collapsing), serif; font-weight: bold;">${myCardInfo.value}</span>
+        <span class="absolute z-20 truncate" style="color: #402716; top: 3.3%; left: 60%; transform: translateX(-50%); font-size: ${nameFontSize}px; font-family: var(--font-god-of-war), serif; max-width: 70%; font-weight: bold;">${myCardInfo.name}</span>
+        <p class="absolute z-20 text-center" style="color: rgba(0, 0, 0, 0.8); bottom: 10%; left: 50%; transform: translateX(-50%); font-size: ${descriptionFontSize}px; font-family: var(--font-helvetica), sans-serif; width: 72%; font-weight: 600; line-height: 1.2;">${myCardInfo.description}</p>
+      </div>
+    `;
+    
+    const opponentCardEl = document.createElement('div');
+    opponentCardEl.className = 'fixed z-[100] pointer-events-none';
+    opponentCardEl.innerHTML = `
+      <div class="relative rounded-lg overflow-hidden shadow-2xl" style="width: ${cardWidth}px; height: ${cardHeight}px; box-shadow: 0 0 30px ${result === 'lose' ? 'rgba(34, 197, 94, 0.6)' : result === 'win' ? 'rgba(239, 68, 68, 0.6)' : 'rgba(251, 191, 36, 0.6)'};">
+        <img src="${opponentCardInfo.image}" alt="${opponentCardInfo.name}" class="absolute inset-0 w-full h-full object-contain z-0" />
+        <img src="${cardConcept.frame}" alt="Frame" class="absolute inset-0 w-full h-full object-cover z-10" />
+        <span class="absolute z-20 drop-shadow-lg" style="color: #d2ac77; top: 1.8%; left: 10.5%; font-size: ${valueFontSize}px; font-family: var(--font-faith-collapsing), serif; font-weight: bold;">${opponentCardInfo.value}</span>
+        <span class="absolute z-20 truncate" style="color: #402716; top: 3.3%; left: 60%; transform: translateX(-50%); font-size: ${nameFontSize}px; font-family: var(--font-god-of-war), serif; max-width: 70%; font-weight: bold;">${opponentCardInfo.name}</span>
+        <p class="absolute z-20 text-center" style="color: rgba(0, 0, 0, 0.8); bottom: 10%; left: 50%; transform: translateX(-50%); font-size: ${descriptionFontSize}px; font-family: var(--font-helvetica), sans-serif; width: 72%; font-weight: 600; line-height: 1.2;">${opponentCardInfo.description}</p>
+      </div>
+    `;
+    
+    myCardEl.style.left = `${myX}px`;
+    myCardEl.style.top = `${myY}px`;
+    myCardEl.style.transform = 'translate(-50%, -50%) scale(0.5)';
+    myCardEl.style.opacity = '0';
+    
+    opponentCardEl.style.left = `${opponentX}px`;
+    opponentCardEl.style.top = `${opponentY}px`;
+    opponentCardEl.style.transform = 'translate(-50%, -50%) scale(0.5)';
+    opponentCardEl.style.opacity = '0';
+    
+    document.body.appendChild(myCardEl);
+    document.body.appendChild(opponentCardEl);
+    
+    const tl = gsap.timeline({
+      onComplete: () => {
+        gsap.to([myCardEl, opponentCardEl], {
+          opacity: 0,
+          scale: 0.8,
+          duration: 0.3,
+          delay: 1,
+          ease: "power2.in",
+          onComplete: () => {
+            myCardEl.remove();
+            opponentCardEl.remove();
+            setBerserkerAnimationComplete(true);
+          },
+        });
+      },
+    });
+    
+    tl.to([myCardEl, opponentCardEl], { opacity: 1, scale: 0.8, duration: 0.3, ease: "power2.out" }, 0);
+    tl.to(myCardEl, { left: centerX - 150, top: centerY, scale: 1, rotation: -5, duration: 0.6, ease: "power2.out" }, 0.3);
+    tl.to(opponentCardEl, { left: centerX + 150, top: centerY, scale: 1, rotation: 5, duration: 0.6, ease: "power2.out" }, 0.3);
+    tl.to([myCardEl, opponentCardEl], { scale: 1.1, duration: 0.1, ease: "power2.out" }, 0.9);
+    tl.to([myCardEl, opponentCardEl], { scale: 1, duration: 0.15, ease: "bounce.out" }, 1.0);
+    
+    if (result === 'win') {
+      tl.to(myCardEl, { scale: 1.15, boxShadow: "0 0 50px rgba(34, 197, 94, 0.8)", duration: 0.2, yoyo: true, repeat: 2, ease: "power2.inOut" }, 1.2);
+      tl.to(opponentCardEl, { scale: 0.9, opacity: 0.7, duration: 0.2, ease: "power2.out" }, 1.2);
+    } else if (result === 'lose') {
+      tl.to(opponentCardEl, { scale: 1.15, boxShadow: "0 0 50px rgba(34, 197, 94, 0.8)", duration: 0.2, yoyo: true, repeat: 2, ease: "power2.inOut" }, 1.2);
+      tl.to(myCardEl, { scale: 0.9, opacity: 0.7, duration: 0.2, ease: "power2.out" }, 1.2);
+    } else {
+      tl.to([myCardEl, opponentCardEl], { scale: 1.1, boxShadow: "0 0 40px rgba(251, 191, 36, 0.6)", duration: 0.2, yoyo: true, repeat: 2, ease: "power2.inOut" }, 1.2);
+    }
+    
+  }, [berserkerComparison, berserkerAnimationComplete, gameState]);
+
   // GSAP: Wizard effect animation
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally not including gameState to prevent re-triggering animation
   useLayoutEffect(() => {
@@ -1511,13 +1659,16 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         <div className="text-center z-10 px-4 max-w-md">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Lock className="h-6 w-6 text-amber-400" />
-            <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400">
+            <h1 
+              className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 tracking-wider"
+              style={{ fontFamily: "var(--font-god-of-war), serif" }}
+            >
               {room.name}
             </h1>
           </div>
 
           <div className="bg-slate-800/50 rounded-lg p-4 mb-6 border border-amber-600/30">
-            <p className="text-violet-300/80 text-lg mb-2">
+            <p className="text-amber-300/80 text-lg mb-2">
               Players: {room.players.length}/{room.max_players}
             </p>
             <div className="space-y-2">
@@ -1597,7 +1748,12 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         <div ref={headerRef} className="absolute top-4 left-4 z-20 flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <Lock className="h-5 w-5 text-amber-400" />
-            <h1 className="text-2xl md:text-3xl font-bold text-amber-400">{room.name}</h1>
+            <h1 
+              className="text-2xl md:text-3xl font-bold text-amber-400 tracking-wider"
+              style={{ fontFamily: "var(--font-god-of-war), serif" }}
+            >
+              {room.name}
+            </h1>
           </div>
           <div className="flex items-center gap-4 text-sm text-amber-300">
             <span>Round {gameState.roundNumber + 1}</span>
@@ -1688,7 +1844,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         {/* Chancellor Choice UI */}
         {humanPlayer && gameState.gamePhase === "chancellorChoice" && gameState.chancellorCards.length > 0 && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col gap-4 z-30 pointer-events-none">
-            <div className="pointer-events-auto flex flex-col gap-4 backdrop-blur-sm rounded-lg p-4 border border-amber-600/50 bg-slate-900/80">
+            <div className="pointer-events-auto flex flex-col gap-4 backdrop-blur-sm rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-amber-400">Tactician: Choose card to keep</h3>
 
@@ -1815,7 +1971,22 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
                           if (!canSelect) return;
                           const newSelectedId = isSelected ? null : card.id;
                           setSelectedCardId(newSelectedId);
-                          if (!newSelectedId) {
+                          // Reset target and guess when selecting a card that doesn't require them
+                          if (newSelectedId) {
+                            const newSelectedCard = humanPlayer?.hand.find((c: GameCard) => c.id === newSelectedId);
+                            if (newSelectedCard && !cardRequiresTarget(newSelectedCard)) {
+                              setSelectedTarget(null);
+                            } else if (newSelectedCard && cardRequiresTarget(newSelectedCard)) {
+                              // If new card requires target but is not Prince, and current target is self, reset target
+                              if (newSelectedCard.value !== 5 && selectedTarget === gameState.myPlayerIndex) {
+                                setSelectedTarget(null);
+                              }
+                            }
+                            if (newSelectedCard && !cardRequiresGuess(newSelectedCard)) {
+                              setSelectedGuess(null);
+                            }
+                          } else {
+                            // Deselecting card - reset everything
                             setSelectedTarget(null);
                             setSelectedGuess(null);
                           }
@@ -1880,7 +2051,6 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
             {/* Guess Selection (Knight) */}
             {isMyTurn && selectedCard?.value === 1 && selectedTarget !== null && (
               <div className="absolute bottom-[240px] left-1/2 -translate-x-1/2 z-10">
-                <p className="text-amber-300 text-sm mb-2 text-center">Guess a card (not Knight):</p>
                 <div className="flex gap-2 flex-wrap justify-center">
                   {[0, 2, 3, 4, 5, 6, 7, 8, 9].map((cardValue) => {
                     const cardData = CARD_DATA_MAP[cardValue];
@@ -1896,7 +2066,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
                             : "border-amber-600/50 hover:border-amber-400 text-amber-400"
                         }`}
                       >
-                        {cardData.name}
+                        {cardValue}. {cardData.name}
                       </button>
                     );
                   })}
@@ -1934,12 +2104,15 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               </button>
             )}
 
-            {/* Berserker Comparison Modal */}
-            {berserkerComparison && (
+            {/* Berserker Comparison Modal - Show after animation completes */}
+            {berserkerComparison && berserkerAnimationComplete && (
               <button 
                 type="button"
                 className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in cursor-pointer"
-                onClick={() => setBerserkerComparison(null)}
+                onClick={() => {
+                  setBerserkerComparison(null);
+                  setBerserkerAnimationComplete(false);
+                }}
               >
                 <div 
                   className="flex flex-col items-center gap-6 rounded-lg p-6 animate-scale-in"
@@ -2049,12 +2222,12 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
             onClick={() => setShowHealerModal(false)}
           >
             <div
-              className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-8 max-w-md border-2 border-purple-500/50 shadow-2xl shadow-purple-500/20 cursor-default text-center"
+              className="rounded-xl p-8 max-w-md cursor-default text-center"
               role="dialog"
             >
               <div className="flex items-center justify-center gap-2 mb-4">
-                <Eye className="h-6 w-6 text-purple-400" />
-                <h3 className="text-2xl font-bold text-purple-400">Healer Vision</h3>
+                <Eye className="h-6 w-6 text-amber-400" />
+                <h3 className="text-2xl font-bold text-amber-400">Healer Vision</h3>
               </div>
               
               <p className="text-amber-300/80 mb-6">
@@ -2063,7 +2236,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               
               <div className="flex justify-center mb-6">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-purple-500/30 blur-xl rounded-full" />
+                  <div className="absolute inset-0 bg-amber-500/30 blur-xl rounded-full" />
                   <CardCharacter 
                     cardType={mapCardValueToCardType(healerRevealedCard.cardValue)} 
                     size="md" 
@@ -2086,7 +2259,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               
               <Button
                 onClick={() => setShowHealerModal(false)}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="bg-amber-600 hover:bg-amber-700 text-white"
               >
                 Got it!
               </Button>
@@ -2099,7 +2272,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
           <button
             type="button"
             onClick={() => setShowHealerModal(true)}
-            className="fixed bottom-4 left-4 z-40 bg-purple-600/90 hover:bg-purple-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all hover:scale-105"
+            className="fixed bottom-4 left-4 z-40 bg-amber-600/90 hover:bg-amber-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all hover:scale-105"
           >
             <Eye className="h-5 w-5" />
             <div className="text-left">
@@ -2131,7 +2304,7 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
             onClick={() => setShowDiscardModal(false)}
           >
             <div 
-              className="rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto animate-scale-in bg-slate-900/95 border border-amber-600/30 text-left"
+              className="rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto animate-scale-in text-left"
             >
               <div className="flex justify-center items-center mb-4 min-w-56">
                 <h3 className="text-xl font-bold text-amber-400">Discarded Cards ({visibleLogEntries.length})</h3>
