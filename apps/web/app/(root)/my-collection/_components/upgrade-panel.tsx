@@ -1,6 +1,6 @@
 "use client";
 
-import { CardNames, Rarity, type CardNFT } from "@/hooks/use-game-contract";
+import { CardNames, Rarity, type CardNFT } from "@/hooks/use-game-contract-v4";
 import { RarityColors, RarityNames, RarityGlow } from "@/lib/gacha";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Plus, Sparkles, X } from "lucide-react";

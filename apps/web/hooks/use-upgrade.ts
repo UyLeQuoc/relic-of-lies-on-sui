@@ -6,7 +6,7 @@ import {
   Rarity,
   type CardNFT,
   useGachaUpgrade,
-} from "@/hooks/use-game-contract";
+} from "@/hooks/use-game-contract-v4";
 
 const REQUIRED_CARDS_FOR_UPGRADE = 3;
 

@@ -16,8 +16,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RarityColors, RarityNames, RarityGlow, mistToSui } from "@/lib/gacha";
-import type { CardNFT } from "@/hooks/use-game-contract";
-import { CardNames } from "@/hooks/use-game-contract";
+import type { CardNFT } from "@/hooks/use-game-contract-v4";
+import { CardNames } from "@/hooks/use-game-contract-v4";
 import {
   usePurchaseCard,
   useListCard,

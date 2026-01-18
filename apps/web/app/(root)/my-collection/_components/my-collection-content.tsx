@@ -8,7 +8,7 @@ import {
   CardType,
   Rarity,
   type CardNFT,
-} from "@/hooks/use-game-contract";
+} from "@/hooks/use-game-contract-v4";
 import { useCollection } from "@/hooks/use-collection";
 import { useUpgrade } from "@/hooks/use-upgrade";
 import { RarityColors, RarityNames } from "@/lib/gacha";
