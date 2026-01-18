@@ -1,4 +1,4 @@
-/// App module for Love Letter 2019 Premium Edition with Seal Encryption
+/// App module for Relic Of Lies  with Seal Encryption
 /// Main entry point providing clean interface for frontend
 module contract_v4::app;
 

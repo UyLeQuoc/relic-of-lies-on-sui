@@ -17,7 +17,7 @@ const EInvalidCardValue: u64 = 6;
 
 // ============== Constants ==============
 
-/// Standard deck size for Love Letter
+/// Standard deck size for Relic Of Lies
 const DECK_SIZE: u64 = 10;
 
 // ============== Structs ==============

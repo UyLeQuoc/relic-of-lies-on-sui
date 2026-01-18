@@ -4,7 +4,7 @@
 
 
 /**
- * App module for Love Letter 2019 Premium Edition Main entry point providing clean
+ * App module for Relic Of Lies  Main entry point providing clean
  * interface for frontend
  */
 

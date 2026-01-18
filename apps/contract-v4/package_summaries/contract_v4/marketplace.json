@@ -3,7 +3,7 @@
     "address": "contract_v4",
     "name": "marketplace"
   },
-  "doc": " Marketplace module for Love Letter NFT Cards\n Single global marketplace where users can list and buy cards",
+  "doc": " Marketplace module for Relic Of Lies NFT Cards\n Single global marketplace where users can list and buy cards",
   "immediate_dependencies": [
     {
       "address": "contract_v4",

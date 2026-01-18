@@ -1,4 +1,4 @@
-/// Marketplace module for Love Letter NFT Cards
+/// Marketplace module for Relic Of Lies NFT Cards
 /// Single global marketplace where users can list and buy cards
 #[allow(unused_const, lint(share_owned, public_entry, self_transfer))]
 module contract_v4::marketplace;

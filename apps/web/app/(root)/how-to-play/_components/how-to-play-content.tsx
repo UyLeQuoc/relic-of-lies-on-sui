@@ -40,7 +40,7 @@ export function HowToPlayContent() {
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<p className="text-muted-foreground">
-							Love Letter is a game of risk, deduction, and luck. The goal is to be the last player standing or hold the highest-value card when the deck runs out.
+							Relic Of Lies is a game of risk, deduction, and luck. The goal is to be the last player standing or hold the highest-value card when the deck runs out.
 						</p>
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
 							<div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
@@ -110,7 +110,7 @@ export function HowToPlayContent() {
 				{/* Card Effects */}
 				<Card className="mb-6">
 					<CardHeader>
-						<CardTitle>Card Effects (2019 Premium Edition)</CardTitle>
+						<CardTitle>Card Effects ()</CardTitle>
 						<CardDescription>21 cards total, 10 different types</CardDescription>
 					</CardHeader>
 					<CardContent>

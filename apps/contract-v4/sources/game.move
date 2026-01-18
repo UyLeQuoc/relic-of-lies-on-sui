@@ -1,4 +1,4 @@
-/// Game module for Love Letter 2019 Premium Edition with Seal Encryption
+/// Game module for Relic Of Lies  with Seal Encryption
 /// Contains core game logic with encrypted cards and pending action pattern
 #[allow(lint(self_transfer))]
 module contract_v4::game;

@@ -4,7 +4,7 @@
 
 
 /**
- * Events module for Love Letter 2019 Premium Edition with Seal Encryption Used for
+ * Events module for Relic Of Lies  with Seal Encryption Used for
  * frontend to track match history and game state changes
  */
 

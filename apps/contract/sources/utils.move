@@ -1,4 +1,4 @@
-/// Utility functions for Love Letter 2019 Premium Edition
+/// Utility functions for Relic Of Lies 
 /// Contains helper functions for deck manipulation and random operations
 #[allow(lint(public_random))]
 module contract::utils;
@@ -6,7 +6,7 @@ module contract::utils;
 use sui::random::{Random, new_generator};
 use contract::constants;
 
-/// Create a fresh deck of 21 cards for Love Letter 2019 Premium Edition
+/// Create a fresh deck of 21 cards for Relic Of Lies 
 /// Returns: vector of card values [0-9] with correct counts
 public fun create_deck(): vector<u8> {
     let mut deck = vector[];

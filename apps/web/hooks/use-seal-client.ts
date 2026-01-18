@@ -26,7 +26,7 @@ export interface DecryptedCard {
 
 // ============== Constants ==============
 
-// Standard deck for Love Letter 2019 Premium Edition (21 cards)
+// Standard deck for Relic Of Lies  (21 cards)
 const DECK_COMPOSITION = [
   0, 0, // 2 Spies
   1, 1, 1, 1, 1, 1, // 6 Guards

@@ -1,4 +1,4 @@
-/// Leaderboard module for Love Letter game with Seal Encryption
+/// Leaderboard module for Relic Of Lies game with Seal Encryption
 /// Manages global rankings as a shared object
 module contract_v4::leaderboard;
 

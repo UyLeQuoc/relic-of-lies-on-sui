@@ -1,4 +1,4 @@
-/// Marketplace module for Love Letter NFT Cards
+/// Marketplace module for Relic Of Lies NFT Cards
 /// Uses Sui Kiosk for trading cards with no-lock policy
 #[allow(unused_const, unused_use, lint(share_owned, public_entry))]
 module contract::marketplace;
