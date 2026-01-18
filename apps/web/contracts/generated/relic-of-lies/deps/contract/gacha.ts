@@ -4,7 +4,7 @@
 
 
 /**
- * Gacha module for Love Letter NFT Cards Allows players to pull random NFT cards
+ * Gacha module for Relic Of Lies NFT Cards Allows players to pull random NFT cards
  * with different rarities
  */
 

@@ -31,7 +31,7 @@ export default function HeroSection() {
               </span>
             </h1>
             <p className="text-lg md:text-xl lg:text-2xl text-zinc-300 max-w-2xl mx-auto leading-relaxed">
-              Master the art of deception in Love Letter 2019 Premium Edition. 
+              Master the art of deception in Relic Of Lies . 
               Play on-chain, stake SUI, and compete for the ultimate prize.
             </p>
           </div>

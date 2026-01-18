@@ -1,4 +1,4 @@
-/// App module for Love Letter 2019 Premium Edition
+/// App module for Relic Of Lies 
 /// Main entry point providing clean interface for frontend
 #[allow(lint(public_random))]
 module contract::app;
@@ -232,7 +232,7 @@ public fun status_playing(): u8 { constants::status_playing() }
 public fun status_round_end(): u8 { constants::status_round_end() }
 public fun status_finished(): u8 { constants::status_finished() }
 
-// ============== Card Info (2019 Premium Edition) ==============
+// ============== Card Info () ==============
 
 /// Get card value constants
 public fun card_spy(): u8 { constants::card_spy() }

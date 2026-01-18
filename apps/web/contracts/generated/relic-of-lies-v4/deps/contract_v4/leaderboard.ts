@@ -4,7 +4,7 @@
 
 
 /**
- * Leaderboard module for Love Letter game with Seal Encryption Manages global
+ * Leaderboard module for Relic Of Lies game with Seal Encryption Manages global
  * rankings as a shared object
  */
 

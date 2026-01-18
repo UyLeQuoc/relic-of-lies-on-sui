@@ -1,4 +1,4 @@
-/// Leaderboard module for Love Letter game
+/// Leaderboard module for Relic Of Lies game
 /// Manages global rankings as a shared object
 module contract::leaderboard;
 

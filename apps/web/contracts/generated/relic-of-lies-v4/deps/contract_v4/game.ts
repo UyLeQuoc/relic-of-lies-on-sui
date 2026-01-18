@@ -4,7 +4,7 @@
 
 
 /**
- * Game module for Love Letter 2019 Premium Edition with Seal Encryption Contains
+ * Game module for Relic Of Lies  with Seal Encryption Contains
  * core game logic with encrypted cards and pending action pattern
  */
 

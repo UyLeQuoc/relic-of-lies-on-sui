@@ -3,7 +3,7 @@
     "address": "contract_v4",
     "name": "utils"
   },
-  "doc": " Utility functions for Love Letter 2019 Premium Edition with Seal Encryption\n Contains helper functions for deck manipulation and vector operations",
+  "doc": " Utility functions for Relic Of Lies  with Seal Encryption\n Contains helper functions for deck manipulation and vector operations",
   "immediate_dependencies": [
     {
       "address": "contract_v4",
@@ -27,7 +27,7 @@
     "create_deck": {
       "source_index": 0,
       "index": 0,
-      "doc": " Create a fresh deck of 21 cards for Love Letter 2019 Premium Edition\n Returns: vector of card values [0-9] with correct counts",
+      "doc": " Create a fresh deck of 21 cards for Relic Of Lies \n Returns: vector of card values [0-9] with correct counts",
       "attributes": [],
       "visibility": "Public",
       "entry": false,

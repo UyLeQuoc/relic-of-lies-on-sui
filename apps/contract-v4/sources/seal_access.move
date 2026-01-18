@@ -1,4 +1,4 @@
-/// Seal Access Control module for Love Letter with Seal Integration
+/// Seal Access Control module for Relic Of Lies with Seal Integration
 /// Handles card ownership verification for Seal key server access control
 module contract_v4::seal_access;
 

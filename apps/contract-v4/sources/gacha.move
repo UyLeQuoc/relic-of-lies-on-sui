@@ -1,4 +1,4 @@
-/// Gacha module for Love Letter NFT Cards
+/// Gacha module for Relic Of Lies NFT Cards
 /// Allows players to pull random NFT cards with different rarities
 #[allow(lint(public_random, self_transfer, public_entry), unused_const)]
 module contract_v4::gacha;
@@ -92,7 +92,7 @@ fun init(otw: GACHA, ctx: &mut TxContext) {
     
     // Basic NFT metadata
     display.add(b"name".to_string(), b"Relic of Lies Card #{value}".to_string());
-    display.add(b"description".to_string(), b"A collectible NFT card from Relic of Lies - Love Letter on Sui. Card Value: {value}, Rarity: {rarity}".to_string());
+    display.add(b"description".to_string(), b"A collectible NFT card from Relic of Lies - Relic Of Lies on Sui. Card Value: {value}, Rarity: {rarity}".to_string());
 
     // Image URL - can be updated later via Display object
     display.add(b"image_url".to_string(), b"https://relic-of-lies.vercel.app/images/cards/characters/{value}.png".to_string());

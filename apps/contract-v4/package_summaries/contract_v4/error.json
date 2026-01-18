@@ -3,7 +3,7 @@
     "address": "contract_v4",
     "name": "error"
   },
-  "doc": " Error codes module for Love Letter 2019 Premium Edition with Seal Encryption\n Contains all error constants for assert! statements",
+  "doc": " Error codes module for Relic Of Lies  with Seal Encryption\n Contains all error constants for assert! statements",
   "immediate_dependencies": [
     {
       "address": "contract_v4",

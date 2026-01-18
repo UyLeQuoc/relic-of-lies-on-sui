@@ -4,7 +4,7 @@
 
 
 /**
- * Constants module for Love Letter 2019 Premium Edition Contains all fixed values
+ * Constants module for Relic Of Lies  Contains all fixed values
  * to avoid hardcoding throughout the codebase
  */
 

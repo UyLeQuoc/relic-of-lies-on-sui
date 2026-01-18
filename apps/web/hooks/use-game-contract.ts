@@ -44,7 +44,7 @@ export const GameStatus = {
   FINISHED: 3,
 } as const;
 
-// Card type constants (2019 Premium Edition)
+// Card type constants ()
 export const CardType = {
   SPY: 0,
   GUARD: 1,

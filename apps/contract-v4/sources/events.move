@@ -1,4 +1,4 @@
-/// Events module for Love Letter 2019 Premium Edition with Seal Encryption
+/// Events module for Relic Of Lies  with Seal Encryption
 /// Used for frontend to track match history and game state changes
 module contract_v4::events;
 

@@ -15,7 +15,7 @@ export function CtaSection() {
 							Ready to Play?
 						</h2>
 						<p className="text-lg text-zinc-400 mb-8 max-w-2xl mx-auto">
-							Join thousands of players competing for the top spot. Create a room, invite friends, and start your journey to become the ultimate Love Letter champion.
+							Join thousands of players competing for the top spot. Create a room, invite friends, and start your journey to become the ultimate Relic Of Lies champion.
 						</p>
 						
 						<div className="flex flex-col sm:flex-row gap-4 justify-center items-center">

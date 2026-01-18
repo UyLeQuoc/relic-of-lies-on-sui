@@ -1,4 +1,4 @@
-/// Constants module for Love Letter 2019 Premium Edition
+/// Constants module for Relic Of Lies 
 /// Contains all fixed values to avoid hardcoding throughout the codebase
 module contract::constants;
 
@@ -38,7 +38,7 @@ public fun status_round_end(): u8 { STATUS_ROUND_END }
 const STATUS_FINISHED: u8 = 3;
 public fun status_finished(): u8 { STATUS_FINISHED }
 
-// ============== Card Types (2019 Premium Edition - 10 types) ==============
+// ============== Card Types ( - 10 types) ==============
 /// Spy (0) - End game bonus if only one player played it
 const CARD_SPY: u8 = 0;
 public fun card_spy(): u8 { CARD_SPY }
@@ -120,7 +120,7 @@ public fun countess_count(): u8 { COUNTESS_COUNT }
 const PRINCESS_COUNT: u8 = 1;
 public fun princess_count(): u8 { PRINCESS_COUNT }
 
-/// Total cards in deck (21 cards for 2019 Premium Edition)
+/// Total cards in deck (21 cards for )
 const TOTAL_CARDS: u8 = 21;
 public fun total_cards(): u8 { TOTAL_CARDS }
 

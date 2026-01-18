@@ -205,6 +205,16 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
   const [chancellorReturnOrder, setChancellorReturnOrder] = useState<GameCard[]>([]);
   const [showCardValues, setShowCardValues] = useState(true);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
+  
+  // Priest reveal state
+  const [priestRevealedCard, setPriestRevealedCard] = useState<{
+    cardIndex: number;
+    cardValue: number;
+    targetPlayerIndex: number;
+    targetPlayerName: string;
+    expiresTurn: number;
+  } | null>(null);
+  const [showPriestModal, setShowPriestModal] = useState(false);
 
   // Animation refs
   const headerRef = useRef<HTMLDivElement>(null);
@@ -313,8 +323,84 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
       // New game started, clear cache
       decryptedIndicesRef.current.clear();
       lastHandIndicesRef.current = "";
+      setPriestRevealedCard(null);
     }
   }, [room?.round_number, room?.status]);
+
+  // Track Priest temporary access - decrypt opponent's card when we have access
+  const priestAccessRef = useRef<string>("");
+  useEffect(() => {
+    if (!room || !currentAccount?.address) return;
+
+    // Find temporary access granted to current player
+    const myAccess = room.seal_access.temporary_access.find(
+      (access) => 
+        access.viewer === currentAccount.address && 
+        Number(access.expires_turn) > Number(room.current_turn)
+    );
+
+    if (!myAccess) {
+      // Clear priest reveal if access expired
+      if (priestRevealedCard && Number(room.current_turn) >= priestRevealedCard.expiresTurn) {
+        setPriestRevealedCard(null);
+      }
+      return;
+    }
+
+    const accessKey = `${myAccess.card_index}-${myAccess.expires_turn}`;
+    if (accessKey === priestAccessRef.current) {
+      return; // Already processed this access
+    }
+
+    // Find which player owns this card
+    const cardOwner = room.seal_access.card_owners.find(
+      (owner) => Number(owner.card_index) === Number(myAccess.card_index)
+    );
+    
+    if (!cardOwner) return;
+
+    const targetPlayerIndex = room.players.findIndex(
+      (p) => p.addr === cardOwner.owner
+    );
+    
+    if (targetPlayerIndex < 0) return;
+
+    // Decrypt the target's card
+    const doDecryptPriestCard = async () => {
+      try {
+        const encryptedCards = room.encrypted_cards.map((card) => {
+          if ("Encrypted" in card && card.Encrypted) {
+            return { ciphertext: new Uint8Array(card.Encrypted.ciphertext) };
+          } else if ("Decrypted" in card && card.Decrypted) {
+            return { ciphertext: new Uint8Array(card.Decrypted.data) };
+          }
+          return { ciphertext: new Uint8Array() };
+        });
+
+        const cardIndex = Number(myAccess.card_index);
+        console.log("Priest: Decrypting opponent's card at index:", cardIndex);
+        
+        const decrypted = await decryptCards(roomId, [cardIndex], encryptedCards);
+        
+        const firstDecrypted = decrypted[0];
+        if (decrypted.length > 0 && firstDecrypted && firstDecrypted.value >= 0) {
+          setPriestRevealedCard({
+            cardIndex: cardIndex,
+            cardValue: firstDecrypted.value,
+            targetPlayerIndex: targetPlayerIndex,
+            targetPlayerName: `Player ${targetPlayerIndex + 1}`,
+            expiresTurn: Number(myAccess.expires_turn),
+          });
+          setShowPriestModal(true);
+          priestAccessRef.current = accessKey;
+        }
+      } catch (err) {
+        console.error("Failed to decrypt Priest target card:", err);
+      }
+    };
+
+    doDecryptPriestCard();
+  }, [room, currentAccount?.address, roomId, decryptCards, priestRevealedCard]);
 
   // Convert room to game state
   const gameState = useMemo(() => {
@@ -1138,6 +1224,78 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Priest Reveal Modal */}
+        {showPriestModal && priestRevealedCard && (
+          <button
+            type="button"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 cursor-pointer"
+            onClick={() => setShowPriestModal(false)}
+          >
+            <div
+              className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-8 max-w-md border-2 border-purple-500/50 shadow-2xl shadow-purple-500/20 cursor-default text-center"
+              role="dialog"
+            >
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Eye className="h-6 w-6 text-purple-400" />
+                <h3 className="text-2xl font-bold text-purple-400">Priest Vision</h3>
+              </div>
+              
+              <p className="text-amber-300/80 mb-6">
+                You peek at <span className="text-white font-semibold">{priestRevealedCard.targetPlayerName}</span>&apos;s hand...
+              </p>
+              
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-purple-500/30 blur-xl rounded-full" />
+                  <CardCharacter 
+                    cardType={mapCardValueToCardType(priestRevealedCard.cardValue)} 
+                    size="md" 
+                  />
+                </div>
+              </div>
+              
+              <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
+                <p className="text-3xl font-bold text-white mb-1">
+                  {CardNames[priestRevealedCard.cardValue] || "Unknown"}
+                </p>
+                <p className="text-amber-400 text-lg">
+                  Value: {priestRevealedCard.cardValue}
+                </p>
+              </div>
+              
+              <p className="text-amber-400/60 text-sm mb-4">
+                This vision expires at turn {priestRevealedCard.expiresTurn}
+              </p>
+              
+              <Button
+                onClick={() => setShowPriestModal(false)}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                Got it!
+              </Button>
+            </div>
+          </button>
+        )}
+
+        {/* Priest Reveal Indicator (persistent) */}
+        {priestRevealedCard && !showPriestModal && room && Number(room.current_turn) < priestRevealedCard.expiresTurn && (
+          <button
+            type="button"
+            onClick={() => setShowPriestModal(true)}
+            className="fixed bottom-4 left-4 z-40 bg-purple-600/90 hover:bg-purple-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all hover:scale-105"
+          >
+            <Eye className="h-5 w-5" />
+            <div className="text-left">
+              <p className="text-sm font-semibold">
+                {priestRevealedCard.targetPlayerName}&apos;s card:
+              </p>
+              <p className="text-lg font-bold">
+                {CardNames[priestRevealedCard.cardValue]} ({priestRevealedCard.cardValue})
+              </p>
+            </div>
+          </button>
         )}
 
         {/* Discard Pile Modal */}
