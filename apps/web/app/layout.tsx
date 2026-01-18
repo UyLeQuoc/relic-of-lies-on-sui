@@ -95,6 +95,7 @@ export default function RootLayout({
 		<html lang="en" className={inter.variable} suppressHydrationWarning>
 			<body
 				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+				style={{ fontFamily: "var(--font-helvetica), sans-serif" }}
 			>
 				{children}
 			</body>

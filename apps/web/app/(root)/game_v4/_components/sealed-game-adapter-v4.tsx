@@ -1511,7 +1511,10 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         <div className="text-center z-10 px-4 max-w-md">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Lock className="h-6 w-6 text-amber-400" />
-            <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400">
+            <h1 
+              className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 tracking-wider"
+              style={{ fontFamily: "var(--font-god-of-war), serif" }}
+            >
               {room.name}
             </h1>
           </div>
@@ -1597,7 +1600,12 @@ export function SealedGameAdapterV4({ roomId }: SealedGameAdapterV4Props) {
         <div ref={headerRef} className="absolute top-4 left-4 z-20 flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <Lock className="h-5 w-5 text-amber-400" />
-            <h1 className="text-2xl md:text-3xl font-bold text-amber-400">{room.name}</h1>
+            <h1 
+              className="text-2xl md:text-3xl font-bold text-amber-400 tracking-wider"
+              style={{ fontFamily: "var(--font-god-of-war), serif" }}
+            >
+              {room.name}
+            </h1>
           </div>
           <div className="flex items-center gap-4 text-sm text-amber-300">
             <span>Round {gameState.roundNumber + 1}</span>
