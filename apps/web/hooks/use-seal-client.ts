@@ -320,17 +320,23 @@ export function useEncryptDeck() {
         // Format: [namespace][card_index (8 bytes)][nonce (5 bytes)]
         const id = createSealIdentity(namespace, i, identityNonce);
         
-        if (i === 0) {
-          console.log("=== Seal Identity Debug (Card 0) ===");
+        // Debug: show ID format for first few cards
+        if (i < 3) {
+          console.log(`=== Seal Identity Debug (Card ${i}) ===`);
           console.log("namespace hex:", Array.from(namespace).map(b => b.toString(16).padStart(2, '0')).join(''));
           console.log("cardIndex:", i);
-          console.log("identityNonce:", Array.from(identityNonce));
+          console.log("identityNonce:", Array.from(identityNonce).map(b => b.toString(16).padStart(2, '0')).join(''));
           console.log("full id:", id);
+          // Parse the ID to verify format
+          const idBytes = fromHex(id);
+          console.log("ID breakdown:");
+          console.log("  - namespace (bytes 0-31):", Array.from(idBytes.slice(0, 32)).map(b => b.toString(16).padStart(2, '0')).join(''));
+          console.log("  - card_index (bytes 32-39):", Array.from(idBytes.slice(32, 40)).map(b => b.toString(16).padStart(2, '0')).join(''));
+          console.log("  - nonce (bytes 40+):", Array.from(idBytes.slice(40)).map(b => b.toString(16).padStart(2, '0')).join(''));
         }
         
-        // TEMPORARY: Skip Seal encryption for testing hash verification
-        // TODO: Re-enable Seal encryption once hash verification works
-        const SKIP_SEAL_ENCRYPTION = true;
+        // Control Seal encryption - set to false to use plaintext mode for testing
+        const SKIP_SEAL_ENCRYPTION = false;
         
         let ciphertext: Uint8Array;
         
