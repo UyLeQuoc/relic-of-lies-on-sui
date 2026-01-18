@@ -6,20 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CardCharacter } from "@/components/common/game-ui/cards/card-character";
 import { CardType, CardConceptType, cardsMap } from "@/components/common/game-ui/cards/types";
-
-// Card data mapping for display
-const CARD_DATA_MAP: Record<number, { name: string; description: string }> = {
-  0: { name: "Spy", description: "At round end, if only you played or discarded a Spy, gain 1 token." },
-  1: { name: "Guard", description: "Name a card (except Guard). If that target holds it, they are eliminated." },
-  2: { name: "Priest", description: "Choose and privately look at another player's hand." },
-  3: { name: "Baron", description: "Privately compare hands with another player. Lower card is eliminated." },
-  4: { name: "Handmaid", description: "You are immune to all card effects until your next turn." },
-  5: { name: "Prince", description: "Choose any player. They discard their card and draw a new one." },
-  6: { name: "Chancellor", description: "Draw 2 cards, keep 1, return 2 to bottom of deck." },
-  7: { name: "King", description: "Trade hands with another player." },
-  8: { name: "Countess", description: "Must be discarded if you have King or Prince." },
-  9: { name: "Princess", description: "If discarded (by you or forced), you are eliminated." },
-};
+import gsap from "gsap";
 
 // Map card value to CardType enum for design system
 const mapCardValueToCardType = (cardValue: number): CardType => {
@@ -63,6 +50,13 @@ interface GameTableProps {
   isGameEnd?: boolean;
   onStartNewGame?: () => void;
   winnerName?: string | null;
+  onViewDiscard?: () => void; // Callback to show discard pile modal in parent
+  roundWinner?: {
+    playerIndex: number;
+    playerName: string;
+    reason: string;
+    cardValue?: number;
+  } | null;
 }
 
 export function GameTable({
@@ -83,14 +77,62 @@ export function GameTable({
   isGameEnd = false,
   onStartNewGame,
   winnerName = null,
+  onViewDiscard,
+  roundWinner = null,
 }: GameTableProps) {
-  const [showDiscardModal, setShowDiscardModal] = React.useState(false);
   // Separate players: opponents (around table) - human player is shown in Card Hand at bottom and South position
   const opponents = players.filter((_, idx) => idx !== myPlayerIndex);
   const humanPlayer = players[myPlayerIndex];
   
   // Prince (card value 5) can target self
   const canTargetSelf = selectedCardValue === 5;
+  
+  // GSAP Animation refs
+  const deckRef = React.useRef<HTMLDivElement>(null);
+  const discardRef = React.useRef<HTMLButtonElement>(null);
+  const prevDeckCount = React.useRef<number>(deckCount);
+  const prevDiscardCount = React.useRef<number>(discardCount);
+  const tableRef = React.useRef<HTMLDivElement>(null);
+  
+  // GSAP: Deck count change animation - AFTER state updates
+  React.useLayoutEffect(() => {
+    if (!deckRef.current) return;
+    
+    // Deck decreased (card drawn)
+    if (deckCount < prevDeckCount.current && prevDeckCount.current > 0) {
+      gsap.fromTo(deckRef.current,
+        { scale: 1.1, rotateZ: -5 },
+        { scale: 1, rotateZ: 0, duration: 0.4, ease: "back.out(1.7)" }
+      );
+    }
+    
+    prevDeckCount.current = deckCount;
+  }, [deckCount]);
+  
+  // GSAP: Discard pile change animation - AFTER state updates
+  React.useLayoutEffect(() => {
+    if (!discardRef.current) return;
+    
+    // Discard increased (card added)
+    if (discardCount > prevDiscardCount.current) {
+      gsap.fromTo(discardRef.current,
+        { scale: 0.8, y: -20, opacity: 0.5 },
+        { scale: 1, y: 0, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
+      );
+    }
+    
+    prevDiscardCount.current = discardCount;
+  }, [discardCount]);
+  
+  // GSAP: Table entrance animation
+  React.useLayoutEffect(() => {
+    if (!tableRef.current) return;
+    
+    gsap.fromTo(tableRef.current,
+      { opacity: 0, scale: 0.95 },
+      { opacity: 1, scale: 1, duration: 0.5, ease: "power3.out" }
+    );
+  }, []);
 
   // Calculate positions based on player count
   // Human player is always at South (bottom)
@@ -135,7 +177,7 @@ export function GameTable({
   };
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
+    <div ref={tableRef} className="relative w-full h-full flex items-center justify-center">
       {/* Table background - Game floor */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -144,7 +186,7 @@ export function GameTable({
         }}
       />
       {/* Dark overlay for better card visibility */}
-      <div className="absolute inset-0 bg-black/30" />
+      <div className="absolute inset-0 bg-black/40" />
 
       {/* Opponents around the table */}
       {opponents.map((player, idx) => {
@@ -223,6 +265,13 @@ export function GameTable({
                     <span className="text-xs">💀</span>
                   </div>
                 )}
+                
+                {/* Round Winner Crown */}
+                {roundWinner && roundWinner.playerIndex === actualIndex && (
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 animate-bounce">
+                    <span className="text-3xl drop-shadow-lg">👑</span>
+                  </div>
+                )}
               </div>
 
               {/* Opponent card count - Right side of avatar */}
@@ -249,13 +298,25 @@ export function GameTable({
               >
                 {formatAddress(player.id)}
               </a>
-              <div className="flex items-center gap-1 mt-0.5">
+              <div className="flex items-center gap-1 mt-1">
                 {Array.from({ length: player.hearts }, (_, i) => (
-                  <span key={`heart-${player.id}-${i}`} className="text-red-500 text-xs">
-                    ❤️
-                  </span>
+                  <img 
+                    key={`token-${player.id}-${i}`} 
+                    src="/images/logo/main.png" 
+                    alt="Token" 
+                    className="w-6 h-6 object-contain drop-shadow-[0_0_6px_rgba(251,191,36,0.9)] brightness-110"
+                  />
                 ))}
               </div>
+              
+              {/* Round Winner Reason */}
+              {roundWinner && roundWinner.playerIndex === actualIndex && (
+                <div className="mt-2 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full shadow-lg animate-pulse">
+                  <span className="text-xs font-bold text-slate-900">
+                    🏆 {roundWinner.reason}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -265,39 +326,47 @@ export function GameTable({
       <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-4 z-0">
         {/* Start New Round Button - Center */}
         {showStartRoundButton && onStartRound ? (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-3">
             <Button
               onClick={onStartRound}
               disabled={isStartingRound}
               size="lg"
-              className="from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold px-6 py-4 text-base md:text-lg shadow-xl"
+              className="relative overflow-hidden bg-gradient-to-b from-amber-500 via-amber-600 to-amber-700 hover:from-amber-400 hover:via-amber-500 hover:to-amber-600 text-slate-900 font-bold px-8 py-5 text-lg md:text-xl rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_6px_0_0_#92400e,0_8px_30px_rgba(245,158,11,0.5)] hover:shadow-[0_3px_0_0_#92400e,0_5px_20px_rgba(245,158,11,0.6)] hover:translate-y-[3px] active:translate-y-[6px] active:shadow-none border-2 border-amber-400/60"
+              style={{ fontFamily: 'var(--font-god-of-war), serif' }}
             >
-              {isStartingRound ? 'Starting New Round...' : 'Start New Round'}
+              <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]">
+                {isStartingRound ? '🎴 Preparing...' : '🎴 Start New Round'}
+              </span>
             </Button>
             {isGameEnd && (
-              <p className="text-center text-amber-400 font-semibold text-sm mt-2">Game Ended!</p>
+              <p className="text-center text-amber-400 font-semibold text-sm mt-1 drop-shadow-lg">⚔️ Game Ended! ⚔️</p>
             )}
           </div>
         ) : isGameEnd && onStartNewGame ? (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-3">
             {winnerName && (
-              <p className="text-center text-amber-400 font-semibold text-lg mb-2">
-                {winnerName} Won!
-              </p>
+              <div className="text-center mb-2">
+                <p className="text-amber-400 font-bold text-xl drop-shadow-lg" style={{ fontFamily: 'var(--font-god-of-war), serif' }}>
+                  👑 {winnerName} Won! 👑
+                </p>
+              </div>
             )}
             <Button
               onClick={onStartNewGame}
               size="lg"
-              className="from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold px-6 py-4 text-base md:text-lg shadow-xl"
+              className="relative overflow-hidden bg-gradient-to-b from-purple-500 via-purple-600 to-purple-800 hover:from-purple-400 hover:via-purple-500 hover:to-purple-700 text-white font-bold px-8 py-5 text-lg md:text-xl rounded-lg transition-all shadow-[0_6px_0_0_#581c87,0_8px_30px_rgba(168,85,247,0.5)] hover:shadow-[0_3px_0_0_#581c87,0_5px_20px_rgba(168,85,247,0.6)] hover:translate-y-[3px] active:translate-y-[6px] active:shadow-none border-2 border-purple-400/60"
+              style={{ fontFamily: 'var(--font-god-of-war), serif' }}
             >
-              Start New Game
+              <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+                ✨ Start New Game ✨
+              </span>
             </Button>
           </div>
         ) : (
           /* Deck and Discard Pile */
           <div className="flex items-end gap-4 md:gap-6">
           {/* Deck - Using card back from design system with stacked effect */}
-          <div className="relative flex flex-col items-center">
+          <div ref={deckRef} className="relative flex flex-col items-center">
             <div className="relative">
               {/* Stacked card layers for depth effect */}
               {deckCount > 0 && (
@@ -366,7 +435,7 @@ export function GameTable({
                 </div>
               )}
             </div>
-            <p className="text-center mt-1 text-xs text-amber-400 font-medium">
+            <p className="text-center mt-3 text-xs text-amber-400 font-medium">
               Deck
             </p>
           </div>
@@ -374,8 +443,9 @@ export function GameTable({
           {/* Discard Pile with stacked effect */}
           <div className="relative flex flex-col items-center">
             <button
+              ref={discardRef}
               type="button"
-              onClick={() => discardCount > 0 && setShowDiscardModal(true)}
+              onClick={() => discardCount > 0 && onViewDiscard?.()}
               disabled={discardCount === 0}
               className={cn(
                 "relative transition-all",
@@ -471,7 +541,7 @@ export function GameTable({
                 </div>
               )}
             </button>
-            <p className="text-center mt-1 text-xs text-amber-400 font-medium">
+            <p className="text-center mt-3 text-xs text-amber-400 font-medium">
               Discard
             </p>
           </div>
@@ -550,6 +620,13 @@ export function GameTable({
                 <span className="text-xs">💀</span>
               </div>
             )}
+            
+            {/* Round Winner Crown */}
+            {roundWinner && roundWinner.playerIndex === myPlayerIndex && (
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 animate-bounce">
+                <span className="text-3xl drop-shadow-lg">👑</span>
+              </div>
+            )}
           </div>
           
           {/* Player info */}
@@ -563,60 +640,29 @@ export function GameTable({
             >
               {formatAddress(humanPlayer.id)}
             </a>
-            <div className="flex items-center gap-1 mt-0.5">
+            <div className="flex items-center gap-1 mt-1">
               {Array.from({ length: humanPlayer.hearts }, (_, i) => (
-                <span key={`heart-${humanPlayer.id}-${i}`} className="text-red-500 text-xs">
-                  ❤️
-                </span>
+                <img 
+                  key={`token-${humanPlayer.id}-${i}`} 
+                  src="/images/logo/main.png" 
+                  alt="Token" 
+                  className="w-6 h-6 object-contain drop-shadow-[0_0_6px_rgba(251,191,36,0.9)] brightness-110"
+                />
               ))}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Discard Pile Modal */}
-      {showDiscardModal && (
-        <div 
-          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
-          onClick={() => setShowDiscardModal(false)}
-        >
-          <div 
-            className="bg-slate-900 border-2 border-amber-600 rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4 min-w-56">
-              <h3 className="text-xl font-bold text-amber-400">Discarded Cards ({discardPile.length})</h3>
-              <button
-                type="button"
-                onClick={() => setShowDiscardModal(false)}
-                className="text-amber-400 hover:text-amber-300 text-2xl font-bold"
-              >
-                ×
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-4 justify-center">
-              {discardPile.map((card) => {
-                const cardData = CARD_DATA_MAP[card.value];
-                return (
-                  <div
-                    key={card.id}
-                    className="flex flex-col items-center gap-1"
-                  >
-                    <CardCharacter
-                      cardType={mapCardValueToCardType(card.value)}
-                      size="xs"
-                    />
-                    <span className="text-xs text-amber-400 font-medium">{cardData?.name || 'Unknown'}</span>
-                  </div>
-                );
-              })}
-            </div>
-            {discardPile.length === 0 && (
-              <p className="text-center text-amber-400/70 mt-4">No cards discarded yet</p>
+            
+            {/* Round Winner Reason */}
+            {roundWinner && roundWinner.playerIndex === myPlayerIndex && (
+              <div className="mt-2 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full shadow-lg animate-pulse">
+                <span className="text-xs font-bold text-slate-900">
+                  🏆 {roundWinner.reason}
+                </span>
+              </div>
             )}
           </div>
         </div>
       )}
+
     </div>
   );
 }
